@@ -1,16 +1,21 @@
 import os
+from dataclasses import dataclass
+
 from dotenv import load_dotenv
-from app.models.schemas import EnvMetaInfo
 
 
+@dataclass
+class EnvMetaInfo:
+    llm_api_key: str | None
+    llm_model: str | None
+    llm_provider: str | None
 
 
-def get_env_meta_info():
+def get_env_meta_info() -> EnvMetaInfo:
     load_dotenv()
-    super_hero_api_token=os.getenv("SUPERHERO_API_TOKEN")
-    llm_api_key=os.getenv("LLM_API_KEY")
-    llm_model=os.getenv("LLM_MODEL")
-    llm_provider=os.getenv("LLM_PROVIDER")
 
-    env_meta_info=EnvMetaInfo(super_hero_api_token=super_hero_api_token,llm_api_key=llm_api_key,llm_model=llm_model,llm_provider=llm_provider)
-    return env_meta_info
+    return EnvMetaInfo(
+        llm_api_key=os.getenv("LLM_API_KEY"),
+        llm_model=os.getenv("LLM_MODEL"),
+        llm_provider=os.getenv("LLM_PROVIDER"),
+    )

@@ -1,16 +1,17 @@
 from fastapi import FastAPI
 
-from app.routes.ask import router as ask_router
 from app.routes.health import router as health_router
+from app.routes.recommend import router as recommend_router
 
 
 app = FastAPI(
-    title="AI Engineer Assessment API",
-    version="1.0.0"
+    title="Trek_XP API",
+    version="0.1.0",
+    description=(
+        "Recommends the gadgets you actually need for a trip, based on "
+        "where you are going, when, and what you plan to do there."
+    ),
 )
 
-app.include_router(ask_router)
+app.include_router(recommend_router)
 app.include_router(health_router)
-
-
-
