@@ -3,7 +3,11 @@ class AppException(Exception):
 
 
 class DestinationDataException(AppException):
-    """Raised when destination data (climate / country) cannot be retrieved."""
+    """Raised when a destination data service cannot be reached."""
+
+
+class DestinationNotFoundException(AppException):
+    """Raised when the destination does not resolve to a real place."""
 
 
 class GadgetSourceException(AppException):

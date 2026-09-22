@@ -43,7 +43,7 @@ class TripRequest(BaseModel):
     trip_type: TripType
     activities: list[Activity] = Field(default_factory=list)
     baggage: Baggage = Baggage.CHECKED
-    travelers: int = Field(default=1, ge=1, le=20)
+    travelers: int = Field(default=1, ge=1, le=50)
 
     @model_validator(mode="after")
     def check_date_order(self) -> "TripRequest":

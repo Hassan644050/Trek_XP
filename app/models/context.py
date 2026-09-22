@@ -9,6 +9,10 @@ class ClimateInfo(BaseModel):
     min_temp_c: float | None = None
     max_temp_c: float | None = None
     precipitation_mm: float | None = None
+    # True when the figures are last year's actuals standing in for a trip
+    # too far out to forecast -- callers should say so rather than imply
+    # these are predictions.
+    historical: bool = False
     available: bool = True
 
 
