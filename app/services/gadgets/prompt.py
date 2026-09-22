@@ -2,7 +2,11 @@ from app.models.context import TripContext
 
 
 MIN_ITEMS = 5
-MAX_ITEMS = 12
+MAX_ITEMS = 8
+
+# Cards are image-led, so the reason is read as a caption rather than a
+# paragraph. Shorter also means fewer output tokens, which dominate cost.
+MAX_WHY_WORDS = 18
 
 
 def _place_label(context: TripContext) -> str:
@@ -77,7 +81,8 @@ INSTRUCTIONS
 - Base every recommendation on the trip facts above. Do not invent weather,
   voltage or plug details that are not stated.
 - If a plug type is given, include the correct travel adapter and name the type.
-- "why" must be one sentence, specific to this trip rather than generic advice.
+- "why" must be at most {MAX_WHY_WORDS} words, specific to this trip rather
+  than generic advice. No preamble, no restating the gadget name.
 - priority must be exactly one of: essential, recommended, optional.
 
 Respond with JSON only: a single array, no prose and no markdown fences.
