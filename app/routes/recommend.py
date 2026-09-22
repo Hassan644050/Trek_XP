@@ -1,15 +1,25 @@
+import asyncio
+
 from fastapi import APIRouter
 
 from app.models.context import TripContext
 from app.models.recommendation import RecommendResponse
 from app.models.trip import TripRequest
 from app.services.destination.aggregator import build_trip_context
+from app.services.gadgets.factory import get_gadget_source
 
 
 router = APIRouter()
 
+GADGET_SOURCE_NAME = "llm_gadget_knowledge"
+
 
 def _context_notes(context: TripContext) -> list[str]:
+    """Surface what the advice was actually based on.
+
+    Absences are stated explicitly: a traveller should know when weather or
+    plug data was missing rather than assume it was considered.
+    """
     notes: list[str] = []
 
     if context.climate.available and context.climate.summary:
@@ -17,7 +27,7 @@ def _context_notes(context: TripContext) -> list[str]:
     else:
         notes.append(
             "Climate data was unavailable for these dates; "
-            "recommendations will not account for weather."
+            "recommendations do not account for weather."
         )
 
     country = context.country
@@ -34,7 +44,8 @@ def _context_notes(context: TripContext) -> list[str]:
         )
 
     notes.append(
-        "Gadget recommendations are not wired up yet -- destination data only."
+        "Suggestions come from a language model and have not been "
+        "community-verified."
     )
 
     return notes
@@ -42,17 +53,25 @@ def _context_notes(context: TripContext) -> list[str]:
 
 @router.post("/recommend", response_model=RecommendResponse)
 async def recommend(request: TripRequest) -> RecommendResponse:
-    """Recommend travel gadgets for a trip.
-
-    Destination data is live; the gadget source is the next step, so
-    `recommendations` comes back empty for now.
-    """
+    """Recommend travel gadgets for a trip."""
     context = await build_trip_context(request)
+
+    # The provider SDKs are blocking, so they run on a worker thread:
+    # calling them inline would stall the event loop for every other
+    # request for the whole duration of the model call.
+    recommendations = await asyncio.to_thread(
+        get_gadget_source().recommend, context
+    )
+
+    sources = list(context.sources)
+
+    if recommendations:
+        sources.append(GADGET_SOURCE_NAME)
 
     return RecommendResponse(
         destination=context.trip.destination,
         duration_days=context.trip.duration_days,
-        recommendations=[],
+        recommendations=recommendations,
         notes=_context_notes(context),
-        sources=context.sources,
+        sources=sources,
     )

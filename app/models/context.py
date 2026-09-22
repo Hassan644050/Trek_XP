@@ -35,6 +35,9 @@ class TripContext(BaseModel):
     """
 
     trip: TripRequest
+    # The geocoder's own name for the place. Prompts use this rather than
+    # the raw user string, which keeps unvetted input out of the model.
+    resolved_place: str | None = None
     climate: ClimateInfo = Field(default_factory=ClimateInfo)
     country: CountryInfo = Field(default_factory=CountryInfo)
     sources: list[str] = Field(default_factory=list)
