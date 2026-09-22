@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trek_XP</title>
+<style>
+  :root {
+    --ground: #e6ebf0;
+    --surface: #ffffff;
+    --surface-sunk: #eff3f7;
+    --ink: #111921;
+    --ink-soft: #56636f;
+    --ink-faint: #8593a0;
+    --line: #c9d3dc;
+    --line-soft: #dde4ea;
+    --signal: #b4550a;
+    --signal-ink: #8e4206;
+    --signal-wash: #f7ead9;
+    --focus: #1d6fb8;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --r: 3px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e141a;
+      --surface: #161e26;
+      --surface-sunk: #111820;
+      --ink: #e4eaf0;
+      --ink-soft: #9aa8b5;
+      --ink-faint: #6b7a88;
+      --line: #2a3742;
+      --line-soft: #202b34;
+      --signal: #f0a03d;
+      --signal-ink: #f7bd74;
+      --signal-wash: #2a1f12;
+      --focus: #6db3ea;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0e141a;
+    --surface: #161e26;
+    --surface-sunk: #111820;
+    --ink: #e4eaf0;
+    --ink-soft: #9aa8b5;
+    --ink-faint: #6b7a88;
+    --line: #2a3742;
+    --line-soft: #202b34;
+    --signal: #f0a03d;
+    --signal-ink: #f7bd74;
+    --signal-wash: #2a1f12;
+    --focus: #6db3ea;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 680px; margin: 0 auto; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 44px 0 30px;
+  }
+
+  .brandline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--signal-ink);
+  }
+
+  .brandline::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  h1 {
+    font-size: clamp(30px, 7vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.032em;
+    line-height: 1.08;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    color: var(--ink-soft);
+    font-size: 16px;
+    margin: 0;
+    max-width: 48ch;
+  }
+
+  /* ---------- panel + fields ---------- */
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding: 26px 22px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 9px; }
+
+  .label {
+    align-items: baseline;
+    color: var(--ink-soft);
+    display: flex;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    gap: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .label .opt {
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    text-transform: none;
+  }
+
+  input[type="text"], input[type="date"] {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    padding: 12px 13px;
+    width: 100%;
+  }
+
+  input[type="date"] {
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+
+  input::placeholder { color: var(--ink-faint); }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* ---------- destination typeahead ---------- */
+
+  .combo { position: relative; }
+
+  .suggestions {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: 0 10px 26px rgb(0 0 0 / 0.14);
+    left: 0;
+    list-style: none;
+    margin: 4px 0 0;
+    max-height: 246px;
+    overflow-y: auto;
+    padding: 4px;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 20;
+  }
+
+  .suggestions[hidden] { display: none; }
+
+  .suggestions li {
+    align-items: baseline;
+    border-radius: var(--r);
+    cursor: pointer;
+    display: flex;
+    gap: 9px;
+    padding: 9px 10px;
+  }
+
+  .suggestions li:hover,
+  .suggestions li[aria-selected="true"] { background: var(--surface-sunk); }
+
+  .sg-name { font-size: 15px; }
+
+  .sg-country {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    margin-left: auto;
+  }
+
+  .resolved {
+    align-items: center;
+    color: var(--ink-soft);
+    display: flex;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    gap: 7px;
+  }
+
+  .resolved[hidden] { display: none; }
+
+  .tick { color: var(--signal-ink); font-weight: 700; }
+
+  /* ---------- date pair ---------- */
+
+  .pair {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ---------- choice grids ---------- */
+
+  .choices {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .choices input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .choices label {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    cursor: pointer;
+    display: block;
+    font-size: 14.5px;
+    padding: 11px 13px;
+    transition: border-color 0.12s, background 0.12s;
+  }
+
+  .choices label:hover { border-color: var(--ink-faint); }
+
+  .choices input:checked + label {
+    background: var(--signal-wash);
+    border-color: var(--signal);
+    color: var(--signal-ink);
+    font-weight: 600;
+  }
+
+  .choices input:focus-visible + label {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+
+  .chips input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .chips label {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    cursor: pointer;
+    font-size: 13.5px;
+    padding: 7px 14px;
+    transition: border-color 0.12s, background 0.12s;
+  }
+
+  .chips input:checked + label {
+    background: var(--signal-wash);
+    border-color: var(--signal);
+    color: var(--signal-ink);
+    font-weight: 600;
+  }
+
+  .chips input:focus-visible + label {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* ---------- segmented + stepper ---------- */
+
+  .row {
+    display: grid;
+    gap: 22px;
+    grid-template-columns: 1fr auto;
+  }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    .pair { grid-template-columns: 1fr; }
+  }
+
+  .segmented {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    display: flex;
+    overflow: hidden;
+  }
+
+  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .segmented label {
+    cursor: pointer;
+    flex: 1;
+    font-size: 13.5px;
+    padding: 10px 12px;
+    text-align: center;
+    transition: background 0.12s;
+  }
+
+  .segmented label + input + label { border-left: 1px solid var(--line); }
+
+  .segmented input:checked + label {
+    background: var(--signal-wash);
+    color: var(--signal-ink);
+    font-weight: 600;
+  }
+
+  .segmented input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+  .stepper {
+    align-items: center;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    display: inline-flex;
+  }
+
+  .stepper button {
+    background: none;
+    border: 0;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 17px;
+    line-height: 1;
+    padding: 10px 15px;
+  }
+
+  .stepper button:hover { color: var(--signal-ink); }
+
+  .stepper output {
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    min-width: 46px;
+    padding: 9px 0;
+    text-align: center;
+  }
+
+  /* ---------- submit ---------- */
+
+  .submit {
+    background: var(--signal);
+    border: 0;
+    border-radius: var(--r);
+    color: #fff;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 15.5px;
+    font-weight: 650;
+    letter-spacing: 0.005em;
+    padding: 15px;
+    width: 100%;
+  }
+
+  :root[data-theme="dark"] .submit,
+  .submit { color: #fff; }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .submit { color: #14100a; }
+  }
+
+  :root[data-theme="dark"] .submit { color: #14100a; }
+
+  .submit:hover { filter: brightness(1.08); }
+
+  /* ---------- loading ---------- */
+
+  .status {
+    align-items: center;
+    color: var(--ink-soft);
+    display: flex;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .pulse {
+    background: var(--signal);
+    border-radius: 50%;
+    flex: none;
+    height: 7px;
+    width: 7px;
+    animation: blink 1.1s ease-in-out infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0.25; } }
+
+  .skeleton {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    margin-bottom: 8px;
+    padding: 16px;
+  }
+
+  .bar {
+    background: linear-gradient(90deg, var(--line-soft), var(--line), var(--line-soft));
+    background-size: 220% 100%;
+    border-radius: 2px;
+    height: 10px;
+    animation: sweep 1.4s linear infinite;
+  }
+
+  .bar + .bar { margin-top: 9px; }
+
+  @keyframes sweep { to { background-position: -220% 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse, .bar { animation: none; }
+  }
+
+  /* ---------- results ---------- */
+
+  .manifest { display: flex; flex-direction: column; gap: 22px; }
+
+  .readout {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    display: grid;
+    gap: 1px;
+    grid-template-columns: repeat(3, 1fr);
+    overflow: hidden;
+  }
+
+  @media (max-width: 560px) { .readout { grid-template-columns: 1fr; } }
+
+  .cell {
+    background: var(--surface);
+    box-shadow: 0 0 0 1px var(--line-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px 16px;
+  }
+
+  .cell-k {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .cell-v {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cell-v.hl { color: var(--signal-ink); font-weight: 700; }
+
+  .cell-note { color: var(--ink-soft); font-size: 12px; }
+
+  .group { display: flex; flex-direction: column; gap: 8px; }
+
+  .group-head {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+  }
+
+  .tag {
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    padding: 3px 7px;
+    text-transform: uppercase;
+  }
+
+  .tag.essential { background: var(--signal); color: #fff; }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .tag.essential { color: #14100a; }
+  }
+
+  :root[data-theme="dark"] .tag.essential { color: #14100a; }
+
+  .tag.recommended { border: 1px solid var(--signal); color: var(--signal-ink); }
+  .tag.optional { border: 1px solid var(--line); color: var(--ink-faint); }
+
+  .group-count {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+    margin-left: auto;
+  }
+
+  .item {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px 16px;
+  }
+
+  .item.is-essential { border-color: var(--line); }
+
+  .item.is-optional { background: none; border-style: dashed; }
+
+  .item-name { font-size: 15.5px; font-weight: 650; letter-spacing: -0.008em; }
+
+  .item-why { color: var(--ink-soft); font-size: 13.5px; }
+
+  .item-meta {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- provenance ---------- */
+
+  .provenance {
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 18px;
+  }
+
+  .srcs { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .src {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line-soft);
+    border-radius: 2px;
+    color: var(--ink-soft);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    padding: 4px 8px;
+  }
+
+  .caveat {
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    margin: 0;
+  }
+
+  .caveat b { color: var(--ink); font-weight: 650; }
+
+  .restart {
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    color: var(--ink);
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 12px;
+    width: 100%;
+  }
+
+  .restart:hover { border-color: var(--ink-faint); }
+
+  .formError {
+    background: var(--signal-wash);
+    border: 1px solid var(--signal);
+    border-radius: var(--r);
+    color: var(--signal-ink);
+    font-size: 13.5px;
+    margin: 0;
+    padding: 11px 13px;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div class="brandline">Trek_XP</div>
+    <h1>What should you actually pack?</h1>
+    <p class="standfirst">
+      Tell us where you're going and what you'll be doing. We check the local
+      weather, the plug type and the voltage, then work out which gadgets earn
+      their space.
+    </p>
+  </header>
+
+  <main>
+    <form class="panel" id="tripForm">
+      <div class="field">
+        <span class="label" id="lbl-dest">Destination</span>
+        <div class="combo">
+          <input type="text" id="dest" autocomplete="off" role="combobox"
+                 aria-expanded="false" aria-controls="sugg" aria-labelledby="lbl-dest"
+                 placeholder="Start typing a city…" />
+          <ul class="suggestions" id="sugg" role="listbox" aria-label="Matching places" hidden></ul>
+        </div>
+        <span class="resolved" id="resolved" hidden>
+          <span class="tick">✓</span><span id="resolvedText"></span>
+        </span>
+      </div>
+
+      <div class="field">
+        <span class="label">Dates</span>
+        <div class="pair">
+          <input type="date" id="start" value="2026-11-10" aria-label="Start date" />
+          <input type="date" id="end" value="2026-11-17" aria-label="End date" />
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Trip type</span>
+        <div class="choices" id="tripType"></div>
+      </div>
+
+      <div class="field">
+        <span class="label">Activities <span class="opt">optional</span></span>
+        <div class="chips" id="activities"></div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <span class="label">Baggage</span>
+          <div class="segmented">
+            <input type="radio" name="bag" id="bag-carry" value="carry_on_only" />
+            <label for="bag-carry">Carry-on only</label>
+            <input type="radio" name="bag" id="bag-checked" value="checked" checked />
+            <label for="bag-checked">Checked allowed</label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">Travellers</span>
+          <div class="stepper">
+            <button type="button" id="minus" aria-label="One fewer traveller">−</button>
+            <output id="pax">2</output>
+            <button type="button" id="plus" aria-label="One more traveller">+</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="formError" id="formError" hidden role="alert"></p>
+
+      <button class="submit" type="submit">Get my packing list</button>
+    </form>
+
+    <section id="loading" hidden aria-live="polite">
+      <div class="status"><span class="pulse"></span><span id="statusText">Finding Cox's Bazar…</span></div>
+      <div class="skeleton"><div class="bar" style="width:52%"></div><div class="bar" style="width:88%"></div></div>
+      <div class="skeleton"><div class="bar" style="width:44%"></div><div class="bar" style="width:76%"></div></div>
+      <div class="skeleton"><div class="bar" style="width:60%"></div><div class="bar" style="width:82%"></div></div>
+    </section>
+
+    <section id="results" hidden class="manifest">
+      <div class="readout">
+        <div class="cell">
+          <span class="cell-k">Destination</span>
+          <span class="cell-v" id="rDest">Cox's Bazar</span>
+          <span class="cell-note" id="rDays">8 days · 2 travellers</span>
+        </div>
+        <div class="cell">
+          <span class="cell-k">Conditions</span>
+          <span class="cell-v" id="rTemp">20.2 – 31.0 °C</span>
+          <span class="cell-note" id="rWeather">Hot and mostly dry</span>
+        </div>
+        <div class="cell">
+          <span class="cell-k">Power</span>
+          <span class="cell-v hl" id="rPlug">Type A/C/D/G/K</span>
+          <span class="cell-note" id="rVolt">220V · 50Hz</span>
+        </div>
+      </div>
+
+      <div id="groups"></div>
+
+      <div class="provenance">
+        <div class="srcs" id="srcs"></div>
+        <p class="caveat">
+          <b>Not yet community-verified.</b> These suggestions come from a language
+          model working off the conditions above. Verified entries will carry a badge
+          once the community catalogue opens.
+        </p>
+        <button class="restart" type="button" id="restart">Plan another trip</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const TRIPS = [["beach","Beach"],["city","City break"],["hiking","Hiking"],
+                 ["business","Business"],["backpacking","Backpacking"],["winter_sports","Winter sports"]];
+  const ACTS = [["photography","Photography"],["diving","Diving"],["camping","Camping"],
+                ["cycling","Cycling"],["climbing","Climbing"],["remote_work","Remote work"]];
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  let place = null;
+  let matches = [];
+  let pax = 2;
+
+  TRIPS.forEach(([v, lbl], i) => {
+    $("tripType").insertAdjacentHTML("beforeend",
+      `<input type="radio" name="tt" id="tt-${v}" value="${v}"${i === 0 ? " checked" : ""} />
+       <label for="tt-${v}">${lbl}</label>`);
+  });
+
+  ACTS.forEach(([v, lbl]) => {
+    $("activities").insertAdjacentHTML("beforeend",
+      `<input type="checkbox" id="ac-${v}" value="${v}" />
+       <label for="ac-${v}">${lbl}</label>`);
+  });
+
+  // ---- destination picker: live search, user chooses the real place ----
+  const dest = $("dest"), sugg = $("sugg");
+  let searchTimer = null;
+
+  function closeList() {
+    sugg.hidden = true;
+    dest.setAttribute("aria-expanded", "false");
+  }
+
+  function pick(p) {
+    place = p;
+    dest.value = p.name;
+    $("resolvedText").textContent =
+      `${p.name}${p.country ? ", " + p.country : ""}${p.country_code ? " · " + p.country_code : ""}`;
+    $("resolved").hidden = false;
+    closeList();
+  }
+
+  async function search(q) {
+    try {
+      const res = await fetch(`/destinations?q=${encodeURIComponent(q)}&limit=6`);
+      if (!res.ok) return closeList();
+      matches = await res.json();
+    } catch { return closeList(); }
+
+    if (!matches.length) return closeList();
+
+    sugg.innerHTML = matches.map((p, i) =>
+      `<li role="option" tabindex="0" data-i="${i}" aria-selected="${i === 0}">
+         <span class="sg-name">${esc(p.name)}</span>
+         <span class="sg-country">${esc(p.country || "")}</span></li>`).join("");
+    sugg.hidden = false;
+    dest.setAttribute("aria-expanded", "true");
+  }
+
+  dest.addEventListener("input", () => {
+    place = null;
+    $("resolved").hidden = true;
+    const q = dest.value.trim();
+    clearTimeout(searchTimer);
+    if (q.length < 2) return closeList();
+    // Debounced so a fast typist does not fire a request per keystroke.
+    searchTimer = setTimeout(() => search(q), 220);
+  });
+
+  sugg.addEventListener("click", (e) => {
+    const li = e.target.closest("li");
+    if (li) pick(matches[+li.dataset.i]);
+  });
+
+  sugg.addEventListener("keydown", (e) => {
+    const li = e.target.closest("li");
+    if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pick(matches[+li.dataset.i]); }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".combo")) closeList();
+  });
+
+  $("minus").addEventListener("click", () => { pax = Math.max(1, pax - 1); $("pax").textContent = pax; });
+  $("plus").addEventListener("click", () => { pax = Math.min(50, pax + 1); $("pax").textContent = pax; });
+
+  function payload() {
+    const body = {
+      destination: dest.value.trim(),
+      start_date: $("start").value,
+      end_date: $("end").value,
+      trip_type: document.querySelector('input[name="tt"]:checked').value,
+      activities: [...document.querySelectorAll("#activities input:checked")].map((i) => i.value),
+      baggage: document.querySelector('input[name="bag"]:checked').value,
+      travelers: pax
+    };
+    if (place) {
+      body.latitude = place.latitude;
+      body.longitude = place.longitude;
+      body.country_code = place.country_code;
+      body.country_name = place.country;
+    }
+    return body;
+  }
+
+  function fail(message) {
+    $("loading").hidden = true;
+    $("tripForm").hidden = false;
+    $("formError").textContent = message;
+    $("formError").hidden = false;
+  }
+
+  $("tripForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("formError").hidden = true;
+
+    if (!dest.value.trim()) return fail("Choose a destination to continue.");
+    if (new Date($("end").value) < new Date($("start").value))
+      return fail("The return date falls before the departure date.");
+
+    const label = place ? place.name : dest.value.trim();
+    const steps = [`Finding ${label}…`, `Checking the weather in ${label}…`,
+                   "Looking up plug types…", "Asking the gear advisor…"];
+
+    $("tripForm").hidden = true;
+    $("results").hidden = true;
+    $("loading").hidden = false;
+
+    let i = 0;
+    $("statusText").textContent = steps[0];
+    const tick = setInterval(() => { i += 1; if (i < steps.length) $("statusText").textContent = steps[i]; }, 1400);
+
+    let res, data;
+    try {
+      res = await fetch("/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload())
+      });
+      data = await res.json();
+    } catch {
+      clearInterval(tick);
+      return fail("Could not reach the server. Check it is running and try again.");
+    }
+    clearInterval(tick);
+
+    if (!res.ok) {
+      const detail = Array.isArray(data?.detail)
+        ? "Check the form values and try again."
+        : (data?.detail || "Something went wrong. Try again.");
+      return fail(detail);
+    }
+
+    render(data);
+    $("loading").hidden = true;
+    $("results").hidden = false;
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  function render(data) {
+    const recs = data.recommendations || [];
+    const notes = data.notes || [];
+
+    // The API returns prose notes; the readout wants the numbers out of them.
+    const climate = notes.find((n) => /°C/.test(n)) || "";
+    const power = notes.find((n) => /plug type/i.test(n)) || "";
+    const temps = climate.match(/-?[\d.]+°C to -?[\d.]+°C/);
+    const sky = climate.match(/:\s*([^;]+);/);
+    const plug = power.match(/plug type ([^,]+)/i);
+    const volt = power.match(/,\s*(.+?)\.?$/);
+
+    $("rDest").textContent = data.destination || "—";
+    $("rDays").textContent =
+      `${data.duration_days} days · ${pax} traveller${pax > 1 ? "s" : ""}`;
+    $("rTemp").textContent = temps ? temps[0].replace(" to ", " – ") : "Unavailable";
+    $("rWeather").textContent = sky ? sky[1].trim().replace(/^./, (c) => c.toUpperCase()) : "No weather data";
+    $("rPlug").textContent = plug ? "Type " + plug[1].trim() : "Unknown";
+    $("rVolt").textContent = volt ? volt[1].trim() : "Not on file";
+
+    const order = ["essential", "recommended", "optional"];
+    const labels = { essential: "Essential", recommended: "Recommended", optional: "Optional" };
+
+    $("groups").innerHTML = recs.length ? order.map((p) => {
+      const rows = recs.filter((r) => r.priority === p);
+      if (!rows.length) return "";
+      return `<div class="group" style="margin-bottom:22px">
+        <div class="group-head">
+          <span class="tag ${p}">${labels[p]}</span>
+          <span class="group-count">${rows.length} item${rows.length > 1 ? "s" : ""}</span>
+        </div>
+        ${rows.map((r) => `
+          <div class="item is-${p}">
+            <span class="item-name">${esc(r.gadget)}${r.verified ? ' <span class="tag recommended">verified</span>' : ""}</span>
+            <span class="item-why">${esc(r.why)}</span>
+            <span class="item-meta">${esc(r.category || r.origin)}</span>
+          </div>`).join("")}
+      </div>`;
+    }).join("") : `<p class="caveat">No recommendations came back for this trip.</p>`;
+
+    $("srcs").innerHTML = (data.sources || []).map((s) => `<span class="src">${esc(s)}</span>`).join("");
+  }
+
+  $("restart").addEventListener("click", () => {
+    $("results").hidden = true;
+    $("tripForm").hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+</script>
+
+</body>
+</html>

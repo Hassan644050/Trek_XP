@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 
 import httpx
@@ -73,3 +74,94 @@ async def geocode(destination: str) -> GeoResult | None:
         ) from exc
 
     return parse_geocode_response(payload)
+
+
+async def _search(
+    query: str,
+    limit: int,
+    country_code: str | None = None,
+) -> list[GeoResult]:
+    params: dict[str, object] = {
+        "name": query,
+        "count": limit,
+        "language": "en",
+        "format": "json",
+    }
+
+    if country_code:
+        params["countryCode"] = country_code
+
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+            response = await client.get(GEOCODING_URL, params=params)
+            response.raise_for_status()
+            payload = response.json()
+
+    except (httpx.HTTPError, ValueError) as exc:
+        raise DestinationDataException(
+            "Could not reach the geocoding service."
+        ) from exc
+
+    return parse_geocode_results(payload)
+
+
+async def search_destinations(
+    query: str,
+    limit: int = 5,
+    home_country: str | None = None,
+) -> list[GeoResult]:
+    """Return candidate places for a partial query, home country first.
+
+    The global index buries local places behind better-known foreign
+    namesakes: "cox" returns Cox in Spain, France and the United States
+    while Cox's Bazar -- Bangladesh's largest beach destination -- never
+    appears. Querying the home country separately and listing those matches
+    first fixes that without restricting anyone to domestic travel.
+
+    The two lookups are independent, so they go out together.
+    """
+    if not home_country:
+        return await _search(query, limit)
+
+    local, worldwide = await asyncio.gather(
+        _search(query, limit, country_code=home_country),
+        _search(query, limit),
+    )
+
+    merged: list[GeoResult] = []
+    seen: set[tuple[str, float, float]] = set()
+
+    for place in [*local, *worldwide]:
+        key = (place.name, round(place.latitude, 3), round(place.longitude, 3))
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        merged.append(place)
+
+    return merged[:limit]
+
+
+def parse_geocode_results(payload: dict) -> list[GeoResult]:
+    places: list[GeoResult] = []
+
+    for result in payload.get("results") or []:
+        latitude = result.get("latitude")
+        longitude = result.get("longitude")
+
+        if latitude is None or longitude is None:
+            continue
+
+        places.append(
+            GeoResult(
+                name=result.get("name", ""),
+                latitude=latitude,
+                longitude=longitude,
+                country=result.get("country"),
+                country_code=result.get("country_code"),
+                timezone=result.get("timezone"),
+            )
+        )
+
+    return places

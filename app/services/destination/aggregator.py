@@ -3,7 +3,7 @@ from app.models.context import TripContext
 from app.models.trip import TripRequest
 from app.services.destination.climate import fetch_climate
 from app.services.destination.country import get_country_info
-from app.services.destination.geocode import geocode
+from app.services.destination.geocode import GeoResult, geocode
 
 
 async def build_trip_context(trip: TripRequest) -> TripContext:
@@ -17,12 +17,22 @@ async def build_trip_context(trip: TripRequest) -> TripContext:
     lookup needs coordinates the geocoder has not returned yet -- so there
     is nothing here to run concurrently until more sources are added.
     """
-    location = await geocode(trip.destination)
-
-    if location is None:
-        raise DestinationNotFoundException(
-            f"Could not find a place called '{trip.destination}'."
+    if trip.latitude is not None and trip.longitude is not None:
+        location = GeoResult(
+            name=trip.destination,
+            latitude=trip.latitude,
+            longitude=trip.longitude,
+            country=trip.country_name,
+            country_code=trip.country_code,
+            timezone=None,
         )
+    else:
+        location = await geocode(trip.destination)
+
+        if location is None:
+            raise DestinationNotFoundException(
+                f"Could not find a place called '{trip.destination}'."
+            )
 
     sources = ["open_meteo_geocoding"]
 

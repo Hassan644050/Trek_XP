@@ -45,6 +45,14 @@ class TripRequest(BaseModel):
     baggage: Baggage = Baggage.CHECKED
     travelers: int = Field(default=1, ge=1, le=50)
 
+    # Filled in by the destination picker. When present we trust the
+    # place the user actually chose instead of re-resolving their text
+    # and risking a different match.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    country_name: str | None = Field(default=None, max_length=100)
+
     @model_validator(mode="after")
     def check_date_order(self) -> "TripRequest":
         if self.end_date < self.start_date:
