@@ -26,6 +26,17 @@ def no_network(monkeypatch):
     monkeypatch.setattr("app.services.gadgets.llm_source.get_llm_provider", no_llm)
 
 
+@pytest.fixture(autouse=True)
+def fresh_osm_state(monkeypatch):
+    """Isolate tests from the OpenStreetMap cache and rate limiter."""
+    from app.services.destination import osm
+
+    osm._cache.clear()
+    monkeypatch.setattr(osm, "MIN_INTERVAL_SECONDS", 0.0)
+    yield
+    osm._cache.clear()
+
+
 @pytest.fixture
 def client():
     return TestClient(app)

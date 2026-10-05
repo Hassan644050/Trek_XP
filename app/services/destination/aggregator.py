@@ -1,3 +1,4 @@
+from app.config import get_env_meta_info
 from app.exceptions.exceptions import DestinationNotFoundException
 from app.models.context import TripContext
 from app.models.trip import TripRequest
@@ -27,14 +28,17 @@ async def build_trip_context(trip: TripRequest) -> TripContext:
             timezone=None,
         )
     else:
-        location = await geocode(trip.destination)
+        location = await geocode(
+            trip.destination, home_country=get_env_meta_info().home_country
+        )
 
         if location is None:
             raise DestinationNotFoundException(
-                f"Could not find a place called '{trip.destination}'."
+                f"Could not find a place called '{trip.destination}'. "
+                "Try the nearest town or district instead."
             )
 
-    sources = ["open_meteo_geocoding"]
+    sources = [location.source]
 
     climate = await fetch_climate(
         latitude=location.latitude,

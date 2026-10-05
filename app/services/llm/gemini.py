@@ -18,6 +18,14 @@ MAX_OUTPUT_TOKENS = 2000
 # Low but not zero: the same trip should produce a stable list, which also
 # makes cached answers representative of what an uncached one would say.
 TEMPERATURE = 0.3
+
+# Gemini 3 models think by default, and that thinking draws on the output
+# budget above: measured on a three-day Kaptai Lake trip, ~1,800 of the
+# 2,000 tokens went to thinking and the gadget list was cut off mid-array.
+# A grounded list does not need deliberation -- MINIMAL produced complete,
+# equally specific lists with no thinking tokens. (Gemini 3 setting; 2.5
+# models use thinking_budget instead.)
+THINKING_LEVEL = genai_types.ThinkingLevel.MINIMAL
 from app.exceptions.exceptions import (
     LLMException,
     LLMRateLimitException,
@@ -40,6 +48,9 @@ class GeminiProvider(LLMProvider):
             config=genai_types.GenerateContentConfig(
                 max_output_tokens=MAX_OUTPUT_TOKENS,
                 temperature=TEMPERATURE,
+                thinking_config=genai_types.ThinkingConfig(
+                    thinking_level=THINKING_LEVEL
+                ),
             ),
         )
 
@@ -48,6 +59,16 @@ class GeminiProvider(LLMProvider):
 
             response = self._call(prompt)
             text = response.text
+
+            candidates = response.candidates or []
+            finish_reason = candidates[0].finish_reason if candidates else None
+
+            if finish_reason == genai_types.FinishReason.MAX_TOKENS:
+                # Say so plainly: otherwise this surfaces later as an
+                # unreadable-JSON error that hides the real cause.
+                raise LLMProviderException(
+                    "The model's response was truncated at the output limit."
+                )
 
             if not text:
                 raise LLMProviderException(

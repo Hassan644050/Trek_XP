@@ -64,7 +64,7 @@ def test_picker_coordinates_skip_geocoding(client, monkeypatch, fake_source, tri
     use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
     use_source(monkeypatch, fake_source)
 
-    async def must_not_geocode(destination):
+    async def must_not_geocode(destination, home_country=None):
         raise AssertionError("geocoder called despite picker coordinates")
 
     monkeypatch.setattr("app.services.destination.aggregator.geocode", must_not_geocode)
@@ -98,10 +98,11 @@ def test_no_recommendations_means_no_llm_source(client, monkeypatch, trip_payloa
 def test_typed_destination_is_geocoded(client, monkeypatch, fake_source, trip_payload):
     use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
     use_source(monkeypatch, fake_source)
+    monkeypatch.setenv("HOME_COUNTRY", "BD")
     looked_up = []
 
-    async def fake_geocode(destination):
-        looked_up.append(destination)
+    async def fake_geocode(destination, home_country=None):
+        looked_up.append((destination, home_country))
         return GeoResult(
             name="Sylhet", latitude=24.9, longitude=91.87,
             country="Bangladesh", country_code="BD", timezone="Asia/Dhaka",
@@ -114,12 +115,32 @@ def test_typed_destination_is_geocoded(client, monkeypatch, fake_source, trip_pa
     response = client.post("/recommend", json=trip_payload)
 
     assert response.status_code == 200
-    assert looked_up == ["Sylhet"]
+    # Typed names are searched with the home country preferred.
+    assert looked_up == [("Sylhet", "BD")]
     assert "plug_dataset" in response.json()["sources"]
 
 
+def test_landmark_found_by_openstreetmap_is_credited(client, monkeypatch, fake_source, trip_payload):
+    use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
+    use_source(monkeypatch, fake_source)
+
+    async def osm_hit(destination, home_country=None):
+        return GeoResult(
+            name="Kaptai Lake", latitude=22.76, longitude=92.276,
+            country="Bangladesh", country_code="BD", timezone=None, source="openstreetmap",
+        )
+
+    monkeypatch.setattr("app.services.destination.aggregator.geocode", osm_hit)
+    trip_payload.update(destination="Kaptai Lake", latitude=None, longitude=None)
+
+    body = client.post("/recommend", json=trip_payload).json()
+
+    assert body["sources"][0] == "openstreetmap"
+    assert "open_meteo_geocoding" not in body["sources"]
+
+
 def test_unknown_destination_is_404(client, monkeypatch, trip_payload):
-    async def not_found(destination):
+    async def not_found(destination, home_country=None):
         return None
 
     monkeypatch.setattr("app.services.destination.aggregator.geocode", not_found)
@@ -128,11 +149,14 @@ def test_unknown_destination_is_404(client, monkeypatch, trip_payload):
     response = client.post("/recommend", json=trip_payload)
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Could not find a place called 'Atlantis'."}
+    assert response.json() == {
+        "detail": "Could not find a place called 'Atlantis'. "
+        "Try the nearest town or district instead."
+    }
 
 
 def test_geocoder_outage_is_503(client, monkeypatch, trip_payload):
-    async def outage(destination):
+    async def outage(destination, home_country=None):
         raise DestinationDataException("Could not reach the geocoding service.")
 
     monkeypatch.setattr("app.services.destination.aggregator.geocode", outage)

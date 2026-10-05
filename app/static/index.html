@@ -913,7 +913,10 @@
       </div>`;
     }).join("") : `<p class="caveat">No recommendations came back for this trip.</p>`;
 
-    $("srcs").innerHTML = (data.sources || []).map((s) => `<span class="src">${esc(s)}</span>`).join("");
+    // OpenStreetMap's licence (ODbL) requires visible attribution.
+    $("srcs").innerHTML = (data.sources || []).map((s) => s === "openstreetmap"
+      ? `<a class="src" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>`
+      : `<span class="src">${esc(s)}</span>`).join("");
   }
 
   $("restart").addEventListener("click", () => {
