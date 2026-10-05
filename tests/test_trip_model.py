@@ -1,0 +1,42 @@
+from datetime import date
+
+import pytest
+from pydantic import ValidationError
+
+from app.models.trip import TripRequest
+
+
+def make_trip(**overrides):
+    fields = {
+        "destination": "Sylhet",
+        "start_date": date(2026, 11, 10),
+        "end_date": date(2026, 11, 14),
+        "trip_type": "hiking",
+    }
+    fields.update(overrides)
+    return TripRequest(**fields)
+
+
+def test_duration_counts_both_ends():
+    assert make_trip().duration_days == 5
+
+
+def test_same_day_trip_is_one_day():
+    day = date(2026, 11, 10)
+    assert make_trip(start_date=day, end_date=day).duration_days == 1
+
+
+def test_end_before_start_is_rejected():
+    with pytest.raises(ValidationError, match="end_date must not be before start_date"):
+        make_trip(start_date=date(2026, 11, 14), end_date=date(2026, 11, 10))
+
+
+@pytest.mark.parametrize("travelers", [0, 51])
+def test_traveler_count_is_bounded(travelers):
+    with pytest.raises(ValidationError):
+        make_trip(travelers=travelers)
+
+
+def test_unknown_trip_type_is_rejected():
+    with pytest.raises(ValidationError):
+        make_trip(trip_type="space_tourism")

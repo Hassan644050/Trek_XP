@@ -30,6 +30,15 @@ uvicorn app.main:app --reload
 
 Interactive docs: http://127.0.0.1:8000/docs
 
+## Tests
+
+```bash
+pytest
+```
+
+The suite runs offline: external services (Open-Meteo, the LLM provider) are
+faked, and any test that reaches the network fails loudly. No API key needed.
+
 ## Design notes
 
 - **Structured input, not free text.** `TripRequest` is a validated form, which
