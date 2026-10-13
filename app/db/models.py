@@ -1,0 +1,175 @@
+from datetime import datetime
+from enum import Enum
+
+from sqlalchemy import (
+    ARRAY,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from app.models.recommendation import Priority
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class Role(str, Enum):
+    # Admins manage coordinator accounts; coordinators manage gadgets.
+    ADMIN = "admin"
+    COORDINATOR = "coordinator"
+
+
+def _enum(enum_cls: type[Enum], name: str) -> SAEnum:
+    # VARCHAR + CHECK rather than a native Postgres ENUM: adding a value
+    # later is a one-line migration instead of an ALTER TYPE dance.
+    return SAEnum(
+        enum_cls,
+        name=name,
+        native_enum=False,
+        create_constraint=True,
+        validate_strings=True,
+        values_callable=lambda members: [m.value for m in members],
+        length=20,
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # Stored lower-cased by the code that writes it.
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    name: Mapped[str] = mapped_column(String(100))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[Role] = mapped_column(_enum(Role, "user_role"))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class AuthSession(Base):
+    """A signed-in browser. Only a hash of the cookie token is stored, so a
+    leaked database row cannot be replayed as a session."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship(lazy="joined")
+
+
+class Place(Base):
+    """A destination chosen through the picker. Coordinates come from the
+    geocoder, so two coordinators picking "Kaptai Lake" share one row."""
+
+    __tablename__ = "places"
+    __table_args__ = (
+        UniqueConstraint("name", "latitude", "longitude", name="uq_places_name_coords"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    country_code: Mapped[str | None] = mapped_column(String(2))
+    country_name: Mapped[str | None] = mapped_column(String(100))
+    latitude: Mapped[float] = mapped_column(Float)
+    longitude: Mapped[float] = mapped_column(Float)
+    # Bangladesh administrative area, set when a coordinator enters a place
+    # the geocoders do not know. Null for geocoded and foreign places.
+    district: Mapped[str | None] = mapped_column(String(60))
+    division: Mapped[str | None] = mapped_column(String(60))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Gadget(Base):
+    """A gadget entered once and reused across destinations."""
+
+    __tablename__ = "gadgets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str | None] = mapped_column(String(60))
+    description: Mapped[str | None] = mapped_column(Text)
+    image_key: Mapped[str | None] = mapped_column(String(100))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    placements: Mapped[list["Placement"]] = relationship(
+        back_populates="gadget",
+        cascade="all, delete-orphan",
+        order_by="Placement.id",
+    )
+
+
+# Case-insensitive uniqueness: "Power bank" and "power bank" collide.
+# Declared outside the class so it can reference the real column -- a
+# string inside func.lower() compiles to a constant, not the column.
+Index("uq_gadgets_name_lower", func.lower(Gadget.name), unique=True)
+
+
+class Placement(Base):
+    """Where and when a gadget is recommended.
+
+    trip_types must be non-empty. activities may be empty, meaning the
+    gadget applies whatever the traveller plans to do there.
+    """
+
+    __tablename__ = "placements"
+    __table_args__ = (
+        CheckConstraint("cardinality(trip_types) > 0", name="ck_placements_trip_types"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    gadget_id: Mapped[int] = mapped_column(
+        ForeignKey("gadgets.id", ondelete="CASCADE"), index=True
+    )
+    place_id: Mapped[int] = mapped_column(
+        ForeignKey("places.id", ondelete="RESTRICT"), index=True
+    )
+    trip_types: Mapped[list[str]] = mapped_column(ARRAY(String(20)))
+    activities: Mapped[list[str]] = mapped_column(
+        ARRAY(String(20)), default=list, server_default="{}"
+    )
+    priority: Mapped[Priority] = mapped_column(_enum(Priority, "placement_priority"))
+    why: Mapped[str] = mapped_column(Text)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    gadget: Mapped[Gadget] = relationship(back_populates="placements")
+    place: Mapped[Place] = relationship(lazy="joined")

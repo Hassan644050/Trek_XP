@@ -4,11 +4,20 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.exceptions.exceptions import (
+    AccountLockedException,
+    DatabaseNotConfiguredException,
     DestinationDataException,
     DestinationNotFoundException,
     GadgetSourceException,
+    InvalidCredentialsException,
+    InvalidImageException,
+    InvalidInputException,
     LLMException,
     LLMRateLimitException,
+    NotAuthenticatedException,
+    PermissionDeniedException,
+    ResourceConflictException,
+    ResourceNotFoundException,
 )
 
 
@@ -77,7 +86,42 @@ async def advisor_unavailable_handler(
     )
 
 
+def _passthrough(code: int):
+    """Handler for errors whose message is already written for the user."""
+
+    async def handler(request: Request, exc: Exception) -> JSONResponse:
+        return _problem(request, exc, code, str(exc))
+
+    return handler
+
+
+async def database_unavailable_handler(
+    request: Request,
+    exc: DatabaseNotConfiguredException,
+) -> JSONResponse:
+    return _problem(
+        request,
+        exc,
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "The coordinator area is not available right now.",
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
+    for exc_class, code in (
+        (NotAuthenticatedException, status.HTTP_401_UNAUTHORIZED),
+        (InvalidCredentialsException, status.HTTP_401_UNAUTHORIZED),
+        (AccountLockedException, status.HTTP_429_TOO_MANY_REQUESTS),
+        (PermissionDeniedException, status.HTTP_403_FORBIDDEN),
+        (ResourceNotFoundException, status.HTTP_404_NOT_FOUND),
+        (ResourceConflictException, status.HTTP_409_CONFLICT),
+        (InvalidImageException, status.HTTP_422_UNPROCESSABLE_CONTENT),
+        (InvalidInputException, status.HTTP_422_UNPROCESSABLE_CONTENT),
+    ):
+        app.add_exception_handler(exc_class, _passthrough(code))
+
+    app.add_exception_handler(DatabaseNotConfiguredException, database_unavailable_handler)
+
     app.add_exception_handler(
         DestinationNotFoundException, destination_not_found_handler
     )

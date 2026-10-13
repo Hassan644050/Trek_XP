@@ -58,6 +58,79 @@ faked, and any test that reaches the network fails loudly. No API key needed.
 - **Provider-agnostic LLM layer** carried over from its predecessor: Gemini and
   NVIDIA NIM sit behind one `LLMProvider` interface chosen by env var.
 
+## Coordinator area
+
+A signed-in page at **`/coordinator`** where coordinators enter gadgets
+(name, category, description, image) and say where they apply: a
+destination, one or more trip types, and optional activities, with a
+priority and a reason. Admins also manage coordinator accounts there.
+
+### One-time setup
+
+1. Create a PostgreSQL database (we use [Neon](https://neon.tech); pick the
+   Singapore region) and put its connection string in `.env` as
+   `DATABASE_URL`. Never commit it or paste it anywhere public.
+2. Create the tables:
+   ```bash
+   alembic upgrade head
+   ```
+3. Create the first admin (prompts for the password, hidden):
+   ```bash
+   python -m scripts.create_admin
+   ```
+   Run it again with the same email to reset a forgotten admin password.
+4. Start the app and open http://127.0.0.1:8000/coordinator.
+
+There is no public sign-up: admins create coordinator accounts from the
+**Accounts** tab.
+
+### Places the map services do not know
+
+Spots like **Sada Pathor**, **Bichanakandi** and **Nilgiri** are in no
+public gazetteer: Open-Meteo has no entry, and OpenStreetMap has only a
+hotel named after one. Typing a nearby town is worse than useless —
+"Bholaganj" resolves to a different Bholaganj 30 km away, and
+"Companiganj" to the one in Noakhali, 200 km away.
+
+So when **Look up** finds nothing, the form offers division → district
+dropdowns instead. The district supplies the coordinates, which is precise
+enough for climate (and so for gear), and records which Bholaganj is meant.
+Once saved, the place is searchable for every coordinator.
+
+District coordinates live in `app/data/bd_admin.json` (8 divisions, 64
+districts), taken from OpenStreetMap administrative boundaries. It is
+static for the same reason the plug data is — but also because global
+gazetteers get roughly 11% of Bangladeshi districts wrong, matching
+same-named places hundreds of kilometres away. Renamed districts keep
+their former spellings as aliases, so Chittagong, Comilla, Jessore and
+Bogra all still match.
+
+### Security model
+
+- Passwords hashed with argon2id; accounts lock for 15 minutes after 5
+  failed sign-ins.
+- Sessions live in the database (revocable); the browser holds only an
+  HttpOnly, SameSite=Strict cookie. Sign-out, deactivation and password
+  resets end sessions immediately.
+- Every write must carry the `X-Requested-With: trekxp` header (CSRF).
+- Roles: **admin** (accounts + catalog) and **coordinator** (catalog).
+- Uploaded images are checked by content, limited to 5 MB, resized to
+  1200px and re-encoded as WebP, which strips EXIF data such as GPS location.
+- Set `COOKIE_SECURE=true` in production (HTTPS only).
+
+### Images in production
+
+Images are stored on local disk (`media/`). Free hosting tiers erase disks
+on each deploy, so production needs an object store (S3, Cloudflare R2,
+Cloudinary) implementing `ImageStorage` in `app/services/media/storage.py`.
+
+### Database tests
+
+Tests in `tests/db/` run against a real database when `TEST_DATABASE_URL`
+is set, and are skipped otherwise. Use a **separate** database (e.g. a Neon
+branch named `test`): the tests empty its tables, and refuse to run if it
+matches `DATABASE_URL`.
+
 ## Roadmap
 
 | Step | Scope |
@@ -74,4 +147,14 @@ faked, and any test that reaches the network fails loudly. No API key needed.
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/recommend` | Gadget recommendations for a trip |
+| `GET` | `/destinations` | Destination search for the picker |
 | `GET` | `/health` | Health check |
+| `GET` | `/coordinator` | Coordinator page |
+| `POST` | `/api/auth/login`, `/api/auth/logout` · `GET /api/auth/me` | Sign in / out, current user |
+| `GET`, `POST` | `/api/coordinator/gadgets` | List / create gadgets |
+| `GET`, `PATCH`, `DELETE` | `/api/coordinator/gadgets/{id}` | Read / update / delete a gadget |
+| `PUT`, `DELETE` | `/api/coordinator/gadgets/{id}/image` | Upload / remove a gadget image |
+| `POST` | `/api/coordinator/gadgets/{id}/placements` | Recommend a gadget for a destination |
+| `PATCH`, `DELETE` | `/api/coordinator/placements/{id}` | Edit / remove a placement |
+| `GET` | `/api/coordinator/places`, `/api/coordinator/places/lookup` | Saved places; full geocoder lookup |
+| `GET`, `POST` · `PATCH` | `/api/admin/users` · `/api/admin/users/{id}` | Manage accounts (admin only) |

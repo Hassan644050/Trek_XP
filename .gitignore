@@ -6,3 +6,6 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+
+# Uploaded gadget images (local development storage)
+/media/
