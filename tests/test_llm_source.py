@@ -89,6 +89,19 @@ def test_prompt_is_grounded_in_trip_facts():
     assert "sylhet!!" not in prompt
 
 
+def test_prompt_omits_baggage_when_it_was_not_asked():
+    """The traveller page no longer asks, so the prompt must not assert an
+    answer -- inventing "checked luggage allowed" is a fabricated trip fact."""
+    trip = make_context().trip.model_copy(update={"baggage": None})
+    prompt = build_gadget_prompt(make_context(trip=trip))
+
+    assert "Baggage:" not in prompt
+    assert "checked luggage" not in prompt
+    # The rest of the trip block is untouched.
+    assert "Travellers: 1" in prompt
+    assert "Trip type: hiking" in prompt
+
+
 def test_prompt_admits_missing_data():
     prompt = build_gadget_prompt(
         make_context(climate=ClimateInfo(available=False), country=CountryInfo(available=False))

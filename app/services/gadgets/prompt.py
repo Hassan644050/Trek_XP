@@ -53,12 +53,18 @@ def build_gadget_prompt(context: TripContext) -> str:
         else "No weather information is available for these dates."
     )
 
-    baggage_note = (
-        "carry-on only -- spare lithium batteries and power banks must travel "
-        "in the cabin, never in checked luggage"
-        if trip.baggage.value == "carry_on_only"
-        else "checked luggage allowed"
-    )
+    # Omitted entirely when unknown: stating a baggage rule the traveller
+    # never gave would be inventing a trip fact, and the prompt forbids that.
+    if trip.baggage is None:
+        baggage_line = ""
+    else:
+        note = (
+            "carry-on only -- spare lithium batteries and power banks must travel "
+            "in the cabin, never in checked luggage"
+            if trip.baggage.value == "carry_on_only"
+            else "checked luggage allowed"
+        )
+        baggage_line = f"Baggage: {note}\n"
 
     return f"""You are a travel gear advisor. Recommend the gadgets and electronics a traveller should take on this specific trip.
 
@@ -67,8 +73,7 @@ Destination: {_place_label(context)}
 Dates: {trip.start_date} to {trip.end_date} ({trip.duration_days} days)
 Trip type: {trip.trip_type.value}
 Activities: {activities}
-Baggage: {baggage_note}
-Travellers: {trip.travelers}
+{baggage_line}Travellers: {trip.travelers}
 
 CONDITIONS
 {conditions}

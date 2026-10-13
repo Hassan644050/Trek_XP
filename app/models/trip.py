@@ -24,7 +24,8 @@ class Activity(str, Enum):
 
 class Baggage(str, Enum):
     # Drives airline power-bank rules: spare lithium batteries are only
-    # allowed in the cabin, never in checked luggage.
+    # allowed in the cabin, never in checked luggage. Optional, because the
+    # rules only bite on flights and most trips here are by road or rail.
     CARRY_ON_ONLY = "carry_on_only"
     CHECKED = "checked"
 
@@ -42,7 +43,7 @@ class TripRequest(BaseModel):
     end_date: date
     trip_type: TripType
     activities: list[Activity] = Field(default_factory=list)
-    baggage: Baggage = Baggage.CHECKED
+    baggage: Baggage | None = None
     travelers: int = Field(default=1, ge=1, le=50)
 
     # Filled in by the destination picker. When present we trust the
