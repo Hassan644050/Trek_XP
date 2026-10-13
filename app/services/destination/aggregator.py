@@ -19,6 +19,10 @@ async def build_trip_context(trip: TripRequest) -> TripContext:
     is nothing here to run concurrently until more sources are added.
     """
     if trip.latitude is not None and trip.longitude is not None:
+        # The caller already knows where this is -- from the picker, or from
+        # our own curated list. No geocoder runs, so none is credited: for
+        # places like Bholaganj Sada Pathor the coordinates are ours, not
+        # Open-Meteo's, and claiming otherwise would be false attribution.
         location = GeoResult(
             name=trip.destination,
             latitude=trip.latitude,
@@ -26,6 +30,7 @@ async def build_trip_context(trip: TripRequest) -> TripContext:
             country=trip.country_name,
             country_code=trip.country_code,
             timezone=None,
+            source="supplied_coordinates",
         )
     else:
         location = await geocode(

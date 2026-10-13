@@ -47,8 +47,9 @@ def test_recommend_happy_path(client, monkeypatch, fake_source, trip_payload):
         "Headlamp",
     ]
     assert all(r["origin"] == "llm" and r["verified"] is False for r in body["recommendations"])
+    # The payload carries coordinates, so no geocoder ran and none is credited.
     assert body["sources"] == [
-        "open_meteo_geocoding",
+        "supplied_coordinates",
         "open_meteo_archive",
         "plug_dataset",
         "llm_gadget_knowledge",
@@ -80,7 +81,7 @@ def test_missing_data_is_stated_not_hidden(client, monkeypatch, fake_source, tri
 
     body = client.post("/recommend", json=trip_payload).json()
 
-    assert body["sources"] == ["open_meteo_geocoding", "llm_gadget_knowledge"]
+    assert body["sources"] == ["supplied_coordinates", "llm_gadget_knowledge"]
     assert body["notes"][0].startswith("Climate data was unavailable")
     assert body["notes"][1] == "Plug and voltage data is not on file for this country yet."
 
@@ -219,3 +220,32 @@ def test_destination_search(client, monkeypatch):
 
 def test_destination_query_too_short_is_422(client):
     assert client.get("/destinations", params={"q": "s"}).status_code == 422
+
+
+def test_typed_destination_still_credits_the_geocoder(client, monkeypatch, fake_source, trip_payload):
+    """Only supplied coordinates skip the credit; a real lookup keeps it."""
+    use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
+    use_source(monkeypatch, fake_source)
+
+    async def fake_geocode(destination, home_country=None):
+        return GeoResult(
+            name="Sylhet", latitude=24.9, longitude=91.87,
+            country="Bangladesh", country_code="BD", timezone=None,
+        )
+
+    monkeypatch.setattr("app.services.destination.aggregator.geocode", fake_geocode)
+    for key in ("latitude", "longitude"):
+        trip_payload[key] = None
+
+    assert client.post("/recommend", json=trip_payload).json()["sources"][0] == "open_meteo_geocoding"
+
+
+def test_featured_destinations_carry_their_country(client):
+    """Without a country code the plug and voltage lookup has nothing to use."""
+    divisions = client.get("/destinations/featured").json()
+
+    assert len(divisions) >= 1
+    places = [p for d in divisions for p in d["places"]]
+    assert len(places) >= 20
+    assert all(p["country_code"] == "BD" for p in places)
+    assert {"Bholaganj Sada Pathor", "Bichanakandi", "Jaflong"} <= {p["name"] for p in places}

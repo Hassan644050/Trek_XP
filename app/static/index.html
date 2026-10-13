@@ -3,928 +3,931 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Trek_XP</title>
+<title>Trek_XP — What should you actually pack?</title>
 <style>
+  /* Variable fonts, served from this app: no third-party request on load,
+     and the page still works on a slow connection or behind a filter. */
+  @font-face {
+    font-family: 'Nunito';
+    src: url('/fonts/Nunito.woff2') format('woff2');
+    font-weight: 200 1000;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('/fonts/JetBrainsMono.woff2') format('woff2');
+    font-weight: 100 800;
+    font-display: swap;
+  }
+
   :root {
-    --ground: #e6ebf0;
-    --surface: #ffffff;
-    --surface-sunk: #eff3f7;
-    --ink: #111921;
-    --ink-soft: #56636f;
-    --ink-faint: #8593a0;
-    --line: #c9d3dc;
-    --line-soft: #dde4ea;
-    --signal: #b4550a;
-    --signal-ink: #8e4206;
-    --signal-wash: #f7ead9;
-    --focus: #1d6fb8;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    --r: 3px;
+    --green: oklch(0.32 0.07 155);
+    --green-deep: oklch(0.26 0.05 155);
+    --green-mid: oklch(0.42 0.09 155);
+    --green-soft: oklch(0.85 0.04 150);
+    --amber: oklch(0.8 0.13 85);
+    --amber-light: oklch(0.85 0.12 85);
+    --amber-band: oklch(0.93 0.06 85);
+    --surface: oklch(0.985 0.012 100);
+    --paper: white;
+    --line: oklch(0.86 0.015 140);
+    --line-firm: oklch(0.84 0.03 150);
+    --ink: oklch(0.22 0.02 155);
+    --ink-soft: oklch(0.45 0.04 155);
+    --ink-faint: oklch(0.55 0.03 155);
+    --essential: oklch(0.42 0.1 155);
+    --essential-wash: oklch(0.92 0.05 150);
+    --recommended: oklch(0.52 0.12 60);
+    --recommended-wash: oklch(0.95 0.05 85);
+    --optional: oklch(0.48 0.1 240);
+    --optional-wash: oklch(0.94 0.03 230);
+    --danger: oklch(0.5 0.17 25);
+    --danger-wash: oklch(0.95 0.03 25);
+    --sans: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --ground: #0e141a;
-      --surface: #161e26;
-      --surface-sunk: #111820;
-      --ink: #e4eaf0;
-      --ink-soft: #9aa8b5;
-      --ink-faint: #6b7a88;
-      --line: #2a3742;
-      --line-soft: #202b34;
-      --signal: #f0a03d;
-      --signal-ink: #f7bd74;
-      --signal-wash: #2a1f12;
-      --focus: #6db3ea;
-    }
-  }
-
-  :root[data-theme="dark"] {
-    --ground: #0e141a;
-    --surface: #161e26;
-    --surface-sunk: #111820;
-    --ink: #e4eaf0;
-    --ink-soft: #9aa8b5;
-    --ink-faint: #6b7a88;
-    --line: #2a3742;
-    --line-soft: #202b34;
-    --signal: #f0a03d;
-    --signal-ink: #f7bd74;
-    --signal-wash: #2a1f12;
-    --focus: #6db3ea;
-  }
-
-  * { box-sizing: border-box; }
+  /* Sharp corners throughout — the design uses border-radius:0 everywhere. */
+  * { box-sizing: border-box; border-radius: 0; }
 
   body {
-    background: var(--ground);
+    background: oklch(0.96 0.012 110);
     color: var(--ink);
     font-family: var(--sans);
-    line-height: 1.55;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
     margin: 0;
-    padding: 0 20px 80px;
-    -webkit-font-smoothing: antialiased;
   }
 
-  .page { max-width: 680px; margin: 0 auto; }
+  [hidden] { display: none !important; }
 
-  /* ---------- masthead ---------- */
+  button, input, select { font: inherit; color: inherit; }
 
-  .masthead {
+  :focus-visible { outline: 3px solid var(--green-mid); outline-offset: 2px; }
+
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+
+  .wrap {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 44px 0 30px;
+    gap: 24px;
+    margin: 0 auto;
+    max-width: 1360px;
+    padding: 36px 36px 64px;
   }
 
-  .brandline {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.16em;
+  .eyebrow {
+    color: var(--green-mid);
+    font: 700 12px var(--mono);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--signal-ink);
   }
 
-  .brandline::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--line);
-  }
+  /* ---------- hero ---------- */
 
-  h1 {
-    font-size: clamp(30px, 7vw, 42px);
-    font-weight: 800;
-    letter-spacing: -0.032em;
-    line-height: 1.08;
-    margin: 0;
-    text-wrap: balance;
-  }
-
-  .standfirst {
-    color: var(--ink-soft);
-    font-size: 16px;
-    margin: 0;
-    max-width: 48ch;
-  }
-
-  /* ---------- panel + fields ---------- */
-
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
+  .hero {
+    background:
+      radial-gradient(120% 140% at 0% 100%, oklch(0.26 0.06 160) 0%, transparent 55%),
+      radial-gradient(90% 120% at 70% 0%, oklch(0.42 0.09 150) 0%, transparent 60%),
+      radial-gradient(60% 80% at 100% 100%, oklch(0.5 0.1 95 / 0.55) 0%, transparent 70%),
+      var(--green);
+    color: oklch(0.97 0.012 110);
     display: flex;
     flex-direction: column;
-    gap: 26px;
-    padding: 26px 22px;
+    gap: 24px;
+    justify-content: space-between;
+    min-height: 240px;
+    padding: 40px;
   }
 
-  .field { display: flex; flex-direction: column; gap: 9px; }
-
-  .label {
-    align-items: baseline;
-    color: var(--ink-soft);
-    display: flex;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    gap: 8px;
+  .hero .badge {
+    align-self: flex-start;
+    border: 1.5px solid var(--amber);
+    color: var(--amber-light);
+    font: 700 13px var(--mono);
     letter-spacing: 0.14em;
+    padding: 8px 14px;
+    text-transform: uppercase;
+  }
+
+  .hero h1 { font-size: 54px; font-weight: 900; line-height: 0.98; }
+
+  .hero p {
+    color: var(--green-soft);
+    font-size: 18px;
+    margin: 0;
+    max-width: 520px;
+    text-wrap: pretty;
+  }
+
+  /* ---------- layout ---------- */
+
+  .board {
+    align-items: start;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
+
+  .panel { background: var(--surface); padding: 30px; }
+
+  .step { display: flex; flex-direction: column; gap: 16px; }
+
+  .step-head { align-items: center; display: flex; gap: 12px; }
+
+  .step-num {
+    align-items: center;
+    background: var(--green);
+    color: white;
+    display: flex;
+    flex: none;
+    font: 700 13px var(--mono);
+    height: 28px;
+    justify-content: center;
+    width: 28px;
+  }
+
+  .step-head h2 { font-size: 22px; font-weight: 900; }
+
+  .field { display: flex; flex-direction: column; gap: 8px; }
+
+  .field > .label {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
   .label .opt {
     color: var(--ink-faint);
-    letter-spacing: 0.08em;
+    font-weight: 700;
+    letter-spacing: 0;
     text-transform: none;
   }
 
-  input[type="text"], input[type="date"] {
-    background: var(--surface-sunk);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 16px;
-    padding: 12px 13px;
+  input[type="date"] {
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 0;
+    padding: 10px;
     width: 100%;
   }
 
-  input[type="date"] {
-    font-family: var(--mono);
-    font-size: 14px;
-  }
+  .dates { align-items: center; display: grid; gap: 8px; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+  .dates .arrow { color: oklch(0.5 0.03 155); font: 500 14px var(--mono); }
 
-  input::placeholder { color: var(--ink-faint); }
+  /* ---------- chips ---------- */
 
-  :focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
-  /* ---------- destination typeahead ---------- */
-
-  .combo { position: relative; }
-
-  .suggestions {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: 0 10px 26px rgb(0 0 0 / 0.14);
-    left: 0;
-    list-style: none;
-    margin: 4px 0 0;
-    max-height: 246px;
-    overflow-y: auto;
-    padding: 4px;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    z-index: 20;
-  }
-
-  .suggestions[hidden] { display: none; }
-
-  .suggestions li {
-    align-items: baseline;
-    border-radius: var(--r);
+  .chip {
+    background: var(--paper);
+    border: 1.5px solid var(--line-firm);
+    color: oklch(0.28 0.05 155);
     cursor: pointer;
-    display: flex;
-    gap: 9px;
-    padding: 9px 10px;
+    font: 800 14px var(--sans);
+    padding: 9px 16px;
   }
 
-  .suggestions li:hover,
-  .suggestions li[aria-selected="true"] { background: var(--surface-sunk); }
+  .chip:hover { border-color: var(--green-mid); }
 
-  .sg-name { font-size: 15px; }
-
-  .sg-country {
-    color: var(--ink-faint);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    margin-left: auto;
+  .chip[aria-pressed="true"], .chip.on {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
   }
 
-  .resolved {
-    align-items: center;
-    color: var(--ink-soft);
-    display: flex;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    gap: 7px;
-  }
+  .chip .tick { font-size: 12px; margin-right: 6px; }
 
-  .resolved[hidden] { display: none; }
+  /* ---------- destination ---------- */
 
-  .tick { color: var(--signal-ink); font-weight: 700; }
+  .division { display: flex; flex-direction: column; gap: 10px; }
 
-  /* ---------- date pair ---------- */
+  .division-head { align-items: center; display: flex; gap: 12px; }
 
-  .pair {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* ---------- choice grids ---------- */
-
-  .choices {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-
-  .choices input { position: absolute; opacity: 0; pointer-events: none; }
-
-  .choices label {
-    background: var(--surface-sunk);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    cursor: pointer;
-    display: block;
-    font-size: 14.5px;
-    padding: 11px 13px;
-    transition: border-color 0.12s, background 0.12s;
-  }
-
-  .choices label:hover { border-color: var(--ink-faint); }
-
-  .choices input:checked + label {
-    background: var(--signal-wash);
-    border-color: var(--signal);
-    color: var(--signal-ink);
-    font-weight: 600;
-  }
-
-  .choices input:focus-visible + label {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
-
-  .chips input { position: absolute; opacity: 0; pointer-events: none; }
-
-  .chips label {
-    background: var(--surface-sunk);
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    cursor: pointer;
-    font-size: 13.5px;
-    padding: 7px 14px;
-    transition: border-color 0.12s, background 0.12s;
-  }
-
-  .chips input:checked + label {
-    background: var(--signal-wash);
-    border-color: var(--signal);
-    color: var(--signal-ink);
-    font-weight: 600;
-  }
-
-  .chips input:focus-visible + label {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  /* ---------- segmented + stepper ---------- */
-
-  .row {
-    display: grid;
-    gap: 22px;
-    grid-template-columns: 1fr auto;
-  }
-
-  @media (max-width: 520px) {
-    .row { grid-template-columns: 1fr; }
-    .pair { grid-template-columns: 1fr; }
-  }
-
-  .segmented {
-    background: var(--surface-sunk);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    display: flex;
-    overflow: hidden;
-  }
-
-  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
-
-  .segmented label {
-    cursor: pointer;
-    flex: 1;
-    font-size: 13.5px;
-    padding: 10px 12px;
-    text-align: center;
-    transition: background 0.12s;
-  }
-
-  .segmented label + input + label { border-left: 1px solid var(--line); }
-
-  .segmented input:checked + label {
-    background: var(--signal-wash);
-    color: var(--signal-ink);
-    font-weight: 600;
-  }
-
-  .segmented input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: -2px; }
-
-  .stepper {
-    align-items: center;
-    background: var(--surface-sunk);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    display: inline-flex;
-  }
-
-  .stepper button {
-    background: none;
-    border: 0;
-    color: var(--ink-soft);
-    cursor: pointer;
-    font-family: var(--mono);
-    font-size: 17px;
-    line-height: 1;
-    padding: 10px 15px;
-  }
-
-  .stepper button:hover { color: var(--signal-ink); }
-
-  .stepper output {
-    border-left: 1px solid var(--line);
-    border-right: 1px solid var(--line);
-    font-family: var(--mono);
+  .division-head h3 {
+    color: var(--green-mid);
     font-size: 15px;
-    font-variant-numeric: tabular-nums;
-    min-width: 46px;
-    padding: 9px 0;
-    text-align: center;
+    font-weight: 800;
+    white-space: nowrap;
   }
 
-  /* ---------- submit ---------- */
+  .division-head .rule { border-top: 2px dashed var(--green-soft); flex: 1; }
+
+  /* ---------- main ---------- */
+
+  .results-head {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+  }
+
+  .results-head h2 { font-size: 38px; font-weight: 900; line-height: 1.05; }
+
+  .place-sub { color: var(--ink-soft); font-size: 16px; font-weight: 700; }
+
+  .tabs { background: oklch(0.94 0.02 140); display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; }
+
+  .tab {
+    background: transparent;
+    border: none;
+    color: oklch(0.28 0.05 155);
+    cursor: pointer;
+    font: 800 14px var(--sans);
+    padding: 9px 16px;
+  }
+
+  .tab[aria-selected="true"] { background: var(--green); color: white; }
+
+  /* ---------- readout ---------- */
+
+  .readout { border: 2px solid var(--line-firm); display: grid; grid-template-columns: repeat(3, 1fr); }
+
+  .cell { border-right: 2px solid var(--line-firm); display: flex; flex-direction: column; gap: 2px; padding: 16px 18px; }
+  .cell:last-child { border-right: 0; }
+  .cell-k { color: var(--ink-faint); font: 700 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+  .cell-v { font-size: 19px; font-weight: 900; }
+  .cell-v.hl { color: var(--green-mid); }
+  .cell-note { color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+
+  /* ---------- gear groups ---------- */
+
+  .group { display: flex; flex-direction: column; gap: 14px; }
+
+  .group-head { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
+  .group-head .dot { height: 12px; width: 12px; border-radius: 50%; flex: none; }
+  .group-head h3 { font-size: 20px; font-weight: 900; }
+  .group-head .note { color: var(--ink-soft); font-size: 15px; font-weight: 700; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .card {
+    background: var(--paper);
+    border: 2px solid var(--line-firm);
+    box-shadow: 0 1px 0 oklch(0.88 0.02 150);
+    display: flex;
+    flex-direction: column;
+    transition: border-color .15s;
+  }
+
+  .card.in-bag { border-color: var(--green); }
+
+  .card-tagline { padding: 14px 18px 0; }
+
+  .cat {
+    color: white;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    padding: 5px 11px;
+    text-transform: uppercase;
+  }
+
+  .card-body { display: flex; flex-direction: column; flex: 1; gap: 8px; padding: 12px 18px 18px; }
+
+  .card-title { align-items: flex-start; display: flex; gap: 10px; justify-content: space-between; }
+  .card-title .name { font-size: 18px; font-weight: 900; line-height: 1.2; }
+
+  .info-wrap { flex: none; position: relative; }
+
+  .info {
+    align-items: center;
+    background: var(--paper);
+    border: 1.5px solid var(--green);
+    color: var(--green);
+    cursor: help;
+    display: flex;
+    font: 900 13px var(--sans);
+    height: 24px;
+    justify-content: center;
+    width: 24px;
+  }
+
+  .info-wrap:hover .info, .info-wrap:focus-within .info { background: var(--green); color: white; }
+
+  .tip {
+    background: var(--green-deep);
+    bottom: 32px;
+    box-shadow: 0 10px 24px oklch(0.2 0.05 155 / 0.3);
+    color: white;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    position: absolute;
+    right: -6px;
+    width: 230px;
+    z-index: 5;
+  }
+
+  .info-wrap:hover .tip, .info-wrap:focus-within .tip { display: flex; }
+
+  .tip .tip-k { color: var(--amber-light); font: 700 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+  .tip .tip-v { font-size: 14px; font-weight: 600; line-height: 1.45; }
+
+  .warn { color: var(--danger); font-size: 13px; font-weight: 800; }
+
+  .add {
+    background: var(--paper);
+    border: 2px solid var(--green);
+    color: var(--green);
+    cursor: pointer;
+    font: 900 14px var(--sans);
+    margin-top: auto;
+    padding: 10px 16px;
+  }
+
+  .add.on { background: var(--green); color: white; }
+
+  /* ---------- bag ---------- */
+
+  .bag {
+    align-items: center;
+    background: var(--green);
+    bottom: 20px;
+    box-shadow: 0 10px 30px oklch(0.3 0.06 155 / 0.3);
+    color: white;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 16px 16px 16px 26px;
+    position: sticky;
+  }
+
+  .bag-count { font-size: 18px; font-weight: 900; }
+  .bag-note { color: var(--green-soft); font-size: 15px; font-weight: 700; }
+
+  .bag-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .bag-btn {
+    background: transparent;
+    border: 2px solid oklch(0.6 0.06 155);
+    color: white;
+    cursor: pointer;
+    font: 800 15px var(--sans);
+    padding: 12px 20px;
+  }
+
+  .bag-btn.primary { background: var(--amber); border-color: var(--amber); color: var(--green-deep); font-weight: 900; }
+
+  /* ---------- reviews band ---------- */
+
+  .reviews {
+    background: var(--amber-band);
+    border: 2px solid var(--amber);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 28px;
+  }
+
+  .reviews-head { align-items: center; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; }
+  .reviews-head p { font-size: 22px; font-weight: 900; line-height: 1.3; margin: 0; max-width: 540px; text-wrap: pretty; }
+  .reviews .eyebrow { color: oklch(0.45 0.1 60); }
+
+  .reviews-cta {
+    background: var(--green);
+    border: 2px solid var(--green);
+    color: white;
+    cursor: pointer;
+    font: 900 16px var(--sans);
+    padding: 14px 26px;
+  }
+
+  /* ---------- states ---------- */
 
   .submit {
-    background: var(--signal);
-    border: 0;
-    border-radius: var(--r);
-    color: #fff;
+    background: var(--green);
+    border: 2px solid var(--green);
+    color: white;
     cursor: pointer;
-    font-family: var(--sans);
-    font-size: 15.5px;
-    font-weight: 650;
-    letter-spacing: 0.005em;
-    padding: 15px;
+    font: 900 16px var(--sans);
+    padding: 14px 20px;
     width: 100%;
   }
 
-  :root[data-theme="dark"] .submit,
-  .submit { color: #fff; }
+  .submit:disabled { cursor: default; opacity: .55; }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .submit { color: #14100a; }
-  }
+  .formError { background: var(--danger-wash); border: 2px solid var(--danger); color: var(--danger); font-size: 14px; font-weight: 700; margin: 0; padding: 10px 12px; }
 
-  :root[data-theme="dark"] .submit { color: #14100a; }
+  .placeholder { color: var(--ink-faint); font-size: 16px; font-weight: 700; padding: 60px 20px; text-align: center; }
 
-  .submit:hover { filter: brightness(1.08); }
+  .skeleton { display: flex; flex-direction: column; gap: 10px; }
+  .skeleton .bar { background: linear-gradient(90deg, oklch(0.92 0.02 150), oklch(0.96 0.01 150), oklch(0.92 0.02 150)); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; height: 14px; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
 
-  /* ---------- loading ---------- */
-
-  .status {
-    align-items: center;
-    color: var(--ink-soft);
-    display: flex;
-    font-family: var(--mono);
-    font-size: 12.5px;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-
-  .pulse {
-    background: var(--signal);
-    border-radius: 50%;
-    flex: none;
-    height: 7px;
-    width: 7px;
-    animation: blink 1.1s ease-in-out infinite;
-  }
-
-  @keyframes blink { 50% { opacity: 0.25; } }
-
-  .skeleton {
-    background: var(--surface);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--r);
-    margin-bottom: 8px;
-    padding: 16px;
-  }
-
-  .bar {
-    background: linear-gradient(90deg, var(--line-soft), var(--line), var(--line-soft));
-    background-size: 220% 100%;
-    border-radius: 2px;
-    height: 10px;
-    animation: sweep 1.4s linear infinite;
-  }
-
-  .bar + .bar { margin-top: 9px; }
-
-  @keyframes sweep { to { background-position: -220% 0; } }
-
-  @media (prefers-reduced-motion: reduce) {
-    .pulse, .bar { animation: none; }
-  }
-
-  /* ---------- results ---------- */
-
-  .manifest { display: flex; flex-direction: column; gap: 22px; }
-
-  .readout {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    display: grid;
-    gap: 1px;
-    grid-template-columns: repeat(3, 1fr);
-    overflow: hidden;
-  }
-
-  @media (max-width: 560px) { .readout { grid-template-columns: 1fr; } }
-
-  .cell {
-    background: var(--surface);
-    box-shadow: 0 0 0 1px var(--line-soft);
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 14px 16px;
-  }
-
-  .cell-k {
-    color: var(--ink-faint);
-    font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-  }
-
-  .cell-v {
-    font-family: var(--mono);
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .cell-v.hl { color: var(--signal-ink); font-weight: 700; }
-
-  .cell-note { color: var(--ink-soft); font-size: 12px; }
-
-  .group { display: flex; flex-direction: column; gap: 8px; }
-
-  .group-head {
-    align-items: center;
-    display: flex;
-    gap: 10px;
-  }
-
-  .tag {
-    border-radius: 2px;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    padding: 3px 7px;
-    text-transform: uppercase;
-  }
-
-  .tag.essential { background: var(--signal); color: #fff; }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .tag.essential { color: #14100a; }
-  }
-
-  :root[data-theme="dark"] .tag.essential { color: #14100a; }
-
-  .tag.recommended { border: 1px solid var(--signal); color: var(--signal-ink); }
-  .tag.optional { border: 1px solid var(--line); color: var(--ink-faint); }
-
-  .group-count {
-    color: var(--ink-faint);
-    font-family: var(--mono);
-    font-size: 11px;
-    margin-left: auto;
-  }
-
-  .item {
-    background: var(--surface);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--r);
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 14px 16px;
-  }
-
-  .item.is-essential { border-color: var(--line); }
-
-  .item.is-optional { background: none; border-style: dashed; }
-
-  .item-name { font-size: 15.5px; font-weight: 650; letter-spacing: -0.008em; }
-
-  .item-why { color: var(--ink-soft); font-size: 13.5px; }
-
-  .item-meta {
-    color: var(--ink-faint);
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  /* ---------- provenance ---------- */
-
-  .provenance {
-    border-top: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 18px;
-  }
-
+  .provenance { border-top: 2px solid var(--line-firm); display: flex; flex-direction: column; gap: 10px; padding-top: 18px; }
   .srcs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .src { background: var(--paper); border: 1.5px solid var(--line); color: var(--ink-soft); font: 500 11px var(--mono); padding: 4px 8px; text-decoration: none; }
+  .caveat { color: var(--ink-soft); font-size: 13px; font-weight: 700; margin: 0; }
+  .caveat b { color: var(--ink); font-weight: 900; }
 
-  .src {
-    background: var(--surface-sunk);
-    border: 1px solid var(--line-soft);
-    border-radius: 2px;
-    color: var(--ink-soft);
-    font-family: var(--mono);
-    font-size: 10.5px;
-    padding: 4px 8px;
+  .toast {
+    background: var(--green-deep);
+    bottom: 20px;
+    color: white;
+    font-weight: 800;
+    left: 50%;
+    max-width: 90vw;
+    padding: 12px 18px;
+    position: fixed;
+    transform: translateX(-50%);
+    z-index: 30;
   }
 
-  .caveat {
-    color: var(--ink-soft);
-    font-size: 12.5px;
-    margin: 0;
+  @media (max-width: 900px) {
+    .wrap { padding: 20px 16px 48px; }
+    .board { grid-template-columns: 1fr; }
+    .hero { padding: 28px; }
+    .hero h1 { font-size: 38px; }
+    .grid { grid-template-columns: 1fr; }
+    .readout { grid-template-columns: 1fr; }
+    .cell { border-bottom: 2px solid var(--line-firm); border-right: 0; }
+    .cell:last-child { border-bottom: 0; }
   }
-
-  .caveat b { color: var(--ink); font-weight: 650; }
-
-  .restart {
-    background: none;
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    color: var(--ink);
-    cursor: pointer;
-    font-family: var(--sans);
-    font-size: 14px;
-    padding: 12px;
-    width: 100%;
-  }
-
-  .restart:hover { border-color: var(--ink-faint); }
-
-  .formError {
-    background: var(--signal-wash);
-    border: 1px solid var(--signal);
-    border-radius: var(--r);
-    color: var(--signal-ink);
-    font-size: 13.5px;
-    margin: 0;
-    padding: 11px 13px;
-  }
-
-  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
-<div class="page">
-  <header class="masthead">
-    <div class="brandline">Trek_XP</div>
-    <h1>What should you actually pack?</h1>
-    <p class="standfirst">
-      Tell us where you're going and what you'll be doing. We check the local
-      weather, the plug type and the voltage, then work out which gadgets earn
-      their space.
-    </p>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="badge">Explore Bangladesh</span>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <h1>Where to next?</h1>
+      <p>Pick a place, set your dates, and get a packing list made for your trip —
+         checked against the local weather, plug type and voltage.</p>
+    </div>
   </header>
 
-  <main>
-    <form class="panel" id="tripForm">
-      <div class="field">
-        <span class="label" id="lbl-dest">Destination</span>
-        <div class="combo">
-          <input type="text" id="dest" autocomplete="off" role="combobox"
-                 aria-expanded="false" aria-controls="sugg" aria-labelledby="lbl-dest"
-                 placeholder="Start typing a city…" />
-          <ul class="suggestions" id="sugg" role="listbox" aria-label="Matching places" hidden></ul>
+  <div class="board">
+
+    <!-- ============ left: the trip ============ -->
+    <aside class="panel" style="display:flex;flex-direction:column;gap:32px">
+
+      <form id="tripForm" style="display:flex;flex-direction:column;gap:32px">
+
+        <section class="step">
+          <div class="step-head"><span class="step-num">1</span><h2>Your trip</h2></div>
+
+          <div class="field">
+            <span class="label">Dates</span>
+            <div class="dates">
+              <input type="date" id="start" aria-label="Start date" />
+              <span class="arrow">→</span>
+              <input type="date" id="end" aria-label="End date" />
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="label">Trip type</span>
+            <div class="chips" id="tripType"></div>
+          </div>
+
+          <div class="field">
+            <span class="label">Activities <span class="opt">optional</span></span>
+            <div class="chips" id="activities"></div>
+          </div>
+
+          <div class="field">
+            <span class="label">Travellers</span>
+            <div class="chips" id="pax"></div>
+          </div>
+        </section>
+
+        <section class="step">
+          <div class="step-head"><span class="step-num">2</span><h2>Destination</h2></div>
+
+          <div id="featured" style="display:flex;flex-direction:column;gap:18px"></div>
+        </section>
+
+        <p class="formError" id="formError" hidden role="alert"></p>
+
+        <button class="submit" type="submit" id="submitBtn">Get my packing list</button>
+      </form>
+    </aside>
+
+    <!-- ============ right: the list ============ -->
+    <main class="panel" style="display:flex;flex-direction:column;gap:22px">
+
+      <div class="results-head">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="step-head"><span class="step-num">3</span><span class="eyebrow">Gear up</span></div>
+          <h2>Your packing list</h2>
+          <span class="place-sub" id="placeSub">Pick a destination to start</span>
         </div>
-        <span class="resolved" id="resolved" hidden>
-          <span class="tick">✓</span><span id="resolvedText"></span>
-        </span>
+        <div class="tabs" id="tabs" hidden></div>
       </div>
 
-      <div class="field">
-        <span class="label">Dates</span>
-        <div class="pair">
-          <input type="date" id="start" value="2026-11-10" aria-label="Start date" />
-          <input type="date" id="end" value="2026-11-17" aria-label="End date" />
-        </div>
+      <div id="idle" class="placeholder">
+        Choose where you're going and press <b>Get my packing list</b>.
       </div>
 
-      <div class="field">
-        <span class="label">Trip type</span>
-        <div class="choices" id="tripType"></div>
+      <div id="loading" hidden aria-live="polite" style="display:flex;flex-direction:column;gap:18px">
+        <div class="eyebrow" id="statusText">Checking the weather…</div>
+        <div class="skeleton"><div class="bar" style="width:52%"></div><div class="bar" style="width:88%"></div></div>
+        <div class="skeleton"><div class="bar" style="width:44%"></div><div class="bar" style="width:76%"></div></div>
+        <div class="skeleton"><div class="bar" style="width:60%"></div><div class="bar" style="width:82%"></div></div>
       </div>
 
-      <div class="field">
-        <span class="label">Activities <span class="opt">optional</span></span>
-        <div class="chips" id="activities"></div>
-      </div>
-
-      <div class="row">
-        <div class="field">
-          <span class="label">Baggage</span>
-          <div class="segmented">
-            <input type="radio" name="bag" id="bag-carry" value="carry_on_only" />
-            <label for="bag-carry">Carry-on only</label>
-            <input type="radio" name="bag" id="bag-checked" value="checked" checked />
-            <label for="bag-checked">Checked allowed</label>
+      <div id="results" hidden style="display:flex;flex-direction:column;gap:22px">
+        <div class="readout">
+          <div class="cell">
+            <span class="cell-k">Trip</span>
+            <span class="cell-v" id="rDest">—</span>
+            <span class="cell-note" id="rDays">—</span>
+          </div>
+          <div class="cell">
+            <span class="cell-k">Conditions</span>
+            <span class="cell-v" id="rTemp">—</span>
+            <span class="cell-note" id="rWeather">—</span>
+          </div>
+          <div class="cell">
+            <span class="cell-k">Power</span>
+            <span class="cell-v hl" id="rPlug">—</span>
+            <span class="cell-note" id="rVolt">—</span>
           </div>
         </div>
-        <div class="field">
-          <span class="label">Travellers</span>
-          <div class="stepper">
-            <button type="button" id="minus" aria-label="One fewer traveller">−</button>
-            <output id="pax">2</output>
-            <button type="button" id="plus" aria-label="One more traveller">+</button>
+
+        <div id="groups" style="display:flex;flex-direction:column;gap:28px"></div>
+
+        <div class="bag">
+          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:14px">
+            <span class="bag-count" id="bagCount">Nothing packed yet</span>
+            <span class="bag-note" id="bagNote"></span>
+          </div>
+          <div class="bag-actions">
+            <button type="button" class="bag-btn" id="addEssentials">Add all essentials</button>
+            <button type="button" class="bag-btn primary" id="copyList">Copy list</button>
           </div>
         </div>
-      </div>
 
-      <p class="formError" id="formError" hidden role="alert"></p>
-
-      <button class="submit" type="submit">Get my packing list</button>
-    </form>
-
-    <section id="loading" hidden aria-live="polite">
-      <div class="status"><span class="pulse"></span><span id="statusText">Finding Cox's Bazar…</span></div>
-      <div class="skeleton"><div class="bar" style="width:52%"></div><div class="bar" style="width:88%"></div></div>
-      <div class="skeleton"><div class="bar" style="width:44%"></div><div class="bar" style="width:76%"></div></div>
-      <div class="skeleton"><div class="bar" style="width:60%"></div><div class="bar" style="width:82%"></div></div>
-    </section>
-
-    <section id="results" hidden class="manifest">
-      <div class="readout">
-        <div class="cell">
-          <span class="cell-k">Destination</span>
-          <span class="cell-v" id="rDest">Cox's Bazar</span>
-          <span class="cell-note" id="rDays">8 days · 2 travellers</span>
-        </div>
-        <div class="cell">
-          <span class="cell-k">Conditions</span>
-          <span class="cell-v" id="rTemp">20.2 – 31.0 °C</span>
-          <span class="cell-note" id="rWeather">Hot and mostly dry</span>
-        </div>
-        <div class="cell">
-          <span class="cell-k">Power</span>
-          <span class="cell-v hl" id="rPlug">Type A/C/D/G/K</span>
-          <span class="cell-note" id="rVolt">220V · 50Hz</span>
+        <div class="provenance">
+          <div class="srcs" id="srcs"></div>
+          <p class="caveat">
+            <b>Not yet community-verified.</b> These suggestions come from a language
+            model, checked against real weather and plug data.
+          </p>
         </div>
       </div>
+    </main>
+  </div>
 
-      <div id="groups"></div>
-
-      <div class="provenance">
-        <div class="srcs" id="srcs"></div>
-        <p class="caveat">
-          <b>Not yet community-verified.</b> These suggestions come from a language
-          model working off the conditions above. Verified entries will carry a badge
-          once the community catalogue opens.
-        </p>
-        <button class="restart" type="button" id="restart">Plan another trip</button>
+  <!-- ============ reviews ============ -->
+  <section class="reviews">
+    <div class="reviews-head">
+      <div style="display:flex;flex-direction:column;gap:6px;max-width:540px">
+        <span class="eyebrow">Traveler reviews</span>
+        <p>Share your travel gadget experiences and help fellow travelers make smarter choices.</p>
       </div>
-    </section>
-  </main>
+      <button type="button" class="reviews-cta" id="shareBtn">Share experience</button>
+    </div>
+  </section>
+
 </div>
 
+<div class="toast" id="toast" role="status" hidden></div>
+
 <script>
-  const TRIPS = [["beach","Beach"],["city","City break"],["hiking","Hiking"],
-                 ["business","Business"],["backpacking","Backpacking"],["winter_sports","Winter sports"]];
-  const ACTS = [["photography","Photography"],["diving","Diving"],["camping","Camping"],
-                ["cycling","Cycling"],["climbing","Climbing"],["remote_work","Remote work"]];
+(() => {
+  "use strict";
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const label = (v) => String(v).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-  let place = null;
-  let matches = [];
-  let pax = 2;
+  const TRIP_TYPES = ["hiking", "business", "beach", "city", "backpacking", "winter_sports"];
+  const ACTIVITIES = ["photography", "diving", "camping", "cycling", "climbing", "remote_work"];
 
-  TRIPS.forEach(([v, lbl], i) => {
-    $("tripType").insertAdjacentHTML("beforeend",
-      `<input type="radio" name="tt" id="tt-${v}" value="${v}"${i === 0 ? " checked" : ""} />
-       <label for="tt-${v}">${lbl}</label>`);
-  });
+  const PRIORITIES = [
+    { key: "essential",   name: "Essential",   note: "Don't leave without these", colour: "var(--essential)" },
+    { key: "recommended", name: "Recommended", note: "Makes the trip easier",     colour: "var(--recommended)" },
+    { key: "optional",    name: "Optional",    note: "Nice to have",              colour: "var(--optional)" },
+  ];
 
-  ACTS.forEach(([v, lbl]) => {
-    $("activities").insertAdjacentHTML("beforeend",
-      `<input type="checkbox" id="ac-${v}" value="${v}" />
-       <label for="ac-${v}">${lbl}</label>`);
-  });
+  let place = null;          // chosen destination, or null until one is picked
+  let tripType = "hiking";
+  let activities = new Set();
+  let travellers = 2;
+  let data = null;           // last /recommend response
+  let bag = new Set();
+  let tab = "all";
 
-  // ---- destination picker: live search, user chooses the real place ----
-  const dest = $("dest"), sugg = $("sugg");
-  let searchTimer = null;
+  // ---------- small helpers ----------
 
-  function closeList() {
-    sugg.hidden = true;
-    dest.setAttribute("aria-expanded", "false");
+  let toastTimer;
+  function toast(message) {
+    const el = $("toast");
+    el.textContent = message;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (el.hidden = true), 2600);
+  }
+
+  function chip(text, selected, onClick, extra = "") {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.setAttribute("aria-pressed", String(selected));
+    b.innerHTML = (selected && extra === "tick" ? '<span class="tick">✓</span>' : "") + esc(text);
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function fillChips(host, values, isOn, onPick) {
+    host.replaceChildren(...values.map((v) =>
+      chip(label(v), isOn(v), () => { onPick(v); render(); })));
+  }
+
+  // ---------- step 1 ----------
+
+  function isoDate(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().slice(0, 10);
+  }
+
+  $("start").value = isoDate(30);
+  $("end").value = isoDate(37);
+
+  function render() {
+    fillChips($("tripType"), TRIP_TYPES, (v) => v === tripType, (v) => (tripType = v));
+    fillChips($("activities"), ACTIVITIES,
+      (v) => activities.has(v),
+      (v) => activities.has(v) ? activities.delete(v) : activities.add(v));
+    fillChips($("pax"), [1, 2, 3, 4, 5],
+      (v) => v === travellers, (v) => (travellers = v));
+    renderFeatured();
+  }
+
+  // ---------- step 2: destination ----------
+
+  let featured = [];
+
+  async function loadFeatured() {
+    try {
+      const res = await fetch("/destinations/featured");
+      featured = res.ok ? await res.json() : [];
+    } catch { featured = []; }
+    renderFeatured();
+  }
+
+  function samePlace(a, b) {
+    return a && b && a.name === b.name &&
+      Math.abs(a.latitude - b.latitude) < 0.001 && Math.abs(a.longitude - b.longitude) < 0.001;
   }
 
   function pick(p) {
-    place = p;
-    dest.value = p.name;
-    $("resolvedText").textContent =
-      `${p.name}${p.country ? ", " + p.country : ""}${p.country_code ? " · " + p.country_code : ""}`;
-    $("resolved").hidden = false;
-    closeList();
+    // Tapping the chosen place again clears it, so a mis-tap is undoable.
+    place = samePlace(place, p) ? null : p;
+    $("placeSub").textContent = place ? place.name : "Pick a destination to start";
+    render();
   }
 
-  async function search(q) {
-    try {
-      const res = await fetch(`/destinations?q=${encodeURIComponent(q)}&limit=6`);
-      if (!res.ok) return closeList();
-      matches = await res.json();
-    } catch { return closeList(); }
-
-    if (!matches.length) return closeList();
-
-    sugg.innerHTML = matches.map((p, i) =>
-      `<li role="option" tabindex="0" data-i="${i}" aria-selected="${i === 0}">
-         <span class="sg-name">${esc(p.name)}</span>
-         <span class="sg-country">${esc(p.country || "")}</span></li>`).join("");
-    sugg.hidden = false;
-    dest.setAttribute("aria-expanded", "true");
+  function renderFeatured() {
+    const host = $("featured");
+    host.replaceChildren(...featured.map((division) => {
+      const wrap = document.createElement("div");
+      wrap.className = "division";
+      const head = document.createElement("div");
+      head.className = "division-head";
+      head.innerHTML = `<h3>${esc(division.name)}</h3><div class="rule"></div>`;
+      const chips = document.createElement("div");
+      chips.className = "chips";
+      chips.append(...division.places.map((p) => {
+        const sel = samePlace(place, p);
+        return chip(p.name, sel, () => pick({ ...p, country: p.country_name, country_code: p.country_code }), "tick");
+      }));
+      wrap.append(head, chips);
+      return wrap;
+    }));
   }
 
-  dest.addEventListener("input", () => {
-    place = null;
-    $("resolved").hidden = true;
-    const q = dest.value.trim();
-    clearTimeout(searchTimer);
-    if (q.length < 2) return closeList();
-    // Debounced so a fast typist does not fire a request per keystroke.
-    searchTimer = setTimeout(() => search(q), 220);
-  });
-
-  sugg.addEventListener("click", (e) => {
-    const li = e.target.closest("li");
-    if (li) pick(matches[+li.dataset.i]);
-  });
-
-  sugg.addEventListener("keydown", (e) => {
-    const li = e.target.closest("li");
-    if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pick(matches[+li.dataset.i]); }
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(".combo")) closeList();
-  });
-
-  $("minus").addEventListener("click", () => { pax = Math.max(1, pax - 1); $("pax").textContent = pax; });
-  $("plus").addEventListener("click", () => { pax = Math.min(50, pax + 1); $("pax").textContent = pax; });
-
-  function payload() {
-    const body = {
-      destination: dest.value.trim(),
-      start_date: $("start").value,
-      end_date: $("end").value,
-      trip_type: document.querySelector('input[name="tt"]:checked').value,
-      activities: [...document.querySelectorAll("#activities input:checked")].map((i) => i.value),
-      baggage: document.querySelector('input[name="bag"]:checked').value,
-      travelers: pax
-    };
-    if (place) {
-      body.latitude = place.latitude;
-      body.longitude = place.longitude;
-      body.country_code = place.country_code;
-      body.country_name = place.country;
-    }
-    return body;
-  }
-
-  function fail(message) {
-    $("loading").hidden = true;
-    $("tripForm").hidden = false;
-    $("formError").textContent = message;
-    $("formError").hidden = false;
-  }
+  // ---------- submit ----------
 
   $("tripForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     $("formError").hidden = true;
 
-    if (!dest.value.trim()) return fail("Choose a destination to continue.");
-    if (new Date($("end").value) < new Date($("start").value))
-      return fail("The return date falls before the departure date.");
+    if (!place) return fail("Pick a destination first.");
+    if ($("end").value < $("start").value) return fail("The end date is before the start date.");
 
-    const label = place ? place.name : dest.value.trim();
-    const steps = [`Finding ${label}…`, `Checking the weather in ${label}…`,
-                   "Looking up plug types…", "Asking the gear advisor…"];
-
-    $("tripForm").hidden = true;
+    $("idle").hidden = true;
     $("results").hidden = true;
     $("loading").hidden = false;
+    $("statusText").textContent = `Checking conditions in ${place.name}…`;
+    $("submitBtn").disabled = true;
 
-    let i = 0;
-    $("statusText").textContent = steps[0];
-    const tick = setInterval(() => { i += 1; if (i < steps.length) $("statusText").textContent = steps[i]; }, 1400);
-
-    let res, data;
     try {
-      res = await fetch("/recommend", {
+      const res = await fetch("/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload())
+        body: JSON.stringify({
+          destination: place.name,
+          start_date: $("start").value,
+          end_date: $("end").value,
+          trip_type: tripType,
+          activities: [...activities],
+          travelers: travellers,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          country_code: place.country_code || null,
+          country_name: place.country || null,
+        }),
       });
-      data = await res.json();
-    } catch {
-      clearInterval(tick);
-      return fail("Could not reach the server. Check it is running and try again.");
-    }
-    clearInterval(tick);
 
-    if (!res.ok) {
-      const detail = Array.isArray(data?.detail)
-        ? "Check the form values and try again."
-        : (data?.detail || "Something went wrong. Try again.");
-      return fail(detail);
-    }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || "That didn't work. Please try again.");
 
-    render(data);
-    $("loading").hidden = true;
-    $("results").hidden = false;
-    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+      data = body;
+      bag = new Set();
+      tab = "all";
+      showResults();
+    } catch (err) {
+      $("loading").hidden = true;
+      $("idle").hidden = false;
+      fail(err.message);
+    } finally {
+      $("submitBtn").disabled = false;
+    }
   });
 
-  function render(data) {
-    const recs = data.recommendations || [];
-    const notes = data.notes || [];
+  function fail(message) {
+    $("formError").textContent = message;
+    $("formError").hidden = false;
+  }
 
-    // The API returns prose notes; the readout wants the numbers out of them.
-    const climate = notes.find((n) => /°C/.test(n)) || "";
-    const power = notes.find((n) => /plug type/i.test(n)) || "";
-    const temps = climate.match(/-?[\d.]+°C to -?[\d.]+°C/);
-    const sky = climate.match(/:\s*([^;]+);/);
-    const plug = power.match(/plug type ([^,]+)/i);
-    const volt = power.match(/,\s*(.+?)\.?$/);
+  // ---------- step 3: the list ----------
 
-    $("rDest").textContent = data.destination || "—";
+  function noteFor(prefix) {
+    return (data.notes || []).find((n) => n.startsWith(prefix));
+  }
+
+  function showResults() {
+    $("loading").hidden = true;
+    $("results").hidden = false;
+
+    $("rDest").textContent = data.destination;
     $("rDays").textContent =
-      `${data.duration_days} days · ${pax} traveller${pax > 1 ? "s" : ""}`;
-    $("rTemp").textContent = temps ? temps[0].replace(" to ", " – ") : "Unavailable";
-    $("rWeather").textContent = sky ? sky[1].trim().replace(/^./, (c) => c.toUpperCase()) : "No weather data";
-    $("rPlug").textContent = plug ? "Type " + plug[1].trim() : "Unknown";
-    $("rVolt").textContent = volt ? volt[1].trim() : "Not on file";
+      `${data.duration_days} day${data.duration_days === 1 ? "" : "s"} · ${travellers} traveller${travellers === 1 ? "" : "s"}`;
 
-    const order = ["essential", "recommended", "optional"];
-    const labels = { essential: "Essential", recommended: "Recommended", optional: "Optional" };
+    // The API returns prose notes; show the numbers prominently and keep
+    // the sentence underneath rather than re-deriving anything.
+    const climate = (data.notes || [])[0] || "";
+    const temps = climate.match(/(-?[\d.]+°C) to (-?[\d.]+°C)/);
+    $("rTemp").textContent = temps ? `${temps[1]} – ${temps[2]}` : "Not available";
+    const descriptor = climate.match(/:\s*([^;]+);/);
+    $("rWeather").textContent = descriptor ? label(descriptor[1].trim()) : climate.slice(0, 60) || "—";
 
-    $("groups").innerHTML = recs.length ? order.map((p) => {
-      const rows = recs.filter((r) => r.priority === p);
-      if (!rows.length) return "";
-      return `<div class="group" style="margin-bottom:22px">
-        <div class="group-head">
-          <span class="tag ${p}">${labels[p]}</span>
-          <span class="group-count">${rows.length} item${rows.length > 1 ? "s" : ""}</span>
-        </div>
-        ${rows.map((r) => `
-          <div class="item is-${p}">
-            <span class="item-name">${esc(r.gadget)}${r.verified ? ' <span class="tag recommended">verified</span>' : ""}</span>
-            <span class="item-why">${esc(r.why)}</span>
-            <span class="item-meta">${esc(r.category || r.origin)}</span>
-          </div>`).join("")}
-      </div>`;
-    }).join("") : `<p class="caveat">No recommendations came back for this trip.</p>`;
+    const plug = noteFor(data.destination) || (data.notes || []).find((n) => /plug type/i.test(n)) || "";
+    const plugMatch = plug.match(/plug type ([^,]+), ([^ ]+) ([^.]+)\./i);
+    $("rPlug").textContent = plugMatch ? `Type ${plugMatch[1]}` : "Not on file";
+    $("rVolt").textContent = plugMatch ? `${plugMatch[2]} · ${plugMatch[3]}` : "";
 
-    // OpenStreetMap's licence (ODbL) requires visible attribution.
     $("srcs").innerHTML = (data.sources || []).map((s) => s === "openstreetmap"
       ? `<a class="src" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>`
       : `<span class="src">${esc(s)}</span>`).join("");
+
+    renderTabs();
+    renderGroups();
   }
 
-  $("restart").addEventListener("click", () => {
-    $("results").hidden = true;
-    $("tripForm").hidden = false;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-</script>
+  function counts() {
+    const out = { all: (data.recommendations || []).length };
+    for (const p of PRIORITIES) {
+      out[p.key] = (data.recommendations || []).filter((r) => r.priority === p.key).length;
+    }
+    return out;
+  }
 
+  function renderTabs() {
+    const c = counts();
+    const tabs = [{ key: "all", name: "All" }, ...PRIORITIES.filter((p) => c[p.key] > 0)];
+    $("tabs").hidden = false;
+    $("tabs").replaceChildren(...tabs.map((t) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab";
+      b.setAttribute("aria-selected", String(tab === t.key));
+      b.textContent = `${t.name} ${c[t.key]}`;
+      b.addEventListener("click", () => { tab = t.key; renderTabs(); renderGroups(); });
+      return b;
+    }));
+  }
+
+  function cardFor(item, colour) {
+    const el = document.createElement("div");
+    el.className = "card" + (bag.has(item.gadget) ? " in-bag" : "");
+    el.innerHTML = `
+      <div class="card-tagline">
+        <span class="cat" style="background:${colour}">${esc(item.category || item.priority)}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title">
+          <span class="name">${esc(item.gadget)}</span>
+          <span class="info-wrap">
+            <span class="info" tabindex="0" role="button" aria-label="Why you need this">i</span>
+            <span class="tip">
+              <span class="tip-k">Why this trip</span>
+              <span class="tip-v">${esc(item.why)}</span>
+            </span>
+          </span>
+        </div>
+        ${(item.warnings || []).map((w) => `<span class="warn">⚠ ${esc(w)}</span>`).join("")}
+        <button type="button" class="add${bag.has(item.gadget) ? " on" : ""}">
+          ${bag.has(item.gadget) ? "✓ Packed" : "Add to bag"}
+        </button>
+      </div>`;
+
+    el.querySelector(".add").addEventListener("click", () => {
+      bag.has(item.gadget) ? bag.delete(item.gadget) : bag.add(item.gadget);
+      renderGroups();
+    });
+
+    return el;
+  }
+
+  function renderGroups() {
+    const host = $("groups");
+    const shown = PRIORITIES.filter((p) => tab === "all" || tab === p.key);
+
+    host.replaceChildren(...shown.flatMap((p) => {
+      const items = (data.recommendations || []).filter((r) => r.priority === p.key);
+      if (!items.length) return [];
+
+      const wrap = document.createElement("div");
+      wrap.className = "group";
+      const head = document.createElement("div");
+      head.className = "group-head";
+      head.innerHTML =
+        `<span class="dot" style="background:${p.colour}"></span>
+         <h3>${p.name}</h3><span class="note">${p.note}</span>`;
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      grid.append(...items.map((i) => cardFor(i, p.colour)));
+      wrap.append(head, grid);
+      return [wrap];
+    }));
+
+    if (!host.children.length) {
+      host.innerHTML = `<p class="placeholder">Nothing in this group.</p>`;
+    }
+
+    renderBag();
+  }
+
+  function renderBag() {
+    const total = (data.recommendations || []).length;
+    $("bagCount").textContent = bag.size
+      ? `${bag.size} of ${total} packed`
+      : "Nothing packed yet";
+    const missing = (data.recommendations || [])
+      .filter((r) => r.priority === "essential" && !bag.has(r.gadget)).length;
+    $("bagNote").textContent = missing
+      ? `${missing} essential${missing === 1 ? "" : "s"} still to pack`
+      : bag.size ? "All essentials packed" : "";
+  }
+
+  $("addEssentials").addEventListener("click", () => {
+    for (const r of data.recommendations || []) {
+      if (r.priority === "essential") bag.add(r.gadget);
+    }
+    renderGroups();
+    toast("Essentials added.");
+  });
+
+  $("copyList").addEventListener("click", async () => {
+    const lines = PRIORITIES.flatMap((p) => {
+      const items = (data.recommendations || []).filter((r) => r.priority === p.key);
+      return items.length ? [`${p.name}:`, ...items.map((r) => `  ${bag.has(r.gadget) ? "[x]" : "[ ]"} ${r.gadget}`), ""] : [];
+    });
+    const text = [`Packing list — ${data.destination} (${data.duration_days} days)`, "", ...lines].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Packing list copied.");
+    } catch {
+      toast("Could not copy — select the list and copy manually.");
+    }
+  });
+
+  $("shareBtn").addEventListener("click", () =>
+    toast("Traveller reviews are coming soon."));
+
+  // ---------- start ----------
+
+  render();
+  loadFeatured();
+})();
+</script>
 </body>
 </html>

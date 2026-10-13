@@ -1,0 +1,150 @@
+{
+ "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead \u2014 see _anchored.",
+ "_anchored": {
+  "Nilgiri": "geocoders returned the Nilgiri Hills in India, 1588km away; anchored to Chimbuk peak on the range it sits on",
+  "Bholaganj Sada Pathor": "unmapped, and 'Bholaganj' matches a different place 30km south; anchored to Companiganj upazila",
+  "Bichanakandi": "unmapped; anchored to Companiganj upazila, which contains it"
+ },
+ "divisions": [
+  {
+   "name": "Sylhet",
+   "places": [
+    {
+     "name": "Jaflong",
+     "lat": 25.173,
+     "lon": 92.0203
+    },
+    {
+     "name": "Bholaganj Sada Pathor",
+     "lat": 25.0771,
+     "lon": 91.795
+    },
+    {
+     "name": "Bichanakandi",
+     "lat": 25.0771,
+     "lon": 91.795
+    },
+    {
+     "name": "Lalakhal",
+     "lat": 25.1165,
+     "lon": 92.1842
+    },
+    {
+     "name": "Ratargul Swamp Forest",
+     "lat": 25.0121,
+     "lon": 91.9229
+    },
+    {
+     "name": "Srimangal",
+     "lat": 24.3065,
+     "lon": 91.7296
+    },
+    {
+     "name": "Lawachara National Park",
+     "lat": 24.3292,
+     "lon": 91.7879
+    }
+   ]
+  },
+  {
+   "name": "Chattogram",
+   "places": [
+    {
+     "name": "Cox's Bazar",
+     "lat": 21.4522,
+     "lon": 91.9639
+    },
+    {
+     "name": "Saint Martin's Island",
+     "lat": 20.6113,
+     "lon": 92.327
+    },
+    {
+     "name": "Kaptai Lake",
+     "lat": 22.7595,
+     "lon": 92.2761
+    },
+    {
+     "name": "Sajek Valley",
+     "lat": 23.3909,
+     "lon": 92.2855
+    },
+    {
+     "name": "Rangamati",
+     "lat": 22.6432,
+     "lon": 92.1919
+    },
+    {
+     "name": "Bandarban",
+     "lat": 22.1953,
+     "lon": 92.2195
+    },
+    {
+     "name": "Nilgiri",
+     "lat": 21.8203,
+     "lon": 92.3796
+    },
+    {
+     "name": "Nafakhum Waterfall",
+     "lat": 21.7202,
+     "lon": 92.5336
+    },
+    {
+     "name": "Khagrachhari",
+     "lat": 23.1079,
+     "lon": 91.9701
+    }
+   ]
+  },
+  {
+   "name": "Khulna",
+   "places": [
+    {
+     "name": "Sundarbans",
+     "lat": 22.024,
+     "lon": 89.3136
+    }
+   ]
+  },
+  {
+   "name": "Barishal",
+   "places": [
+    {
+     "name": "Kuakata",
+     "lat": 21.8212,
+     "lon": 90.1197
+    }
+   ]
+  },
+  {
+   "name": "Dhaka",
+   "places": [
+    {
+     "name": "Dhaka",
+     "lat": 23.7104,
+     "lon": 90.4074
+    },
+    {
+     "name": "Sonargaon",
+     "lat": 23.65,
+     "lon": 90.6167
+    }
+   ]
+  },
+  {
+   "name": "Rajshahi",
+   "places": [
+    {
+     "name": "Paharpur",
+     "lat": 25.0269,
+     "lon": 88.9759
+    },
+    {
+     "name": "Rajshahi",
+     "lat": 24.374,
+     "lon": 88.6011
+    }
+   ]
+  }
+ ]
+}
