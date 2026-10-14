@@ -167,7 +167,7 @@
     text-transform: none;
   }
 
-  input[type="date"] {
+  input[type="date"], #divisionSelect {
     background: var(--paper);
     border: 1.5px solid var(--line);
     font-size: 14px;
@@ -202,21 +202,6 @@
   }
 
   .chip .tick { font-size: 12px; margin-right: 6px; }
-
-  /* ---------- destination ---------- */
-
-  .division { display: flex; flex-direction: column; gap: 10px; }
-
-  .division-head { align-items: center; display: flex; gap: 12px; }
-
-  .division-head h3 {
-    color: var(--green-mid);
-    font-size: 15px;
-    font-weight: 800;
-    white-space: nowrap;
-  }
-
-  .division-head .rule { border-top: 2px dashed var(--green-soft); flex: 1; }
 
   /* ---------- main ---------- */
 
@@ -506,7 +491,11 @@
         <section class="step">
           <div class="step-head"><span class="step-num">2</span><h2>Destination</h2></div>
 
-          <div id="featured" style="display:flex;flex-direction:column;gap:18px"></div>
+          <div class="field">
+            <span class="label">Division</span>
+            <select id="divisionSelect" aria-label="Division"></select>
+          </div>
+          <div class="chips" id="places"></div>
         </section>
 
         <p class="formError" id="formError" hidden role="alert"></p>
@@ -672,12 +661,13 @@
       (v) => activities.has(v) ? activities.delete(v) : activities.add(v));
     fillChips($("pax"), [1, 2, 3, 4, 5],
       (v) => v === travellers, (v) => (travellers = v));
-    renderFeatured();
+    renderPlaces();
   }
 
   // ---------- step 2: destination ----------
 
   let featured = [];
+  let divisionName = null;  // which division's places are on screen
 
   async function loadFeatured() {
     try {
@@ -685,7 +675,8 @@
       featured = res.ok ? await res.json() : [];
     } catch { featured = []; }
     startOnDefault();
-    renderFeatured();
+    renderDivisions();
+    renderPlaces();
 
     // Open on a finished list rather than an empty panel. Costs one model
     // call per visit -- see the caching note in docs/ARCHITECTURE.md.
@@ -699,17 +690,21 @@
   function startOnDefault() {
     // The form opens on one destination so a first-time visitor sees it
     // filled in rather than empty. Which one is the dataset's call, not
-    // this page's -- see "_default" in bd_destinations.json.
-    if (place) return;
-
+    // this page's -- see "_default" in bd_destinations.json. The dropdown
+    // opens on that place's division so its chip is already on screen.
     for (const division of featured) {
       const preset = division.places.find((p) => p.is_default);
 
       if (preset) {
-        setPlace(toPlace(preset));
+        divisionName = division.name;
+        if (!place) setPlace(toPlace(preset));
         return;
       }
     }
+
+    // No default marked: fall back to the first division so the dropdown
+    // and the places list are never empty.
+    divisionName = featured[0]?.name ?? null;
   }
 
   function samePlace(a, b) {
@@ -728,24 +723,37 @@
     render();
   }
 
-  function renderFeatured() {
-    const host = $("featured");
-    host.replaceChildren(...featured.map((division) => {
-      const wrap = document.createElement("div");
-      wrap.className = "division";
-      const head = document.createElement("div");
-      head.className = "division-head";
-      head.innerHTML = `<h3>${esc(division.name)}</h3><div class="rule"></div>`;
-      const chips = document.createElement("div");
-      chips.className = "chips";
-      chips.append(...division.places.map((p) => {
-        const sel = samePlace(place, p);
-        return chip(p.name, sel, () => pick(toPlace(p)), "tick");
-      }));
-      wrap.append(head, chips);
-      return wrap;
+  function renderDivisions() {
+    const select = $("divisionSelect");
+    select.replaceChildren(...featured.map((division) => {
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = division.name;
+      return opt;
+    }));
+    if (divisionName) select.value = divisionName;
+  }
+
+  function renderPlaces() {
+    const host = $("places");
+    const division = featured.find((d) => d.name === divisionName);
+
+    if (!division) {
+      host.replaceChildren();
+      return;
+    }
+
+    host.replaceChildren(...division.places.map((p) => {
+      const sel = samePlace(place, p);
+      return chip(p.name, sel, () => pick(toPlace(p)), "tick");
     }));
   }
+
+  $("divisionSelect").addEventListener("change", (e) => {
+    // Changing division only swaps which places are shown; the chosen
+    // destination stands until a place in the new list is tapped.
+    divisionName = e.target.value;
+    renderPlaces();
+  });
 
   // ---------- submit ----------
 
