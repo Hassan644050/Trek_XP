@@ -14,6 +14,7 @@ from app.exceptions.exceptions import (
     InvalidInputException,
     LLMException,
     LLMRateLimitException,
+    LLMTimeoutException,
     NotAuthenticatedException,
     PermissionDeniedException,
     ResourceConflictException,
@@ -73,6 +74,18 @@ async def rate_limit_handler(
     )
 
 
+async def advisor_timeout_handler(
+    request: Request,
+    exc: LLMTimeoutException,
+) -> JSONResponse:
+    return _problem(
+        request,
+        exc,
+        status.HTTP_504_GATEWAY_TIMEOUT,
+        "The gear advisor is taking longer than usual. Please try again.",
+    )
+
+
 async def advisor_unavailable_handler(
     request: Request,
     exc: Exception,
@@ -128,8 +141,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(
         DestinationDataException, destination_data_handler
     )
-    # Registered before the LLMException base so it wins for rate limits.
+    # Registered before the LLMException base so the specific subclasses win.
     app.add_exception_handler(LLMRateLimitException, rate_limit_handler)
+    app.add_exception_handler(LLMTimeoutException, advisor_timeout_handler)
     app.add_exception_handler(LLMException, advisor_unavailable_handler)
     app.add_exception_handler(
         GadgetSourceException, advisor_unavailable_handler

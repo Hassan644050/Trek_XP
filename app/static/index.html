@@ -727,8 +727,20 @@
     $("statusText").textContent = `Checking conditions in ${place.name}…`;
     $("submitBtn").disabled = true;
 
+    // Say something before the server's own deadline, so a slow answer
+    // reads as slow rather than broken.
+    const reassure = setTimeout(() => {
+      $("statusText").textContent = "Still working — a new destination takes longer the first time…";
+    }, 12000);
+
+    // Slightly beyond the server's total budget: the server should be the
+    // one to give up, so the traveller gets its wording, not a bare abort.
+    const abort = new AbortController();
+    const giveUp = setTimeout(() => abort.abort(), 110000);
+
     try {
       const res = await fetch("/recommend", {
+        signal: abort.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -755,8 +767,12 @@
     } catch (err) {
       $("loading").hidden = true;
       $("idle").hidden = false;
-      fail(err.message);
+      fail(err.name === "AbortError"
+        ? "That took too long and was stopped. Please try again."
+        : err.message);
     } finally {
+      clearTimeout(reassure);
+      clearTimeout(giveUp);
       $("submitBtn").disabled = false;
     }
   });

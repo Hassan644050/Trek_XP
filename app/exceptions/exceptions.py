@@ -60,3 +60,7 @@ class InvalidImageException(AppException):
 
 class InvalidInputException(AppException):
     """Raised when input passes schema validation but breaks a business rule."""
+
+
+class LLMTimeoutException(LLMException):
+    """Raised when the model did not answer within the time allowed."""

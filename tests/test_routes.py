@@ -249,3 +249,39 @@ def test_featured_destinations_carry_their_country(client):
     assert len(places) >= 20
     assert all(p["country_code"] == "BD" for p in places)
     assert {"Bholaganj Sada Pathor", "Bichanakandi", "Jaflong"} <= {p["name"] for p in places}
+
+
+def test_slow_advisor_is_cut_off_with_a_504(client, monkeypatch, trip_payload):
+    """A stalled provider used to hang forever with no error at all."""
+    import time
+
+    use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
+
+    class StalledSource(FakeGadgetSource):
+        def recommend(self, context):
+            time.sleep(5)  # longer than the budget set below
+            raise AssertionError("should have been cut off")
+
+    use_source(monkeypatch, StalledSource())
+    monkeypatch.setenv("LLM_TOTAL_TIMEOUT_SECONDS", "1")
+
+    response = client.post("/recommend", json=trip_payload)
+
+    assert response.status_code == 504
+    assert response.json() == {
+        "detail": "The gear advisor is taking longer than usual. Please try again."
+    }
+
+
+def test_provider_timeout_is_a_504_not_a_generic_failure(client, monkeypatch, trip_payload):
+    """A timeout must not be reported as 'unavailable' -- retrying may work."""
+    from app.exceptions.exceptions import LLMTimeoutException
+
+    use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
+    use_source(monkeypatch, FakeGadgetSource(error=LLMTimeoutException("too slow")))
+
+    response = client.post("/recommend", json=trip_payload)
+
+    assert response.status_code == 504
+    # The internal wording stays in the logs.
+    assert "too slow" not in response.json()["detail"]

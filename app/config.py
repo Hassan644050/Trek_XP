@@ -8,12 +8,22 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+# Measured: a real Gemini call for a fresh destination took 52s, so a tight
+# bound would fail legitimate requests. These cap the two ways a stalled
+# upstream used to hang forever -- one HTTP attempt, and the whole call
+# including retries.
+LLM_TIMEOUT_SECONDS = 75
+LLM_TOTAL_TIMEOUT_SECONDS = 100
+
+
 @dataclass
 class EnvMetaInfo:
     llm_api_key: str | None
     llm_model: str | None
     llm_provider: str | None
     home_country: str
+    llm_timeout_seconds: int
+    llm_total_timeout_seconds: int
 
 
 def get_env_meta_info() -> EnvMetaInfo:
@@ -26,6 +36,12 @@ def get_env_meta_info() -> EnvMetaInfo:
         # Surfaced first in destination search. Bangladesh for now;
         # change it per market without touching code.
         home_country=os.getenv("HOME_COUNTRY", "BD"),
+        llm_timeout_seconds=int(
+            os.getenv("LLM_TIMEOUT_SECONDS", str(LLM_TIMEOUT_SECONDS))
+        ),
+        llm_total_timeout_seconds=int(
+            os.getenv("LLM_TOTAL_TIMEOUT_SECONDS", str(LLM_TOTAL_TIMEOUT_SECONDS))
+        ),
     )
 
 

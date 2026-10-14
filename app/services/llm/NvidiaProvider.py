@@ -1,5 +1,6 @@
 from openai import (
     OpenAI,
+    APITimeoutError,
     RateLimitError,
     OpenAIError,
     APIConnectionError,
@@ -12,6 +13,7 @@ from app.services.llm.retry import retry_on_transient
 from app.exceptions.exceptions import (
     LLMRateLimitException,
     LLMProviderException,
+    LLMTimeoutException,
 )
 
 
@@ -20,9 +22,12 @@ class NvidiaProvider(LLMProvider):
     def __init__(self):
         env = get_env_meta_info()
 
+        # The SDK default is ten minutes, which is far longer than a
+        # traveller will wait staring at a spinner.
         self.client = OpenAI(
             base_url="https://integrate.api.nvidia.com/v1",
-            api_key=env.llm_api_key
+            api_key=env.llm_api_key,
+            timeout=env.llm_timeout_seconds,
         )
 
         self.model = env.llm_model
@@ -59,6 +64,11 @@ class NvidiaProvider(LLMProvider):
                 )
 
             return text
+
+        except APITimeoutError as exc:
+            raise LLMTimeoutException(
+                "The model did not answer in time."
+            ) from exc
 
         except RateLimitError as exc:
             raise LLMRateLimitException(

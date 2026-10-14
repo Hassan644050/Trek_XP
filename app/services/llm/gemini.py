@@ -1,3 +1,4 @@
+import httpx
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
@@ -30,13 +31,19 @@ from app.exceptions.exceptions import (
     LLMException,
     LLMRateLimitException,
     LLMProviderException,
+    LLMTimeoutException,
 )
 
 class GeminiProvider(LLMProvider):
     def __init__(self):
         env_meta_info = get_env_meta_info()
+        # Without this the SDK waits indefinitely: a stalled upstream left
+        # the traveller on a spinner with no error, ever.
         self.client = genai.Client(
-            api_key=env_meta_info.llm_api_key
+            api_key=env_meta_info.llm_api_key,
+            http_options=genai_types.HttpOptions(
+                timeout=env_meta_info.llm_timeout_seconds * 1000  # milliseconds
+            ),
         )
         self.model = env_meta_info.llm_model
 
@@ -81,6 +88,11 @@ class GeminiProvider(LLMProvider):
             # Already one of ours (e.g. the empty-response guard) --
             # do not relabel it with a generic message.
             raise
+
+        except httpx.TimeoutException as exc:
+            raise LLMTimeoutException(
+                "The model did not answer in time."
+            ) from exc
 
         except Exception as exc:
 

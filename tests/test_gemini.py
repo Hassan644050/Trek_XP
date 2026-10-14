@@ -62,3 +62,24 @@ def test_quota_error_maps_to_rate_limit():
 
     with pytest.raises(LLMRateLimitException):
         provider_with(models).generate("prompt")
+
+
+def test_client_is_built_with_a_request_timeout(monkeypatch):
+    """Without it the SDK waits forever; that is the hang this fixes."""
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_TIMEOUT_SECONDS", "42")
+
+    provider = GeminiProvider()
+
+    assert provider.client._api_client._http_options.timeout == 42_000  # milliseconds
+
+
+def test_a_timed_out_call_is_reported_as_a_timeout():
+    import httpx
+
+    from app.exceptions.exceptions import LLMTimeoutException
+
+    models = FakeModels(error=httpx.ReadTimeout("took too long"))
+
+    with pytest.raises(LLMTimeoutException):
+        provider_with(models).generate("prompt")

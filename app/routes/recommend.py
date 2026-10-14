@@ -2,6 +2,8 @@ import asyncio
 
 from fastapi import APIRouter
 
+from app.config import get_env_meta_info
+from app.exceptions.exceptions import LLMTimeoutException
 from app.models.context import TripContext
 from app.models.recommendation import RecommendResponse
 from app.models.trip import TripRequest
@@ -59,9 +61,20 @@ async def recommend(request: TripRequest) -> RecommendResponse:
     # The provider SDKs are blocking, so they run on a worker thread:
     # calling them inline would stall the event loop for every other
     # request for the whole duration of the model call.
-    recommendations = await asyncio.to_thread(
-        get_gadget_source().recommend, context
-    )
+    #
+    # The backstop covers what the provider's own per-request timeout does
+    # not: a retry chain, or an SDK that stalls before its timer starts. A
+    # thread cannot be cancelled, so the worker runs on until the provider
+    # gives up -- bounded, because that timeout is shorter than this one.
+    try:
+        recommendations = await asyncio.wait_for(
+            asyncio.to_thread(get_gadget_source().recommend, context),
+            timeout=get_env_meta_info().llm_total_timeout_seconds,
+        )
+    except TimeoutError as exc:
+        raise LLMTimeoutException(
+            "The gadget advisor did not answer within the time allowed."
+        ) from exc
 
     sources = list(context.sources)
 
