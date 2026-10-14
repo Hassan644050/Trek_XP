@@ -33,6 +33,9 @@ class Recommendation(BaseModel):
     category: str | None = None
     origin: Origin = Origin.LLM
     verified: bool = False
+    # Only catalog items have a photo; the model's suggestions are names, so
+    # this stays None for them.
+    image_url: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

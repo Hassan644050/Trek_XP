@@ -159,3 +159,15 @@ def test_another_division_does_not_match():
 def test_place_division_prefers_the_stored_value_then_infers():
     assert _place_division(a_place("X", 21.45, 91.96, division="Stored")) == "Stored"
     assert _place_division(a_place("X", 21.45, 91.96)) == "Chattogram"
+
+
+# ---------- catalog item images ----------
+
+from app.services.gadgets.catalog import _image_url  # noqa: E402
+
+
+def test_image_url_is_the_card_sized_rendition_or_none():
+    assert _image_url(None) is None
+
+    url = _image_url("gadgets/" + "a" * 32 + ".webp")
+    assert url.endswith("_detail.webp")  # the card-sized variant, not the full one

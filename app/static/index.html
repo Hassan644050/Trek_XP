@@ -263,6 +263,9 @@
 
   .card.in-bag { border-color: var(--green); }
 
+  .card-img { aspect-ratio: 16 / 10; background: var(--surface); overflow: hidden; }
+  .card-img img { display: block; height: 100%; object-fit: cover; width: 100%; }
+
   .card-tagline { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 0; }
 
   .verified {
@@ -907,6 +910,7 @@
     const el = document.createElement("div");
     el.className = "card" + (bag.has(item.gadget) ? " in-bag" : "");
     el.innerHTML = `
+      ${item.image_url ? `<div class="card-img"><img src="${esc(item.image_url)}" alt="" loading="lazy" /></div>` : ""}
       <div class="card-tagline">
         <span class="cat" style="background:${colour}">${esc(item.category || item.priority)}</span>
         ${item.verified ? `<span class="verified" title="Entered and checked by a Trek_XP coordinator">✓ Verified</span>` : ""}

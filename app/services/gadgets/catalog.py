@@ -26,6 +26,8 @@ from app.models.recommendation import (
     normalize_gadget_name,
 )
 from app.services.destination.admin_areas import ADMIN_COUNTRY, division_for_coords, normalize
+from app.services.media.storage import get_image_storage, variant_key
+from app.services.media.variants import DETAIL
 
 
 logger = logging.getLogger(__name__)
@@ -183,12 +185,21 @@ def _relevant(placements, context: TripContext) -> list[Recommendation]:
     return [_to_recommendation(p) for p in ordered]
 
 
+def _image_url(image_key: str | None) -> str | None:
+    """The card-sized rendition's URL, when the gadget has a photo."""
+    if not image_key:
+        return None
+
+    return get_image_storage().url(variant_key(image_key, DETAIL.name))
+
+
 def _to_recommendation(placement) -> Recommendation:
     return Recommendation(
         gadget=placement.gadget.name,
         why=placement.why,
         priority=placement.priority,
         category=placement.gadget.category,
+        image_url=_image_url(placement.gadget.image_key),
         # A coordinator entered and vouched for this; say so.
         origin=Origin.COMMUNITY,
         verified=True,
