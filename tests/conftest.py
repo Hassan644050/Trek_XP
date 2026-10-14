@@ -51,7 +51,11 @@ def no_catalog_db(monkeypatch):
     async def empty_catalog(context):
         return CatalogMatch()
 
+    async def no_catalog_places(country_code):
+        return []
+
     monkeypatch.setattr("app.routes.recommend._load_catalog", empty_catalog)
+    monkeypatch.setattr("app.routes.destinations._catalog_places", no_catalog_places)
 
 
 @pytest.fixture
