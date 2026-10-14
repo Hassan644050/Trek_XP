@@ -53,6 +53,10 @@ class FeaturedPlace(BaseModel):
     # lookup has no country to work from.
     country_code: str = "BD"
     country_name: str = "Bangladesh"
+    # The one place the home page starts on, so a first-time visitor sees
+    # a finished form instead of an empty one. Set in the dataset rather
+    # than matched by name in the page, which would break on a rename.
+    is_default: bool = False
 
 
 class FeaturedDivision(BaseModel):
@@ -78,7 +82,12 @@ def _featured() -> list[FeaturedDivision]:
         FeaturedDivision(
             name=division["name"],
             places=[
-                FeaturedPlace(name=p["name"], latitude=p["lat"], longitude=p["lon"])
+                FeaturedPlace(
+                    name=p["name"],
+                    latitude=p["lat"],
+                    longitude=p["lon"],
+                    is_default=bool(p.get("default")),
+                )
                 for p in division["places"]
             ],
         )

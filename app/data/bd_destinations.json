@@ -1,5 +1,6 @@
 {
  "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead \u2014 see _anchored.",
+ "_default": "The place the home page starts on. Exactly one, enforced by tests.",
  "_anchored": {
   "Nilgiri": "geocoders returned the Nilgiri Hills in India, 1588km away; anchored to Chimbuk peak on the range it sits on",
   "Bholaganj Sada Pathor": "unmapped, and 'Bholaganj' matches a different place 30km south; anchored to Companiganj upazila",
@@ -52,7 +53,8 @@
     {
      "name": "Cox's Bazar",
      "lat": 21.4522,
-     "lon": 91.9639
+     "lon": 91.9639,
+     "default": true
     },
     {
      "name": "Saint Martin's Island",

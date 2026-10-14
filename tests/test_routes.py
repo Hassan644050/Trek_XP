@@ -251,6 +251,19 @@ def test_featured_destinations_carry_their_country(client):
     assert {"Bholaganj Sada Pathor", "Bichanakandi", "Jaflong"} <= {p["name"] for p in places}
 
 
+def test_exactly_one_featured_destination_is_the_default(client):
+    """The home page starts on this one. More than one and which the page
+    picks would depend on dataset order; none and it opens empty."""
+    divisions = client.get("/destinations/featured").json()
+
+    defaults = [p for d in divisions for p in d["places"] if p["is_default"]]
+
+    assert [p["name"] for p in defaults] == ["Cox's Bazar"]
+    # It has to be usable as a trip destination straight away.
+    assert defaults[0]["latitude"] and defaults[0]["longitude"]
+    assert defaults[0]["country_code"] == "BD"
+
+
 def test_slow_advisor_is_cut_off_with_a_504(client, monkeypatch, trip_payload):
     """A stalled provider used to hang forever with no error at all."""
     import time

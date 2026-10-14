@@ -678,7 +678,28 @@
       const res = await fetch("/destinations/featured");
       featured = res.ok ? await res.json() : [];
     } catch { featured = []; }
+    startOnDefault();
     renderFeatured();
+  }
+
+  function toPlace(p) {
+    return { ...p, country: p.country_name, country_code: p.country_code };
+  }
+
+  function startOnDefault() {
+    // The form opens on one destination so a first-time visitor sees it
+    // filled in rather than empty. Which one is the dataset's call, not
+    // this page's -- see "_default" in bd_destinations.json.
+    if (place) return;
+
+    for (const division of featured) {
+      const preset = division.places.find((p) => p.is_default);
+
+      if (preset) {
+        setPlace(toPlace(preset));
+        return;
+      }
+    }
   }
 
   function samePlace(a, b) {
@@ -686,10 +707,14 @@
       Math.abs(a.latitude - b.latitude) < 0.001 && Math.abs(a.longitude - b.longitude) < 0.001;
   }
 
+  function setPlace(p) {
+    place = p;
+    $("placeSub").textContent = place ? place.name : "Pick a destination to start";
+  }
+
   function pick(p) {
     // Tapping the chosen place again clears it, so a mis-tap is undoable.
-    place = samePlace(place, p) ? null : p;
-    $("placeSub").textContent = place ? place.name : "Pick a destination to start";
+    setPlace(samePlace(place, p) ? null : p);
     render();
   }
 
@@ -705,7 +730,7 @@
       chips.className = "chips";
       chips.append(...division.places.map((p) => {
         const sel = samePlace(place, p);
-        return chip(p.name, sel, () => pick({ ...p, country: p.country_name, country_code: p.country_code }), "tick");
+        return chip(p.name, sel, () => pick(toPlace(p)), "tick");
       }));
       wrap.append(head, chips);
       return wrap;

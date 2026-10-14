@@ -47,3 +47,21 @@ def test_form_sends_nothing_the_schema_would_reject():
 @pytest.mark.parametrize("endpoint", ["/api/coordinator/places/manual", "/api/coordinator/admin-areas"])
 def test_page_calls_the_endpoints_it_depends_on(endpoint):
     assert endpoint in COORDINATOR_PAGE.read_text(encoding="utf-8")
+
+
+# ---------- the home page's default destination ----------
+
+HOME_PAGE = PROJECT_ROOT / "app" / "static" / "index.html"
+
+
+def test_the_home_page_reads_the_default_destination_flag():
+    """The home page opens on one destination, chosen by a flag in the
+    dataset. Renaming the field would leave the form empty on load while
+    every API test still passed -- the same shape of bug as above."""
+    page = HOME_PAGE.read_text(encoding="utf-8")
+
+    assert "is_default" in page, "the home page no longer reads is_default"
+
+    from app.routes.destinations import FeaturedPlace
+
+    assert "is_default" in FeaturedPlace.model_fields
