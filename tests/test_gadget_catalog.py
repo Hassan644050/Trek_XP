@@ -124,3 +124,38 @@ def test_relevant_skips_retired_gadgets():
     placements = [placement("Old Compass", trip_types=["beach"], active=False)]
 
     assert _relevant(placements, context(trip_type="beach")) == []
+
+
+# ---------- matching a place to a trip ----------
+
+from app.services.gadgets.catalog import _place_division, _place_matches  # noqa: E402
+
+
+def a_place(name, lat, lon, division=None):
+    return SimpleNamespace(name=name, latitude=lat, longitude=lon, division=division)
+
+
+def test_same_spot_matches_by_name_and_proximity():
+    cox = a_place("Cox's Bazar", 21.45, 91.96)
+
+    assert _place_matches(cox, "Cox's Bazar", 21.45, 91.96, "Chattogram")
+    # Same name a thousand km away is a different place.
+    assert not _place_matches(cox, "Cox's Bazar", 10.0, 80.0, None)
+
+
+def test_a_region_entry_matches_another_spot_in_the_same_division():
+    # The Sunglass case: entered for Chittagong, shown for a Cox's Bazar trip.
+    chittagong = a_place("Chittagong", 22.3384, 91.83168)
+
+    assert _place_matches(chittagong, "Cox's Bazar", 21.4522, 91.9639, "Chattogram")
+
+
+def test_another_division_does_not_match():
+    sylhet = a_place("Sylhet", 24.899, 91.872)
+
+    assert not _place_matches(sylhet, "Cox's Bazar", 21.4522, 91.9639, "Chattogram")
+
+
+def test_place_division_prefers_the_stored_value_then_infers():
+    assert _place_division(a_place("X", 21.45, 91.96, division="Stored")) == "Stored"
+    assert _place_division(a_place("X", 21.45, 91.96)) == "Chattogram"

@@ -13,7 +13,7 @@ which the model is told to steer clear of.
 import logging
 from dataclasses import dataclass, field
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
@@ -25,6 +25,7 @@ from app.models.recommendation import (
     Recommendation,
     normalize_gadget_name,
 )
+from app.services.destination.admin_areas import ADMIN_COUNTRY, division_for_coords, normalize
 
 
 logger = logging.getLogger(__name__)
@@ -51,28 +52,25 @@ class CatalogMatch:
 async def load_catalog(db, context: TripContext) -> CatalogMatch:
     """Find the catalog gadgets for this trip's destination.
 
-    Matching is by name and, when coordinates are known, proximity: the
-    same place label close to the same point. Coordinates alone would lump
-    neighbouring destinations together; the name alone would confuse two
-    places that share it.
+    A place matches when it is the same spot -- the same name close to the
+    same point -- or when it is in the same Bangladesh division. The
+    division rule is what makes a gadget a coordinator added for "Chattogram"
+    show for a trip to Cox's Bazar: coordinators enter items for a region,
+    while travellers pick specific spots within it.
     """
     name = (context.resolved_place or context.trip.destination or "").strip()
-
-    if not name:
-        return CatalogMatch()
-
-    where = func.lower(Place.name) == name.lower()
-
     lat, lon = context.resolved_latitude, context.resolved_longitude
 
-    if lat is not None and lon is not None:
-        where = and_(
-            where,
-            Place.latitude.between(lat - PROXIMITY_DEGREES, lat + PROXIMITY_DEGREES),
-            Place.longitude.between(lon - PROXIMITY_DEGREES, lon + PROXIMITY_DEGREES),
-        )
+    if not name and (lat is None or lon is None):
+        return CatalogMatch()
 
-    place_ids = (await db.scalars(select(Place.id).where(where))).all()
+    division = _trip_division(context)
+
+    # Small catalogs: load the places and match in Python, which keeps the
+    # name, proximity and division rules in one place. When this table grows
+    # large, store each place's division on the row and filter in SQL.
+    places = (await db.scalars(select(Place))).all()
+    place_ids = [p.id for p in places if _place_matches(p, name, lat, lon, division)]
 
     if not place_ids:
         return CatalogMatch()
@@ -89,6 +87,44 @@ async def load_catalog(db, context: TripContext) -> CatalogMatch:
         recommendations=_relevant(placements, context),
         existing_names=_existing_names(placements),
     )
+
+
+def _trip_division(context: TripContext) -> str | None:
+    """The division this trip falls in, or None outside Bangladesh."""
+    lat, lon = context.resolved_latitude, context.resolved_longitude
+
+    if lat is None or lon is None:
+        return None
+
+    country = (context.country.country_code or context.trip.country_code or "").upper()
+
+    if country and country != ADMIN_COUNTRY:
+        return None
+
+    return division_for_coords(lat, lon)
+
+
+def _place_division(place: Place) -> str | None:
+    """A stored place's division: its own if set, else inferred from where
+    it is. Geocoded places carry no division, so most are inferred."""
+    return place.division or division_for_coords(place.latitude, place.longitude)
+
+
+def _place_matches(place, name, lat, lon, division) -> bool:
+    # Same spot: same name, and nearby when coordinates are known.
+    if name and normalize(place.name) == normalize(name):
+        if (
+            lat is None
+            or lon is None
+            or (
+                abs(place.latitude - lat) <= PROXIMITY_DEGREES
+                and abs(place.longitude - lon) <= PROXIMITY_DEGREES
+            )
+        ):
+            return True
+
+    # Same region: a coordinator's entry for the division applies here too.
+    return division is not None and _place_division(place) == division
 
 
 def _existing_names(placements) -> list[str]:

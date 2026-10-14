@@ -71,3 +71,26 @@ def test_retired_gadget_is_excluded_from_the_model_but_not_shown(coordinator):
 
     assert match.recommendations == []            # retired: not recommended
     assert match.existing_names == ["Old Lantern"]  # but still on file
+
+
+CHITTAGONG = {"name": "Chittagong", "country_code": "BD", "country_name": "Bangladesh",
+              "latitude": 22.3384, "longitude": 91.83168}
+
+
+def test_a_region_gadget_shows_for_another_spot_in_the_same_division(coordinator):
+    """A gadget entered for Chittagong surfaces for a Cox's Bazar trip --
+    both are in Chattogram division. This is the Sunglass bug."""
+    from tests.db.test_catalog_flow import SYLHET
+
+    g = new_gadget(coordinator, "Sunglasses")
+    add_placement(coordinator, g["id"], place=CHITTAGONG, trip_types=["beach"])
+    # A gadget two divisions away must not leak in.
+    other = new_gadget(coordinator, "Snow Jacket")
+    add_placement(coordinator, other["id"], place=SYLHET, trip_types=["beach"])
+
+    match = load(ctx("Cox's Bazar", 21.4522, 91.9639, trip_type="beach", activities=()))
+
+    names = [r.gadget for r in match.recommendations]
+    assert "Sunglasses" in names
+    assert "Snow Jacket" not in names
+    assert "Snow Jacket" not in match.existing_names

@@ -419,7 +419,10 @@ orchestrates the two.
 For every `/recommend`, the route:
 
 1. **Queries the catalog first** (`load_catalog`) — stored places matched to the
-   destination by name and, when coordinates are known, proximity. Their active
+   destination by name and proximity, or by **division** -- a gadget a
+   coordinator entered for a region (say Chittagong) surfaces for any trip in
+   that division (Cox's Bazar, Bandarban), since coordinators enter items for a
+   region while travellers pick specific spots. Their active
    gadgets become recommendations with `origin="community"`, `verified=True`,
    ranked by trip-type fit, activity overlap and priority.
 2. **Collects every gadget name on file for that place** (retired ones included)
@@ -574,7 +577,7 @@ and image upload · R2 storage · 235 tests.
 
 | Gap | Note |
 |---|---|
-| Catalog growth untested at scale | The catalog merge is wired in (verified items first, five novel from the model). Matching is name + proximity; it has not been exercised against a place with dozens of gadgets or many same-named places |
+| Catalog growth untested at scale | The merge is wired in (verified first, five novel from the model); matching is by name, proximity or division. `load_catalog` loads every place and matches in Python — fine now, but when the table grows the division should be stored on each place row and filtered in SQL |
 | Not deployed | Needs Procfile, pinned Python, CORS lockdown, admin password from platform secrets, `alembic upgrade head` against Neon |
 | Guardrails are prose, not rules | Drone bans and airline power-bank limits are mentioned in the prompt. They belong in a data file checked deterministically, so they are testable without the model |
 | "Share experience" is a stub | The button shows a toast. No reviews backend |

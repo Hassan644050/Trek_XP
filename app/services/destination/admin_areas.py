@@ -86,6 +86,36 @@ def find_district(name: str | None) -> District | None:
     return districts().get(normalize(name))
 
 
+# A point farther than this from every district centroid is treated as
+# outside Bangladesh, so a foreign trip never snaps to a BD division. BD
+# district centroids sit well under a degree apart, so any point inside the
+# country is comfortably within this.
+_MAX_SNAP_DEGREES = 1.0
+
+
+def division_for_coords(latitude: float, longitude: float) -> str | None:
+    """The division a point falls in, by nearest district centroid.
+
+    Used to group a destination with the catalog entries around it: a
+    gadget a coordinator added for the region should surface for any trip
+    to that region, not only the exact spot. Returns None for a point that
+    is not in Bangladesh.
+    """
+    nearest: District | None = None
+    best: float | None = None
+
+    for district in districts().values():
+        gap = (district.latitude - latitude) ** 2 + (district.longitude - longitude) ** 2
+
+        if best is None or gap < best:
+            best, nearest = gap, district
+
+    if nearest is None or best > _MAX_SNAP_DEGREES**2:
+        return None
+
+    return nearest.division
+
+
 def district_names(division: str | None = None) -> list[str]:
     """Unique district names, optionally limited to one division. Aliases
     are deliberately left out: they are for matching, not for display."""
