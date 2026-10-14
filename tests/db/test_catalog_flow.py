@@ -52,6 +52,47 @@ def test_create_and_read_gadget(coordinator):
     assert coordinator.get(f"/api/coordinator/gadgets/{g['id']}").json()["placements"] == []
 
 
+def test_gadget_carries_brand_model_colour_and_is_active_by_default(coordinator):
+    g = new_gadget(
+        coordinator, "Rugged Power Bank",
+        brand=" Anker ", model_name="PowerCore 20K", color="Matte black",
+    )
+
+    # Text fields are tidied the same way name and category are.
+    assert (g["brand"], g["model_name"], g["color"]) == ("Anker", "PowerCore 20K", "Matte black")
+    # A new gadget is active until someone retires it.
+    assert g["is_active"] is True
+
+
+def test_a_gadget_can_be_retired_and_reactivated(coordinator):
+    g = new_gadget(coordinator)
+    gid = g["id"]
+
+    retired = coordinator.patch(
+        f"/api/coordinator/gadgets/{gid}", json={"is_active": False}, headers=CSRF
+    ).json()
+    assert retired["is_active"] is False
+    # Retiring keeps the gadget and its name; it is not a delete.
+    assert coordinator.get(f"/api/coordinator/gadgets/{gid}").json()["name"] == g["name"]
+
+    back = coordinator.patch(
+        f"/api/coordinator/gadgets/{gid}", json={"is_active": True}, headers=CSRF
+    ).json()
+    assert back["is_active"] is True
+
+
+def test_retired_gadgets_still_appear_in_the_coordinator_list(coordinator):
+    """Coordinators manage both; a traveller-facing surface filters later."""
+    active = new_gadget(coordinator, "Head Torch")
+    gid = new_gadget(coordinator, "Old Compass")["id"]
+    coordinator.patch(f"/api/coordinator/gadgets/{gid}", json={"is_active": False}, headers=CSRF)
+
+    listed = {g["name"]: g["is_active"] for g in coordinator.get("/api/coordinator/gadgets").json()}
+
+    assert listed["Head Torch"] is True
+    assert listed["Old Compass"] is False
+
+
 def test_gadget_names_are_unique_ignoring_case(coordinator):
     new_gadget(coordinator, "Power bank")
 

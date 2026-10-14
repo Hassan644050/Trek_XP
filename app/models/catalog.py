@@ -153,12 +153,21 @@ class AdminAreasOut(BaseModel):
     divisions: list[DivisionOut]
 
 
+# protected_namespaces=() because of the model_name field: Pydantic reserves
+# the model_ prefix, and while the pinned version does not warn on it, this
+# keeps an upgrade from turning that into noise.
 class GadgetIn(BaseModel):
-    name: str = Field(min_length=2, max_length=120)
-    category: str | None = Field(default=None, max_length=60)
-    description: str | None = Field(default=None, max_length=2000)
+    model_config = ConfigDict(protected_namespaces=())
 
-    @field_validator("name", "category")
+    name: str = Field(min_length=2, max_length=120)
+    brand: str | None = Field(default=None, max_length=80)
+    model_name: str | None = Field(default=None, max_length=80)
+    category: str | None = Field(default=None, max_length=60)
+    color: str | None = Field(default=None, max_length=40)
+    description: str | None = Field(default=None, max_length=2000)
+    is_active: bool = True
+
+    @field_validator("name", "brand", "model_name", "category", "color")
     @classmethod
     def collapse_spaces(cls, value: str | None) -> str | None:
         return _clean(value)
@@ -170,11 +179,17 @@ class GadgetIn(BaseModel):
 
 
 class GadgetUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=2, max_length=120)
-    category: str | None = Field(default=None, max_length=60)
-    description: str | None = Field(default=None, max_length=2000)
+    model_config = ConfigDict(protected_namespaces=())
 
-    @field_validator("name", "category")
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    brand: str | None = Field(default=None, max_length=80)
+    model_name: str | None = Field(default=None, max_length=80)
+    category: str | None = Field(default=None, max_length=60)
+    color: str | None = Field(default=None, max_length=40)
+    description: str | None = Field(default=None, max_length=2000)
+    is_active: bool | None = None
+
+    @field_validator("name", "brand", "model_name", "category", "color")
     @classmethod
     def collapse_spaces(cls, value: str | None) -> str | None:
         return _clean(value)
@@ -227,10 +242,16 @@ class PlacementOut(BaseModel):
 
 
 class GadgetOut(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     id: int
     name: str
+    brand: str | None
+    model_name: str | None
     category: str | None
+    color: str | None
     description: str | None
+    is_active: bool
     # One URL per rendition, so each page can request the size it shows
     # instead of downloading the largest one and scaling it in the browser.
     thumb_url: str | None

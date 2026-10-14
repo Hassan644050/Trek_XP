@@ -189,6 +189,9 @@
     width: 44px;
   }
 
+  .gadget-row.is-off .thumb, .gadget-row.is-off .name { opacity: 0.55; }
+  .pill-off { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--ink-faint); border: 1px solid var(--line); border-radius: var(--r); padding: 0 5px; }
   .gadget-row .meta { display: flex; flex-direction: column; min-width: 0; }
   .gadget-row .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -390,10 +393,18 @@
         </div>
         <div class="grid2">
           <label>Name <input type="text" id="gName" maxlength="120" required placeholder="e.g. Waterproof dry bag" /></label>
+          <label>Brand <input type="text" id="gBrand" maxlength="80" placeholder="e.g. Anker" /></label>
+        </div>
+        <div class="grid2">
+          <label>Model <input type="text" id="gModel" maxlength="80" placeholder="e.g. PowerCore 20K" /></label>
           <label>Category <input type="text" id="gCategory" maxlength="60" list="categoryList" placeholder="e.g. Power, Lighting" /></label>
         </div>
         <datalist id="categoryList"></datalist>
+        <div class="grid2">
+          <label>Colour <input type="text" id="gColor" maxlength="40" placeholder="e.g. Matte black" /></label>
+        </div>
         <label>Description <textarea id="gDescription" maxlength="2000" placeholder="What it is and what to look for when buying one."></textarea></label>
+        <label class="check" style="align-self:flex-start"><input type="checkbox" id="gActive" checked /> Active — included in traveller recommendations</label>
         <div class="row"><button class="btn primary" type="submit" id="saveGadget">Save gadget</button></div>
       </form>
 
@@ -641,14 +652,20 @@
       return;
     }
 
-    list.innerHTML = gadgets.map((g) => `
-      <button class="gadget-row" data-id="${g.id}" aria-current="${current?.id === g.id}">
+    list.innerHTML = gadgets.map((g) => {
+      const make = [g.brand, g.model_name].filter(Boolean).join(" ");
+      const bits = [make, g.category || "Uncategorised",
+        `${g.placement_count} destination${g.placement_count === 1 ? "" : "s"}`].filter(Boolean);
+      const off = g.is_active ? "" : ` <span class="pill-off">Inactive</span>`;
+      return `
+      <button class="gadget-row${g.is_active ? "" : " is-off"}" data-id="${g.id}" aria-current="${current?.id === g.id}">
         ${thumb(g.thumb_url)}
         <span class="meta">
-          <span class="name">${esc(g.name)}</span>
-          <span class="muted">${esc(g.category || "Uncategorised")} · ${g.placement_count} destination${g.placement_count === 1 ? "" : "s"}</span>
+          <span class="name">${esc(g.name)}${off}</span>
+          <span class="muted">${bits.map(esc).join(" · ")}</span>
         </span>
-      </button>`).join("");
+      </button>`;
+    }).join("");
   }
 
   $("gadgetList").addEventListener("click", (e) => {
@@ -673,8 +690,13 @@
     $("editorTitle").textContent = gadget ? gadget.name : "New gadget";
     $("deleteGadget").hidden = !gadget;
     $("gName").value = gadget?.name || "";
+    $("gBrand").value = gadget?.brand || "";
+    $("gModel").value = gadget?.model_name || "";
     $("gCategory").value = gadget?.category || "";
+    $("gColor").value = gadget?.color || "";
     $("gDescription").value = gadget?.description || "";
+    // New gadgets start active; existing ones keep their flag.
+    $("gActive").checked = gadget ? gadget.is_active : true;
 
     // Image and placements need a saved gadget to attach to.
     $("imageSection").hidden = !gadget;
@@ -703,8 +725,12 @@
     e.preventDefault();
     const body = {
       name: $("gName").value,
+      brand: $("gBrand").value || null,
+      model_name: $("gModel").value || null,
       category: $("gCategory").value || null,
+      color: $("gColor").value || null,
       description: $("gDescription").value || null,
+      is_active: $("gActive").checked,
     };
 
     run($("saveGadget"), async () => {

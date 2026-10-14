@@ -130,8 +130,12 @@ def _gadget_out(gadget: Gadget) -> GadgetOut:
     return GadgetOut(
         id=gadget.id,
         name=gadget.name,
+        brand=gadget.brand,
+        model_name=gadget.model_name,
         category=gadget.category,
+        color=gadget.color,
         description=gadget.description,
+        is_active=gadget.is_active,
         **_rendition_urls(gadget.image_key),
         placement_count=len(gadget.placements),
         updated_at=gadget.updated_at,

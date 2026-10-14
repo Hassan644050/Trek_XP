@@ -81,3 +81,23 @@ def test_the_home_page_opens_on_a_real_trip_type():
 
     assert default in {t.value for t in TripType}
     assert default == TripType.BEACH.value
+
+
+# ---------- the gadget save body ----------
+
+
+def test_the_gadget_form_posts_exactly_the_create_fields():
+    """The gadget editor builds its JSON by hand too. A field added to
+    GadgetIn but not to the form saves as null without any error -- the
+    same drift that dropped district and division from places."""
+    from app.models.catalog import GadgetIn
+
+    page = COORDINATOR_PAGE.read_text(encoding="utf-8")
+    # The gadget body is the one object literal that carries is_active.
+    match = re.search(r"const body = \{([^}]*is_active[^}]*)\};", page, re.DOTALL)
+
+    assert match, "could not find the gadget save body in the coordinator page"
+
+    posted = set(re.findall(r"(\w+):", match.group(1)))
+
+    assert posted == set(GadgetIn.model_fields)

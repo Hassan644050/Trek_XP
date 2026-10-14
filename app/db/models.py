@@ -112,9 +112,18 @@ class Gadget(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
+    brand: Mapped[str | None] = mapped_column(String(80))
+    model_name: Mapped[str | None] = mapped_column(String(80))
     category: Mapped[str | None] = mapped_column(String(60))
+    color: Mapped[str | None] = mapped_column(String(40))
     description: Mapped[str | None] = mapped_column(Text)
     image_key: Mapped[str | None] = mapped_column(String(100))
+    # A retired gadget stays in the catalog -- its placements and history
+    # are worth keeping -- but a future traveller-facing surface shows only
+    # the active ones. The coordinator area shows both, marked.
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(

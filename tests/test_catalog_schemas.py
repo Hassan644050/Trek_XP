@@ -48,6 +48,16 @@ def test_gadget_text_is_tidied():
     assert (g.name, g.category, g.description) == ("Dry bag", None, "Keeps things dry.")
 
 
+def test_gadget_brand_model_colour_are_tidied_and_optional():
+    g = GadgetIn(name="Power bank", brand="  Anker ", model_name=" PowerCore  20K ", color="  ")
+    assert (g.brand, g.model_name, g.color) == ("Anker", "PowerCore 20K", None)
+
+
+def test_gadget_is_active_defaults_true():
+    assert GadgetIn(name="Power bank").is_active is True
+    assert GadgetIn(name="Power bank", is_active=False).is_active is False
+
+
 def test_user_email_is_normalized_and_checked():
     assert UserCreate(email=" Rumi@Example.COM ", name="Rumi", password="x" * 10).email == "rumi@example.com"
 
