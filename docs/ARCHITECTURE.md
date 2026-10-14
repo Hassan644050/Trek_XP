@@ -17,10 +17,11 @@ country uses, and asks a language model for a prioritised packing list with a
 reason for every item.
 
 Separately, **coordinators** sign in to a private area and enter gadgets by
-hand against real destinations. That catalog is the long game: today a
-traveller's list is model-generated, and the response says so. The plumbing for
-community-verified entries to replace or supplement it is already in place
-(§6.1) but not yet connected.
+hand against real destinations. For a destination that has them, those
+coordinator-verified items now lead a traveller's list, and the model is asked
+for five fresh items on top that avoid everything already on file. Each item
+says where it came from — verified by a coordinator, or a fresh model
+suggestion (§7.1).
 
 ---
 
@@ -143,9 +144,9 @@ that never happened.
 ### Honesty about provenance
 
 Every `Recommendation` carries `origin` (`llm` / `community`) and `verified`.
-Today these are always `llm` / `false`, and a note says the suggestions have
-not been community-verified. The fields exist now so the shape does not change
-when the catalog lands.
+Catalog items come back `community` / `true` and lead the list; the model's
+fresh items are `llm` / `false`. The response notes say how many of each, and
+the traveller page marks the verified ones with a badge.
 
 ---
 
@@ -409,14 +410,32 @@ class GadgetSource(ABC):
     def recommend(self, context: TripContext) -> list[Recommendation]: ...
 ```
 
-One implementation today: `LLMGadgetSource`. A `CommunityCatalogSource` reading
-`placements` (matched on place + trip type + activities) plugs in behind the
-same interface, returning `origin="community"`, `verified=True`. The merge of
-both — verified entries first, model suggestions filling gaps — happens in
-`get_gadget_source()`, and nothing upstream changes.
+`LLMGadgetSource` is the generative half, still behind this interface. The
+community half could not sit behind the same sync `recommend(context)`, because
+reading `placements` is an async database call and the source runs on a worker
+thread — so it lives in `app/services/gadgets/catalog.py` and the **route**
+orchestrates the two.
 
-**This is the one seam not yet wired up.** Coordinator-entered gadgets do not
-reach travellers today.
+For every `/recommend`, the route:
+
+1. **Queries the catalog first** (`load_catalog`) — stored places matched to the
+   destination by name and, when coordinates are known, proximity. Their active
+   gadgets become recommendations with `origin="community"`, `verified=True`,
+   ranked by trip-type fit, activity overlap and priority.
+2. **Collects every gadget name on file for that place** (retired ones included)
+   and puts them in `TripContext.existing_gadgets`.
+3. **Asks the model for exactly five fresh items** that avoid that list. The
+   prompt names the exclusions, and `LLMGadgetSource` enforces it again on the
+   reply (`_novel`), so the guarantee never depends on the model obeying — even
+   with 50+ existing items, the five are new.
+4. **Merges**: verified catalog items first, then the five novel ones.
+
+Two resilience properties fall out of doing the catalog query in the route:
+
+- **No database, no problem.** A missing or unreachable catalog yields an empty
+  match; the traveller still gets model suggestions.
+- **Model down, still useful.** If the catalog has items and the model fails,
+  the request degrades to catalog-only with a note, instead of a 503.
 
 ### 7.2 `LLMProvider` — provider independence
 
@@ -555,7 +574,7 @@ and image upload · R2 storage · 235 tests.
 
 | Gap | Note |
 |---|---|
-| Community catalog not connected | `/recommend` is model-only. The `GadgetSource` seam and the `placements` table are both ready; nothing reads them |
+| Catalog growth untested at scale | The catalog merge is wired in (verified items first, five novel from the model). Matching is name + proximity; it has not been exercised against a place with dozens of gadgets or many same-named places |
 | Not deployed | Needs Procfile, pinned Python, CORS lockdown, admin password from platform secrets, `alembic upgrade head` against Neon |
 | Guardrails are prose, not rules | Drone bans and airline power-bank limits are mentioned in the prompt. They belong in a data file checked deterministically, so they are testable without the model |
 | "Share experience" is a stub | The button shows a toast. No reviews backend |

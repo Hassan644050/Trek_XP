@@ -32,6 +32,32 @@ def _power_line(context: TripContext) -> str:
     )
 
 
+def _count_instruction(context: TripContext) -> str:
+    if context.novel_item_count is not None:
+        return f"- Recommend exactly {context.novel_item_count} items."
+
+    return f"- Recommend between {MIN_ITEMS} and {MAX_ITEMS} items."
+
+
+def _exclusions_block(context: TripContext) -> str:
+    """List what the catalog already covers, so the model does not repeat it.
+
+    These are the gadgets coordinators have already entered for this place.
+    The whole point of asking the model is to add items beyond them, so they
+    are named explicitly however long the list is.
+    """
+    if not context.existing_gadgets:
+        return ""
+
+    listed = "\n".join(f"- {name}" for name in context.existing_gadgets)
+
+    return (
+        "\nALREADY RECOMMENDED FOR THIS DESTINATION (do not repeat these or "
+        "close variants of them; suggest genuinely different items):\n"
+        f"{listed}\n"
+    )
+
+
 def build_gadget_prompt(context: TripContext) -> str:
     """Turn a trip context into a grounded request for gadget suggestions.
 
@@ -80,9 +106,9 @@ CONDITIONS
 
 POWER
 {_power_line(context)}
-
+{_exclusions_block(context)}
 INSTRUCTIONS
-- Recommend between {MIN_ITEMS} and {MAX_ITEMS} items.
+{_count_instruction(context)}
 - Base every recommendation on the trip facts above. Do not invent weather,
   voltage or plug details that are not stated.
 - If a plug type is given, include the correct travel adapter and name the type.

@@ -37,6 +37,23 @@ def fresh_osm_state(monkeypatch):
     osm._cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def no_catalog_db(monkeypatch):
+    """Keep offline route tests away from a real database.
+
+    /recommend now consults the community catalog, which opens a session.
+    The dev .env sets DATABASE_URL, so without this an offline test would
+    try to dial Neon. Tests that exercise the catalog patch this with their
+    own match; catalog behaviour against a real database lives in tests/db.
+    """
+    from app.services.gadgets.catalog import CatalogMatch
+
+    async def empty_catalog(context):
+        return CatalogMatch()
+
+    monkeypatch.setattr("app.routes.recommend._load_catalog", empty_catalog)
+
+
 @pytest.fixture
 def client():
     return TestClient(app)

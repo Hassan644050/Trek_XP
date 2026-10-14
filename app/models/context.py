@@ -38,6 +38,18 @@ class TripContext(BaseModel):
     # The geocoder's own name for the place. Prompts use this rather than
     # the raw user string, which keeps unvetted input out of the model.
     resolved_place: str | None = None
+    # Where the place actually is, so the community catalog can match a
+    # stored place to this trip by proximity, not name alone.
+    resolved_latitude: float | None = None
+    resolved_longitude: float | None = None
     climate: ClimateInfo = Field(default_factory=ClimateInfo)
     country: CountryInfo = Field(default_factory=CountryInfo)
     sources: list[str] = Field(default_factory=list)
+    # Gadget names already in the catalog for this location. The model is
+    # told to avoid them so its new suggestions do not repeat what
+    # coordinators have already entered, however many that is.
+    existing_gadgets: list[str] = Field(default_factory=list)
+    # How many fresh items to ask the model for. None keeps the open-ended
+    # default; the recommend route sets it when it wants exactly N new ones
+    # on top of the catalog.
+    novel_item_count: int | None = None

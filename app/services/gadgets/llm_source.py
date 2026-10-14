@@ -2,7 +2,12 @@ import json
 
 from app.exceptions.exceptions import GadgetSourceException
 from app.models.context import TripContext
-from app.models.recommendation import Origin, Priority, Recommendation
+from app.models.recommendation import (
+    Origin,
+    Priority,
+    Recommendation,
+    normalize_gadget_name,
+)
 from app.services.gadgets.base import GadgetSource
 from app.services.gadgets.prompt import build_gadget_prompt
 from app.services.llm.base import LLMProvider
@@ -116,4 +121,32 @@ class LLMGadgetSource(GadgetSource):
         # know to retry rather than treating an outage as a real answer.
         raw = self.provider.generate(prompt)
 
-        return parse_recommendations(raw)
+        return _novel(parse_recommendations(raw), context)
+
+
+def _novel(
+    recommendations: list[Recommendation],
+    context: TripContext,
+) -> list[Recommendation]:
+    """Drop anything the catalog already covers, and anything repeated.
+
+    The prompt asks the model to avoid the existing items, but models slip,
+    so this enforces it rather than trusting the reply -- the guarantee that
+    the new suggestions are new must not depend on the model obeying.
+    """
+    seen = {normalize_gadget_name(name) for name in context.existing_gadgets}
+    novel: list[Recommendation] = []
+
+    for rec in recommendations:
+        key = normalize_gadget_name(rec.gadget)
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        novel.append(rec)
+
+    if context.novel_item_count is not None:
+        return novel[: context.novel_item_count]
+
+    return novel

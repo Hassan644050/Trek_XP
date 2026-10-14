@@ -263,7 +263,16 @@
 
   .card.in-bag { border-color: var(--green); }
 
-  .card-tagline { padding: 14px 18px 0; }
+  .card-tagline { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 0; }
+
+  .verified {
+    background: var(--green);
+    color: white;
+    font: 800 10px var(--sans);
+    letter-spacing: 0.04em;
+    padding: 3px 7px;
+    text-transform: uppercase;
+  }
 
   .cat {
     color: white;
@@ -562,8 +571,9 @@
         <div class="provenance">
           <div class="srcs" id="srcs"></div>
           <p class="caveat">
-            <b>Not yet community-verified.</b> These suggestions come from a language
-            model, checked against real weather and plug data.
+            Items marked <b>✓ Verified</b> were entered by a Trek_XP coordinator for
+            this destination. The rest come from a language model, checked against
+            real weather and plug data.
           </p>
         </div>
       </div>
@@ -899,6 +909,7 @@
     el.innerHTML = `
       <div class="card-tagline">
         <span class="cat" style="background:${colour}">${esc(item.category || item.priority)}</span>
+        ${item.verified ? `<span class="verified" title="Entered and checked by a Trek_XP coordinator">✓ Verified</span>` : ""}
       </div>
       <div class="card-body">
         <div class="card-title">

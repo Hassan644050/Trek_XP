@@ -3,6 +3,15 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 
+def normalize_gadget_name(name: str) -> str:
+    """A loose key for telling two gadget names apart.
+
+    Used to keep the model's new suggestions from duplicating what the
+    catalog already lists: "Power Bank" and "power  bank" are the same item.
+    """
+    return " ".join(name.lower().split())
+
+
 class Priority(str, Enum):
     ESSENTIAL = "essential"
     RECOMMENDED = "recommended"

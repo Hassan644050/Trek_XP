@@ -57,7 +57,7 @@ def test_recommend_happy_path(client, monkeypatch, fake_source, trip_payload):
     assert body["notes"] == [
         CLIMATE_SUMMARY,
         "Bangladesh: plug type A/C/D/G/K, 220V 50Hz.",
-        "Suggestions come from a language model and have not been community-verified.",
+        "2 further suggestions come from a language model and are not yet community-verified.",
     ]
 
 
@@ -298,3 +298,62 @@ def test_provider_timeout_is_a_504_not_a_generic_failure(client, monkeypatch, tr
     assert response.status_code == 504
     # The internal wording stays in the logs.
     assert "too slow" not in response.json()["detail"]
+
+
+# ---------- community catalog ----------
+
+
+def use_catalog(monkeypatch, match):
+    async def fake(context):
+        return match
+
+    monkeypatch.setattr("app.routes.recommend._load_catalog", fake)
+
+
+def test_catalog_items_come_first_and_are_marked_verified(client, monkeypatch, fake_source, trip_payload):
+    from app.models.recommendation import Origin, Priority, Recommendation
+    from app.services.gadgets.catalog import CatalogMatch
+
+    use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
+    use_source(monkeypatch, fake_source)
+    verified = Recommendation(
+        gadget="Reef-Safe Sunscreen", why="Protects Sylhet's water.",
+        priority=Priority.ESSENTIAL, origin=Origin.COMMUNITY, verified=True,
+    )
+    use_catalog(monkeypatch, CatalogMatch(
+        recommendations=[verified], existing_names=["Reef-Safe Sunscreen"]))
+
+    body = client.post("/recommend", json=trip_payload).json()
+    recs = body["recommendations"]
+
+    # Verified catalog item first, model items after.
+    assert recs[0]["gadget"] == "Reef-Safe Sunscreen"
+    assert recs[0]["origin"] == "community" and recs[0]["verified"] is True
+    assert [r["gadget"] for r in recs[1:]] == [
+        "Universal adapter (Type A/C/D/G/K)", "Headlamp"]
+    assert "community_catalog" in body["sources"]
+    assert "llm_gadget_knowledge" in body["sources"]
+    assert any("community-verified for Sylhet" in n for n in body["notes"])
+
+
+def test_model_outage_degrades_to_catalog_only(client, monkeypatch, trip_payload):
+    """If the catalog has items, a model failure is not a dead end."""
+    from app.models.recommendation import Origin, Recommendation
+    from app.services.gadgets.catalog import CatalogMatch
+
+    use_climate(monkeypatch, ClimateInfo(summary=CLIMATE_SUMMARY, historical=True))
+    use_source(monkeypatch, FakeGadgetSource(error=LLMProviderException("gemini down")))
+    verified = Recommendation(
+        gadget="Waterproof Dry Bag", why="Sudden rain.",
+        origin=Origin.COMMUNITY, verified=True)
+    use_catalog(monkeypatch, CatalogMatch(
+        recommendations=[verified], existing_names=["Waterproof Dry Bag"]))
+
+    response = client.post("/recommend", json=trip_payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [r["gadget"] for r in body["recommendations"]] == ["Waterproof Dry Bag"]
+    assert any("unavailable right now" in n for n in body["notes"])
+    assert "community_catalog" in body["sources"]
+    assert "llm_gadget_knowledge" not in body["sources"]

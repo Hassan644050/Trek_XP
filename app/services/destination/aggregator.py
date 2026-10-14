@@ -65,6 +65,8 @@ async def build_trip_context(trip: TripRequest) -> TripContext:
     return TripContext(
         trip=trip,
         resolved_place=location.name or None,
+        resolved_latitude=location.latitude,
+        resolved_longitude=location.longitude,
         climate=climate,
         country=country,
         sources=sources,
