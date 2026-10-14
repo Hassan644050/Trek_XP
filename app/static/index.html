@@ -467,8 +467,8 @@
   <header class="hero">
     <span class="badge" id="exploreBadge">Explore</span>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <h1>Where to next?</h1>
-      <p>Pick a place, set your dates, and get a packing list made for your trip —
+      <h1 id="heroTitle">Where to next?</h1>
+      <p id="heroLead">Pick a place, set your dates, and get a packing list made for your trip —
          checked against the local weather, plug type and voltage.</p>
     </div>
   </header>
@@ -715,7 +715,8 @@
       const res = await fetch("/destinations/featured");
       featured = res.ok ? await res.json() : [];
     } catch { featured = []; }
-    startOnDefault();
+    // A destination in the URL wins over the default landing place.
+    if (!startFromUrl()) startOnDefault();
     renderDivisions();
     renderPlaces();
 
@@ -731,6 +732,70 @@
 
   function toPlace(p) {
     return { ...p, country: p.country_name, country_code: p.country_code };
+  }
+
+  // ---------- URL-based destination ----------
+  // A shared link like /?to=saint-martins-island lands straight on that
+  // destination's gear. The slug drops apostrophes so "Saint Martin's
+  // Island" and "saint-martins-island" match.
+
+  function slugify(s) {
+    return String(s).toLowerCase().replace(/[’']/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function destinationParam() {
+    const q = new URLSearchParams(location.search);
+    return q.get("to") || q.get("destination") || q.get("d");
+  }
+
+  function findDestination(wantedRaw) {
+    const wanted = slugify(wantedRaw);
+    if (!wanted) return null;
+
+    let partial = null;
+    for (const division of featured) {
+      for (const p of division.places) {
+        const s = slugify(p.name);
+        if (s === wanted) return { division: division.name, place: p };
+        if (!partial && (s.startsWith(wanted) || s.includes(wanted))) {
+          partial = { division: division.name, place: p };
+        }
+      }
+    }
+    return partial;  // a loose match if no exact one, else null
+  }
+
+  function startFromUrl() {
+    const wanted = destinationParam();
+    if (!wanted) return false;
+
+    const hit = findDestination(wanted);
+    if (!hit) return false;
+
+    divisionName = hit.division;
+    setPlace(toPlace(hit.place));
+    personalizeHero(hit.place.name);
+    updateUrl();  // canonicalise ?destination=/?d= to ?to=<slug>
+    return true;
+  }
+
+  function personalizeHero(name) {
+    $("heroTitle").textContent = `Packing for ${name}`;
+    $("heroLead").textContent =
+      `Your gear list for ${name}, checked against the local weather, plug ` +
+      `type and voltage. Adjust the dates or trip details below.`;
+  }
+
+  function updateUrl() {
+    // Keep the address bar in step with the chosen place, so the current
+    // selection is a link the traveller can copy and share.
+    const url = new URL(location.href);
+    if (place) url.searchParams.set("to", slugify(place.name));
+    else url.searchParams.delete("to");
+    url.searchParams.delete("destination");
+    url.searchParams.delete("d");
+    history.replaceState(null, "", url);
   }
 
   function startOnDefault() {
@@ -766,6 +831,7 @@
   function pick(p) {
     // Tapping the chosen place again clears it, so a mis-tap is undoable.
     setPlace(samePlace(place, p) ? null : p);
+    updateUrl();  // make the new selection a shareable link
     render();
   }
 

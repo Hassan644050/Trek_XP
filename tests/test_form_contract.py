@@ -101,3 +101,17 @@ def test_the_gadget_form_posts_exactly_the_create_fields():
     posted = set(re.findall(r"(\w+):", match.group(1)))
 
     assert posted == set(GadgetIn.model_fields)
+
+
+def test_the_home_page_reads_a_destination_from_the_url():
+    """A shared link like /?to=<slug> should land on that destination, so
+    the page must parse the URL and personalise. Guards against the wiring
+    being removed or renamed."""
+    page = HOME_PAGE.read_text(encoding="utf-8")
+
+    # Reads the destination from any of the accepted query params.
+    assert 'get("to")' in page
+    assert 'get("destination")' in page
+    # Detects, matches and personalises.
+    for fn in ("startFromUrl", "findDestination", "personalizeHero", "updateUrl"):
+        assert fn in page, f"home page no longer defines {fn}"
