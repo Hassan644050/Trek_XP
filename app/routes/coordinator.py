@@ -38,7 +38,13 @@ from app.services.destination.admin_areas import (
 )
 from app.services.destination.geocode import geocode
 from app.services.media.images import MAX_UPLOAD_BYTES, process_image
-from app.services.media.storage import get_image_storage, new_image_key
+from app.services.media.storage import (
+    all_keys,
+    get_image_storage,
+    new_image_key,
+    variant_key,
+)
+from app.services.media.variants import DETAIL, FULL, THUMB
 
 
 logger = logging.getLogger(__name__)
@@ -52,12 +58,28 @@ router = APIRouter(prefix="/api/coordinator", tags=["coordinator"])
 # call goes to a worker thread rather than stalling the event loop.
 
 
-async def _store_image(storage, key: str, data: bytes) -> None:
-    await asyncio.to_thread(storage.save, key, data)
+async def _store_image_set(storage, key: str, renditions: dict[str, bytes]) -> None:
+    """Save every rendition, or leave nothing behind.
+
+    A half-written set would show the listing a thumbnail that 404s, so a
+    failure part way through takes the ones already written with it before
+    the error propagates.
+    """
+    written: list[str] = []
+
+    try:
+        for variant, data in renditions.items():
+            target = variant_key(key, variant)
+            await asyncio.to_thread(storage.save, target, data)
+            written.append(target)
+    except Exception:
+        for target in written:
+            await _discard_image(storage, target)
+        raise
 
 
 async def _discard_image(storage, key: str) -> None:
-    """Delete an image we no longer want, best effort.
+    """Delete one stored object we no longer want, best effort.
 
     Called only once the database says so. A leftover object wastes a few
     kilobytes; failing the request would report an error for work that has
@@ -67,6 +89,12 @@ async def _discard_image(storage, key: str) -> None:
         await asyncio.to_thread(storage.delete, key)
     except Exception:
         logger.warning("Could not delete image %s", key, exc_info=True)
+
+
+async def _discard_image_set(storage, key: str) -> None:
+    """Every rendition of one upload."""
+    for target in all_keys(key):
+        await _discard_image(storage, target)
 
 
 # ---------- serialization ----------
@@ -84,13 +112,27 @@ def _placement_out(placement: Placement) -> PlacementOut:
     )
 
 
+def _rendition_urls(image_key: str | None) -> dict[str, str | None]:
+    """A URL per rendition, or None throughout when there is no image."""
+    if not image_key:
+        return {"thumb_url": None, "detail_url": None, "image_url": None}
+
+    storage = get_image_storage()
+
+    return {
+        "thumb_url": storage.url(variant_key(image_key, THUMB.name)),
+        "detail_url": storage.url(variant_key(image_key, DETAIL.name)),
+        "image_url": storage.url(variant_key(image_key, FULL.name)),
+    }
+
+
 def _gadget_out(gadget: Gadget) -> GadgetOut:
     return GadgetOut(
         id=gadget.id,
         name=gadget.name,
         category=gadget.category,
         description=gadget.description,
-        image_url=get_image_storage().url(gadget.image_key) if gadget.image_key else None,
+        **_rendition_urls(gadget.image_key),
         placement_count=len(gadget.placements),
         updated_at=gadget.updated_at,
     )
@@ -359,7 +401,7 @@ async def delete_gadget(
     # File removed only after the row is gone: a failed delete must not
     # leave a gadget pointing at a missing image.
     if image_key:
-        await _discard_image(get_image_storage(), image_key)
+        await _discard_image_set(get_image_storage(), image_key)
 
 
 # ---------- images ----------
@@ -379,13 +421,13 @@ async def upload_image(
     data = await file.read(MAX_UPLOAD_BYTES + 1)
 
     # Decoding and re-encoding is CPU-bound; keep it off the event loop.
-    processed = await asyncio.to_thread(process_image, data)
+    renditions = await asyncio.to_thread(process_image, data)
 
     storage = get_image_storage()
     new_key = new_image_key()
     old_key = gadget.image_key
 
-    await _store_image(storage, new_key, processed)
+    await _store_image_set(storage, new_key, renditions)
 
     gadget.image_key = new_key
     gadget.updated_by_id = user.id
@@ -393,11 +435,11 @@ async def upload_image(
     try:
         await db.commit()
     except Exception:
-        await _discard_image(storage, new_key)
+        await _discard_image_set(storage, new_key)
         raise
 
     if old_key:
-        await _discard_image(storage, old_key)
+        await _discard_image_set(storage, old_key)
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
 
@@ -416,7 +458,7 @@ async def remove_image(
     await db.commit()
 
     if old_key:
-        await _discard_image(get_image_storage(), old_key)
+        await _discard_image_set(get_image_storage(), old_key)
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
 

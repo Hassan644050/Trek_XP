@@ -231,6 +231,10 @@ class GadgetOut(BaseModel):
     name: str
     category: str | None
     description: str | None
+    # One URL per rendition, so each page can request the size it shows
+    # instead of downloading the largest one and scaling it in the browser.
+    thumb_url: str | None
+    detail_url: str | None
     image_url: str | None
     placement_count: int
     updated_at: datetime

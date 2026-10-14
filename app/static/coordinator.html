@@ -628,6 +628,7 @@
     $("categoryList").innerHTML = categories.map((c) => `<option value="${esc(c)}">`).join("");
   }
 
+  // 44px box -- the API's thumb_url is the 144px rendition, which covers 3x.
   function thumb(url) {
     return url ? `<img class="thumb" src="${esc(url)}" alt="" loading="lazy" />` : `<span class="thumb">no img</span>`;
   }
@@ -642,7 +643,7 @@
 
     list.innerHTML = gadgets.map((g) => `
       <button class="gadget-row" data-id="${g.id}" aria-current="${current?.id === g.id}">
-        ${thumb(g.image_url)}
+        ${thumb(g.thumb_url)}
         <span class="meta">
           <span class="name">${esc(g.name)}</span>
           <span class="muted">${esc(g.category || "Uncategorised")} · ${g.placement_count} destination${g.placement_count === 1 ? "" : "s"}</span>
@@ -741,7 +742,7 @@
   // ---------- image ----------
 
   function renderImage() {
-    const url = current?.image_url;
+    const url = current?.detail_url;
     $("preview").innerHTML = url ? `<img src="${esc(url)}" alt="${esc(current.name)}" />` : "No image";
     $("removeImage").hidden = !url;
     $("uploadImage").textContent = url ? "Replace" : "Upload";

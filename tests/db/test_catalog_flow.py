@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from app.db.models import Place
 from app.exceptions.exceptions import ImageStorageException
 from app.services.destination.geocode_types import GeoResult
+from app.services.media.storage import all_keys
 from tests.db.conftest import CSRF, run
 
 
@@ -156,23 +157,81 @@ def upload(client, gadget_id, data, filename="photo.jpg"):
                       files={"file": (filename, data, "image/jpeg")}, headers=CSRF)
 
 
+def media_key(url: str) -> str:
+    """The storage key behind a /media/ URL."""
+    return url.removeprefix("/media/")
+
+
+def stored(storage, body) -> list:
+    """Every rendition file behind a gadget response, as paths on disk."""
+    base = media_key(body["image_url"])
+    return [storage.directory / k for k in all_keys(base)]
+
+
 def test_image_upload_replace_and_remove(coordinator, db_app):
     storage = db_app
     g = new_gadget(coordinator)
 
     first = upload(coordinator, g["id"], jpeg("orange")).json()
-    first_key = first["image_url"].removeprefix("/media/")
     assert first["image_url"].endswith(".webp")
-    assert (storage.directory / first_key).exists()
+    first_files = stored(storage, first)
+    assert all(f.exists() for f in first_files)
 
     second = upload(coordinator, g["id"], jpeg("blue")).json()
-    second_key = second["image_url"].removeprefix("/media/")
-    assert second_key != first_key
-    assert not (storage.directory / first_key).exists()  # old file cleaned up
+    assert media_key(second["image_url"]) != media_key(first["image_url"])
+    # Every rendition of the replaced image is cleaned up, not just one.
+    assert not any(f.exists() for f in first_files)
+    second_files = stored(storage, second)
+    assert all(f.exists() for f in second_files)
 
     removed = coordinator.delete(f"/api/coordinator/gadgets/{g['id']}/image", headers=CSRF).json()
     assert removed["image_url"] is None
-    assert not (storage.directory / second_key).exists()
+    assert removed["thumb_url"] is None
+    assert not any(f.exists() for f in second_files)
+
+
+def test_each_page_gets_its_own_rendition(coordinator, db_app):
+    """The listing must not be handed the 1200px file for a 44px row."""
+    g = new_gadget(coordinator)
+    body = upload(coordinator, g["id"], jpeg(size=(2000, 1400))).json()
+
+    assert body["thumb_url"].endswith("_thumb.webp")
+    assert body["detail_url"].endswith("_detail.webp")
+    # The stored key is the full rendition, so it carries no suffix.
+    assert body["image_url"] == f"/media/{media_key(body['image_url'])}"
+
+    sizes = {
+        name: (db_app.directory / media_key(body[f"{name}_url"])).stat().st_size
+        for name in ("thumb", "detail")
+    }
+    full_bytes = (db_app.directory / media_key(body["image_url"])).stat().st_size
+
+    assert sizes["thumb"] < sizes["detail"] < full_bytes
+
+    # The listing view carries the same thumbnail as the detail view.
+    listed = coordinator.get("/api/coordinator/gadgets").json()
+    assert [row["thumb_url"] for row in listed if row["id"] == g["id"]] == [body["thumb_url"]]
+
+
+def test_a_rendition_that_fails_to_store_leaves_nothing_behind(coordinator, db_app, monkeypatch):
+    """A half-written set would show the listing a thumbnail that 404s."""
+    g = new_gadget(coordinator)
+    real_save = db_app.save
+    saved = []
+
+    def fail_on_the_second(key_, data):
+        if len(saved) == 1:
+            raise ImageStorageException("R2 gave up midway")
+        saved.append(key_)
+        real_save(key_, data)
+
+    monkeypatch.setattr(db_app, "save", fail_on_the_second)
+
+    response = upload(coordinator, g["id"], jpeg())
+
+    assert response.status_code == 503
+    assert not any((db_app.directory / k).exists() for k in saved)
+    assert coordinator.get(f"/api/coordinator/gadgets/{g['id']}").json()["image_url"] is None
 
 
 def test_bad_upload_leaves_the_existing_image_alone(coordinator):
@@ -201,8 +260,7 @@ def test_a_failed_cleanup_does_not_fail_an_upload_that_worked(coordinator, db_ap
 
     assert second.status_code == 200
     assert second.json()["image_url"] != first
-    key = second.json()["image_url"].removeprefix("/media/")
-    assert (db_app.directory / key).exists()
+    assert all(f.exists() for f in stored(db_app, second.json()))
 
 
 def test_a_failed_upload_is_a_503_and_keeps_the_old_image(coordinator, db_app, monkeypatch):
@@ -221,13 +279,14 @@ def test_a_failed_upload_is_a_503_and_keeps_the_old_image(coordinator, db_app, m
     assert coordinator.get(f"/api/coordinator/gadgets/{g['id']}").json()["image_url"] == good
 
 
-def test_deleting_a_gadget_deletes_its_image_file(coordinator, db_app):
+def test_deleting_a_gadget_deletes_every_rendition(coordinator, db_app):
     g = new_gadget(coordinator)
-    key = upload(coordinator, g["id"], jpeg()).json()["image_url"].removeprefix("/media/")
+    files = stored(db_app, upload(coordinator, g["id"], jpeg()).json())
+    assert all(f.exists() for f in files)
 
     coordinator.delete(f"/api/coordinator/gadgets/{g['id']}", headers=CSRF)
 
-    assert not (db_app.directory / key).exists()
+    assert not any(f.exists() for f in files)
 
 
 # ---------- places the geocoders do not know ----------

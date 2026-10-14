@@ -190,10 +190,10 @@ sequenceDiagram
     note right of C: 3. the image
     C->>CR: PUT /gadgets/{id}/image
     CR->>IM: process_image (worker thread)
-    IM-->>CR: 1200px WebP, EXIF stripped
-    CR->>ST: save(new_key) (worker thread)
+    IM-->>CR: thumb + detail + full WebP, EXIF stripped
+    CR->>ST: save all three renditions (worker thread)
     CR->>DB: commit new image_key
-    CR->>ST: delete(old_key), best effort
+    CR->>ST: delete old renditions, best effort
     end
 
     rect rgb(240, 240, 240)
@@ -223,11 +223,40 @@ Once saved, the place is searchable for every coordinator.
 | Accept | JPEG / PNG / WebP, **detected by content** not filename | A `.jpg` extension proves nothing |
 | Size | 5 MB cap, read one byte past the limit | Know it is too big without buffering it all |
 | Guard | reject above 40 megapixels, `verify()` before decode | Decompression-bomb defence |
-| Normalise | honour EXIF rotation, longest side 1200px | Consistent display |
-| Re-encode | WebP quality 82 | Drops **all** EXIF, including GPS location |
+| Normalise | honour EXIF rotation | Portrait phone photos otherwise come out sideways |
+| Bound | longest side 1200px, once | Then derive the smaller renditions from that copy |
+| Re-encode | WebP per rendition | Drops **all** EXIF, including GPS location |
 
-A measured test upload came out at **9.8 KB**. Capacity was never the
-constraint on storage choice.
+### Renditions
+
+One upload produces three sizes, because the pages display three different
+sizes and shipping the largest to all of them wasted most of the bytes a
+coordinator uploaded. `app/services/media/variants.py` is the single source of
+truth; the dimensions come from the CSS, at up to 3x device pixel ratio.
+
+| Variant | Longest side | Quality | Serves | Displayed at |
+|---|---|---|---|---|
+| `thumb` | 144px | 80 | Listing rows | 44px square, `object-fit: cover` |
+| `detail` | 480px | 82 | Editor preview | 140px square, `object-fit: cover` |
+| `full` | 1200px | 82 | Nothing yet | — |
+
+On a 2400x1600 source, `thumb` came out **543x smaller** than `full` (272 bytes
+against 148 KB). `full` is displayed nowhere today and is kept deliberately: it
+is the only copy of the original pixels, so a traveller-facing card or a
+lightbox can be derived later without asking coordinators to upload again.
+
+Aspect ratio is preserved and images are never enlarged, so a small upload
+stays its own size in every rendition. The CSS does the square cropping, which
+means a change to the box shape does not invalidate what is stored.
+
+**Keys.** The `full` rendition keeps the plain key, `gadgets/<hex32>.webp`; the
+others hang off it as `..._thumb.webp` and `..._detail.webp`. The asymmetry is
+deliberate — the plain key is the value the database holds, so it always names
+an object that exists, and rows written before renditions existed stay valid.
+
+A whole set is written or none of it is: a failure part way through removes
+what it already wrote, because a half-written set would hand the listing a
+thumbnail that 404s.
 
 ---
 

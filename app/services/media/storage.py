@@ -5,11 +5,12 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.config import get_media_settings, get_r2_settings
+from app.services.media.variants import FULL, VARIANT_NAMES
 
 
 # Keys are generated here, never taken from users, so this pattern doubles
 # as a guard against path traversal if a key is ever read back from input.
-_KEY_PATTERN = re.compile(r"^gadgets/[0-9a-f]{32}\.webp$")
+_KEY_PATTERN = re.compile(r"^gadgets/[0-9a-f]{32}(_[a-z]{3,10})?\.webp$")
 
 
 def new_image_key() -> str:
@@ -20,6 +21,25 @@ def new_image_key() -> str:
 
 def is_valid_key(key: str) -> bool:
     return bool(_KEY_PATTERN.match(key))
+
+
+def variant_key(key: str, variant: str) -> str:
+    """The key a given rendition of `key` is stored under.
+
+    The full rendition keeps the plain, unsuffixed key. That asymmetry is
+    deliberate: it is the value the database holds, so it always names an
+    object that exists, and rows written before renditions existed stay
+    valid. The smaller renditions hang off it by suffix.
+    """
+    if variant == FULL.name:
+        return key
+
+    return f"{key.removesuffix('.webp')}_{variant}.webp"
+
+
+def all_keys(key: str) -> list[str]:
+    """Every rendition of one upload -- what deleting it has to remove."""
+    return [variant_key(key, name) for name in VARIANT_NAMES]
 
 
 class ImageStorage(ABC):
