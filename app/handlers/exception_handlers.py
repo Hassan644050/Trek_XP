@@ -9,6 +9,7 @@ from app.exceptions.exceptions import (
     DestinationDataException,
     DestinationNotFoundException,
     GadgetSourceException,
+    ImageStorageException,
     InvalidCredentialsException,
     InvalidImageException,
     InvalidInputException,
@@ -120,6 +121,19 @@ async def database_unavailable_handler(
     )
 
 
+async def image_storage_handler(
+    request: Request,
+    exc: ImageStorageException,
+) -> JSONResponse:
+    return _problem(
+        request,
+        exc,
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "The image store is unavailable right now. "
+        "The gadget was saved; please try the image again.",
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     for exc_class, code in (
         (NotAuthenticatedException, status.HTTP_401_UNAUTHORIZED),
@@ -134,6 +148,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         app.add_exception_handler(exc_class, _passthrough(code))
 
     app.add_exception_handler(DatabaseNotConfiguredException, database_unavailable_handler)
+    app.add_exception_handler(ImageStorageException, image_storage_handler)
 
     app.add_exception_handler(
         DestinationNotFoundException, destination_not_found_handler

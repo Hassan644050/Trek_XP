@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
@@ -40,7 +41,32 @@ from app.services.media.images import MAX_UPLOAD_BYTES, process_image
 from app.services.media.storage import get_image_storage, new_image_key
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/coordinator", tags=["coordinator"])
+
+
+# ---------- image side effects ----------
+#
+# Storage is blocking I/O -- a put to R2 is a network round trip -- so every
+# call goes to a worker thread rather than stalling the event loop.
+
+
+async def _store_image(storage, key: str, data: bytes) -> None:
+    await asyncio.to_thread(storage.save, key, data)
+
+
+async def _discard_image(storage, key: str) -> None:
+    """Delete an image we no longer want, best effort.
+
+    Called only once the database says so. A leftover object wastes a few
+    kilobytes; failing the request would report an error for work that has
+    already succeeded, or hide the error that triggered the cleanup.
+    """
+    try:
+        await asyncio.to_thread(storage.delete, key)
+    except Exception:
+        logger.warning("Could not delete image %s", key, exc_info=True)
 
 
 # ---------- serialization ----------
@@ -333,7 +359,7 @@ async def delete_gadget(
     # File removed only after the row is gone: a failed delete must not
     # leave a gadget pointing at a missing image.
     if image_key:
-        get_image_storage().delete(image_key)
+        await _discard_image(get_image_storage(), image_key)
 
 
 # ---------- images ----------
@@ -359,7 +385,7 @@ async def upload_image(
     new_key = new_image_key()
     old_key = gadget.image_key
 
-    storage.save(new_key, processed)
+    await _store_image(storage, new_key, processed)
 
     gadget.image_key = new_key
     gadget.updated_by_id = user.id
@@ -367,11 +393,11 @@ async def upload_image(
     try:
         await db.commit()
     except Exception:
-        storage.delete(new_key)
+        await _discard_image(storage, new_key)
         raise
 
     if old_key:
-        storage.delete(old_key)
+        await _discard_image(storage, old_key)
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
 
@@ -390,7 +416,7 @@ async def remove_image(
     await db.commit()
 
     if old_key:
-        get_image_storage().delete(old_key)
+        await _discard_image(get_image_storage(), old_key)
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
 

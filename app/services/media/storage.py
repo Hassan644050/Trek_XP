@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 from pathlib import Path
 
-from app.config import get_media_settings
+from app.config import get_media_settings, get_r2_settings
 
 
 # Keys are generated here, never taken from users, so this pattern doubles
@@ -25,9 +25,11 @@ def is_valid_key(key: str) -> bool:
 class ImageStorage(ABC):
     """Where processed gadget images live.
 
-    Local disk for development. Free hosting tiers wipe their disks on every
-    deploy, so production needs an object-store implementation (S3,
-    Cloudflare R2, Cloudinary) behind this same interface.
+    Local disk for development; Cloudflare R2 in production, because free
+    hosting tiers wipe their disks on every deploy. See R2ImageStorage.
+
+    Implementations block on I/O, so callers in async code run them on a
+    worker thread -- a put to R2 would otherwise stall the event loop.
     """
 
     @abstractmethod
@@ -68,5 +70,19 @@ class LocalImageStorage(ImageStorage):
 
 @lru_cache(maxsize=1)
 def get_image_storage() -> ImageStorage:
+    """R2 when it is configured, local disk otherwise.
+
+    Cached because building the R2 client is slow enough to notice, and the
+    client is safe to share across requests and worker threads.
+    """
+    r2 = get_r2_settings()
+
+    if r2 is not None:
+        # Imported here so botocore is only loaded when it is needed.
+        from app.services.media.r2 import R2ImageStorage
+
+        return R2ImageStorage(r2)
+
     settings = get_media_settings()
+
     return LocalImageStorage(settings.directory, settings.url_prefix)

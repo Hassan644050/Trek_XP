@@ -4,6 +4,7 @@ from PIL import Image
 from sqlalchemy import func, select
 
 from app.db.models import Place
+from app.exceptions.exceptions import ImageStorageException
 from app.services.destination.geocode_types import GeoResult
 from tests.db.conftest import CSRF, run
 
@@ -181,6 +182,42 @@ def test_bad_upload_leaves_the_existing_image_alone(coordinator):
     response = upload(coordinator, g["id"], b"%PDF-1.7 definitely not a photo", "photo.jpg")
 
     assert response.status_code == 422
+    assert coordinator.get(f"/api/coordinator/gadgets/{g['id']}").json()["image_url"] == good
+
+
+def test_a_failed_cleanup_does_not_fail_an_upload_that_worked(coordinator, db_app, monkeypatch):
+    """The new image is stored and committed; only tidying up the old one
+    failed. Reporting an error here would be a lie, and R2 deletes are a
+    network call that can fail on their own."""
+    g = new_gadget(coordinator)
+    first = upload(coordinator, g["id"], jpeg("orange")).json()["image_url"]
+
+    def refuse(key):
+        raise ImageStorageException("R2 is having a bad day")
+
+    monkeypatch.setattr(db_app, "delete", refuse)
+
+    second = upload(coordinator, g["id"], jpeg("blue"))
+
+    assert second.status_code == 200
+    assert second.json()["image_url"] != first
+    key = second.json()["image_url"].removeprefix("/media/")
+    assert (db_app.directory / key).exists()
+
+
+def test_a_failed_upload_is_a_503_and_keeps_the_old_image(coordinator, db_app, monkeypatch):
+    g = new_gadget(coordinator)
+    good = upload(coordinator, g["id"], jpeg()).json()["image_url"]
+
+    def refuse(key, data):
+        raise ImageStorageException("The image could not be stored just now.")
+
+    monkeypatch.setattr(db_app, "save", refuse)
+
+    response = upload(coordinator, g["id"], jpeg("blue"))
+
+    assert response.status_code == 503
+    # Nothing was committed, so the gadget still points at the old image.
     assert coordinator.get(f"/api/coordinator/gadgets/{g['id']}").json()["image_url"] == good
 
 

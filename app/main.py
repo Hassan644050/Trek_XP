@@ -12,6 +12,7 @@ from app.routes.coordinator import router as coordinator_router
 from app.routes.destinations import router as destinations_router
 from app.routes.health import router as health_router
 from app.routes.recommend import router as recommend_router
+from app.services.media.storage import LocalImageStorage, get_image_storage
 
 
 app = FastAPI(
@@ -41,12 +42,23 @@ def coordinator_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "coordinator.html")
 
 
-media = get_media_settings()
-media.directory.mkdir(parents=True, exist_ok=True)
+# Resolved at import so a broken image-store configuration stops the app
+# at boot, rather than surfacing as a failed upload hours later.
+image_storage = get_image_storage()
 
-# Processed gadget images. Mounted before "/" so the catch-all frontend
-# mount below never shadows it.
-app.mount(media.url_prefix, StaticFiles(directory=media.directory), name="media")
+if isinstance(image_storage, LocalImageStorage):
+    # Development only. In production R2 serves these itself, so there is
+    # no local folder to create and nothing to mount.
+    media = get_media_settings()
+    media.directory.mkdir(parents=True, exist_ok=True)
+
+    # Processed gadget images. Mounted before "/" so the catch-all frontend
+    # mount below never shadows it.
+    app.mount(
+        media.url_prefix,
+        StaticFiles(directory=media.directory),
+        name="media",
+    )
 
 # Mounted last so it never shadows an API route.
 app.mount(

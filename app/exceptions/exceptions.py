@@ -64,3 +64,15 @@ class InvalidInputException(AppException):
 
 class LLMTimeoutException(LLMException):
     """Raised when the model did not answer within the time allowed."""
+
+
+class ImageStorageException(AppException):
+    """Raised when uploaded images cannot be stored or retrieved."""
+
+
+class ImageStorageNotConfiguredException(AppException):
+    """Raised when the image store is only half-configured.
+
+    Partial settings would otherwise store images somewhere the app does not
+    serve them from, which fails silently as broken images much later.
+    """
