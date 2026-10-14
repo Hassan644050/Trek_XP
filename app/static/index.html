@@ -74,7 +74,7 @@
     flex-direction: column;
     gap: 24px;
     margin: 0 auto;
-    max-width: 1360px;
+    max-width: none;
     padding: 36px 36px 64px;
   }
 
@@ -250,7 +250,9 @@
   .group-head h3 { font-size: 20px; font-weight: 900; }
   .group-head .note { color: var(--ink-soft); font-size: 15px; font-weight: 700; }
 
-  .grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* auto-fill so a wide screen shows more cards per row instead of
+     stretching three; collapses to fewer as the panel narrows. */
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 
   .card {
     background: var(--paper);
