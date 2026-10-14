@@ -37,6 +37,14 @@ def test_traveler_count_is_bounded(travelers):
         make_trip(travelers=travelers)
 
 
-def test_unknown_trip_type_is_rejected():
+def test_trip_type_and_activities_are_slugified():
+    # Trip types are admin-managed strings now, not an enum; the schema
+    # canonicalises them and the form constrains the choices.
+    t = make_trip(trip_type="Winter Sports", activities=["Remote Work", "remote_work"])
+    assert t.trip_type == "winter_sports"
+    assert t.activities == ["remote_work"]  # slugged and de-duplicated
+
+
+def test_trip_type_must_not_be_blank():
     with pytest.raises(ValidationError):
-        make_trip(trip_type="space_tourism")
+        make_trip(trip_type="!")

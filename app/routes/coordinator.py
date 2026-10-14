@@ -11,9 +11,14 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import require_coordinator
 from app.config import get_env_meta_info
 from app.db.engine import get_db
-from app.db.models import Gadget, Placement, Place, User
-from app.exceptions.exceptions import ResourceConflictException, ResourceNotFoundException
+from app.db.models import ActivityOption, Gadget, Placement, Place, TripTypeOption, User
+from app.exceptions.exceptions import (
+    InvalidInputException,
+    ResourceConflictException,
+    ResourceNotFoundException,
+)
 from app.models.catalog import (
+    Option,
     AdminAreasOut,
     CatalogOptions,
     DivisionOut,
@@ -29,8 +34,8 @@ from app.models.catalog import (
     PlacementUpdate,
 )
 from app.models.recommendation import Priority
-from app.models.trip import Activity, TripType
 from app.services.destination.countries import home_country
+from app.services.taxonomy import active_values, list_options
 from app.services.destination.admin_areas import (
     district_names,
     divisions,
@@ -221,12 +226,31 @@ async def _commit_or_conflict(db: AsyncSession, message: str) -> None:
 
 
 @router.get("/options", response_model=CatalogOptions)
-async def options(_: User = Depends(require_coordinator)) -> CatalogOptions:
+async def options(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_coordinator),
+) -> CatalogOptions:
+    trip_types = await list_options(db, TripTypeOption, active_only=True)
+    activities = await list_options(db, ActivityOption, active_only=True)
+
     return CatalogOptions(
-        trip_types=[t.value for t in TripType],
-        activities=[a.value for a in Activity],
+        trip_types=[Option(value=o.value, label=o.label) for o in trip_types],
+        activities=[Option(value=o.value, label=o.label) for o in activities],
         priorities=[p.value for p in Priority],
     )
+
+
+async def _check_taxonomy(db, trip_types, activities) -> None:
+    """Reject placement values the admin has not defined (or has retired)."""
+    valid_tt = await active_values(db, TripTypeOption)
+    valid_ac = await active_values(db, ActivityOption)
+    unknown = [t for t in (trip_types or []) if t not in valid_tt]
+    unknown += [a for a in (activities or []) if a not in valid_ac]
+
+    if unknown:
+        raise InvalidInputException(
+            "Unknown trip type or activity: " + ", ".join(sorted(set(unknown))) + "."
+        )
 
 
 # ---------- places ----------
@@ -481,14 +505,15 @@ async def add_placement(
     user: User = Depends(require_coordinator),
 ) -> GadgetDetail:
     await _load_gadget(db, gadget_id)
+    await _check_taxonomy(db, payload.trip_types, payload.activities)
     place = await _upsert_place(db, payload.place)
 
     db.add(
         Placement(
             gadget_id=gadget_id,
             place_id=place.id,
-            trip_types=[t.value for t in payload.trip_types],
-            activities=[a.value for a in payload.activities],
+            trip_types=payload.trip_types,
+            activities=payload.activities,
             priority=payload.priority,
             why=payload.why,
             created_by_id=user.id,
@@ -509,15 +534,16 @@ async def update_placement(
 ) -> GadgetDetail:
     placement = await _load_placement(db, placement_id)
     changes = payload.model_dump(exclude_unset=True)
+    await _check_taxonomy(db, payload.trip_types, payload.activities)
 
     if payload.place is not None:
         placement.place_id = (await _upsert_place(db, payload.place)).id
 
     if payload.trip_types is not None:
-        placement.trip_types = [t.value for t in payload.trip_types]
+        placement.trip_types = payload.trip_types
 
     if "activities" in changes:
-        placement.activities = [a.value for a in payload.activities or []]
+        placement.activities = payload.activities or []
 
     if payload.priority is not None:
         placement.priority = payload.priority

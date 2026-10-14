@@ -163,8 +163,8 @@ def _relevant(placements, context: TripContext) -> list[Recommendation]:
     are tagged for it, every active gadget at the place is shown rather than
     hiding the catalog over a tagging mismatch.
     """
-    trip_type = context.trip.trip_type.value
-    wanted = {a.value for a in context.trip.activities}
+    trip_type = context.trip.trip_type
+    wanted = set(context.trip.activities)
 
     active = [p for p in placements if p.gadget.is_active]
     for_trip = [p for p in active if trip_type in (p.trip_types or [])]

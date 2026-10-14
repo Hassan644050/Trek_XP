@@ -613,14 +613,14 @@
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const label = (v) => String(v).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-  const TRIP_TYPES = ["hiking", "business", "beach", "city", "backpacking", "winter_sports"];
+  // Trip types and activities are admin-managed now, loaded from /options as
+  // {value, label}. These start empty and fill in on load.
+  let tripTypes = [];
+  let activityOpts = [];
 
-  // What the form opens on. The destination's default lives in the dataset
-  // because that file owns which places we curate; this one is a plain UI
-  // choice, so it lives here. tests/test_form_contract.py checks it stays
-  // a real TripType value.
+  // What the form opens on, if the admin still offers it; otherwise the
+  // first trip type. The destination's default lives in the dataset.
   const DEFAULT_TRIP_TYPE = "beach";
-  const ACTIVITIES = ["photography", "diving", "camping", "cycling", "climbing", "remote_work"];
 
   const PRIORITIES = [
     { key: "essential",   name: "Essential",   note: "Don't leave without these", colour: "var(--essential)" },
@@ -657,9 +657,29 @@
     return b;
   }
 
-  function fillChips(host, values, isOn, onPick) {
-    host.replaceChildren(...values.map((v) =>
-      chip(label(v), isOn(v), () => { onPick(v); render(); })));
+  function fillChips(host, items, isOn, onPick) {
+    host.replaceChildren(...items.map((it) => {
+      const value = (it && typeof it === "object") ? it.value : it;
+      const text = (it && typeof it === "object") ? it.label : label(it);
+      return chip(text, isOn(value), () => { onPick(value); render(); });
+    }));
+  }
+
+  async function loadOptions() {
+    try {
+      const res = await fetch("/options");
+      if (res.ok) {
+        const data = await res.json();
+        tripTypes = data.trip_types || [];
+        activityOpts = data.activities || [];
+      }
+    } catch { /* keep empty; render handles it */ }
+
+    // Keep the chosen trip type valid against what the admin now offers.
+    if (!tripTypes.some((o) => o.value === tripType)) {
+      tripType = tripTypes[0]?.value || tripType;
+    }
+    render();
   }
 
   // ---------- step 1 ----------
@@ -674,8 +694,8 @@
   $("end").value = isoDate(37);
 
   function render() {
-    fillChips($("tripType"), TRIP_TYPES, (v) => v === tripType, (v) => (tripType = v));
-    fillChips($("activities"), ACTIVITIES,
+    fillChips($("tripType"), tripTypes, (v) => v === tripType, (v) => (tripType = v));
+    fillChips($("activities"), activityOpts,
       (v) => activities.has(v),
       (v) => activities.has(v) ? activities.delete(v) : activities.add(v));
     fillChips($("pax"), [1, 2, 3, 4, 5],
@@ -1021,6 +1041,7 @@
   // ---------- start ----------
 
   render();
+  loadOptions();
   loadFeatured();
 })();
 </script>

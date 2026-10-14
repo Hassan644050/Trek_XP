@@ -352,6 +352,7 @@
   <div class="brand">Trek_XP<span>Coordinator</span></div>
   <nav class="tabs" id="tabs" hidden>
     <button class="tab" data-tab="gadgets" aria-selected="true">Gadgets</button>
+    <button class="tab" data-tab="catalog" id="catalogTab" hidden>Catalog settings</button>
     <button class="tab" data-tab="accounts" id="accountsTab" hidden>Accounts</button>
   </nav>
   <div class="who" id="who" hidden>
@@ -468,6 +469,60 @@
   </div>
 </main>
 
+<!-- ============ catalog settings (admin) ============ -->
+
+<main id="catalogView" hidden>
+  <div class="stack">
+    <div class="card stack">
+      <h2>Destinations</h2>
+      <form class="stack" id="destForm" novalidate>
+        <div class="grid2">
+          <label>Name <input type="text" id="dName" maxlength="200" required placeholder="e.g. Nikli Haor" /></label>
+          <label>Division <select id="dDivision"></select></label>
+          <label>Latitude <input type="number" id="dLat" step="any" min="-90" max="90" required placeholder="24.31" /></label>
+          <label>Longitude <input type="number" id="dLon" step="any" min="-180" max="180" required placeholder="90.95" /></label>
+        </div>
+        <div class="row"><button class="btn primary" type="submit">Add destination</button></div>
+      </form>
+      <div class="card" style="padding:0">
+        <table>
+          <thead><tr><th>Name</th><th>Division</th><th>Coordinates</th><th>Gadgets</th><th></th></tr></thead>
+          <tbody id="destRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid2" style="align-items:start">
+      <div class="card stack">
+        <h2>Divisions</h2>
+        <form class="row" id="divForm" novalidate>
+          <input type="text" id="divName" maxlength="60" required placeholder="Add a division" style="flex:1" />
+          <button class="btn primary small" type="submit">Add</button>
+        </form>
+        <div id="divList" class="stack" style="gap:6px"></div>
+      </div>
+
+      <div class="card stack">
+        <h2>Trip types</h2>
+        <form class="row" id="ttForm" novalidate>
+          <input type="text" id="ttName" maxlength="60" required placeholder="Add a trip type" style="flex:1" />
+          <button class="btn primary small" type="submit">Add</button>
+        </form>
+        <div id="ttList" class="stack" style="gap:6px"></div>
+      </div>
+
+      <div class="card stack">
+        <h2>Activities</h2>
+        <form class="row" id="acForm" novalidate>
+          <input type="text" id="acName" maxlength="60" required placeholder="Add an activity" style="flex:1" />
+          <button class="btn primary small" type="submit">Add</button>
+        </form>
+        <div id="acList" class="stack" style="gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -568,7 +623,7 @@
   // ---------- views ----------
 
   function showView(name) {
-    for (const v of ["signinView", "gadgetsView", "accountsView"]) $(v).hidden = v !== name;
+    for (const v of ["signinView", "gadgetsView", "catalogView", "accountsView"]) $(v).hidden = v !== name;
     for (const t of document.querySelectorAll(".tab")) {
       t.setAttribute("aria-selected", String(`${t.dataset.tab}View` === name));
     }
@@ -590,6 +645,7 @@
     $("who").hidden = false;
     $("tabs").hidden = false;
     $("accountsTab").hidden = user.role !== "admin";
+    $("catalogTab").hidden = user.role !== "admin";
 
     options = await api("GET", "/api/coordinator/options");
     showView("gadgetsView");
@@ -599,6 +655,7 @@
   document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
     showView(`${tab.dataset.tab}View`);
     if (tab.dataset.tab === "accounts") run(null, loadUsers);
+    if (tab.dataset.tab === "catalog") run(null, loadCatalog);
   }));
 
   // ---------- sign in / out ----------
@@ -874,9 +931,12 @@
 
   $("addPlacement").addEventListener("click", () => openPlacementForm(null));
 
-  function checkboxes(name, values, selected) {
-    return `<div class="checks">${values.map((v) => `
-      <label class="check"><input type="checkbox" name="${name}" value="${esc(v)}" ${selected.includes(v) ? "checked" : ""} />${esc(label(v))}</label>`).join("")}</div>`;
+  function checkboxes(name, opts, selected) {
+    return `<div class="checks">${opts.map((o) => {
+      const value = (o && typeof o === "object") ? o.value : o;
+      const text = (o && typeof o === "object") ? o.label : label(o);
+      return `<label class="check"><input type="checkbox" name="${name}" value="${esc(value)}" ${selected.includes(value) ? "checked" : ""} />${esc(text)}</label>`;
+    }).join("")}</div>`;
   }
 
   function openPlacementForm(placement) {
@@ -1187,6 +1247,113 @@
   });
 
   // ---------- start ----------
+
+  // ---------- catalog settings (admin) ----------
+
+  async function loadCatalog() {
+    const [dests, divs, tt, ac] = await Promise.all([
+      api("GET", "/api/admin/destinations"),
+      api("GET", "/api/admin/divisions"),
+      api("GET", "/api/admin/options/trip-types"),
+      api("GET", "/api/admin/options/activities"),
+    ]);
+    catalogDivisions = divs;
+    renderDestinations(dests);
+    renderDivisions(divs);
+    renderOptions("tt", tt, "trip-types");
+    renderOptions("ac", ac, "activities");
+  }
+
+  let catalogDivisions = [];
+
+  function renderDestinations(rows) {
+    $("dDivision").innerHTML = catalogDivisions.map((d) =>
+      `<option value="${esc(d.name)}">${esc(d.name)}</option>`).join("");
+    $("destRows").innerHTML = rows.length ? rows.map((r) => `
+      <tr data-id="${r.id}">
+        <td>${esc(r.name)}</td>
+        <td>${esc(r.division || "—")}</td>
+        <td class="muted">${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}</td>
+        <td>${r.placement_count}</td>
+        <td><div class="row" style="justify-content:flex-end">
+          <button class="btn small danger" data-act="del-dest" ${r.placement_count ? "disabled title='Remove its gadgets first'" : ""}>Delete</button>
+        </div></td>
+      </tr>`).join("") : `<tr><td colspan="5" class="muted">No destinations yet.</td></tr>`;
+  }
+
+  function renderDivisions(divs) {
+    $("divList").innerHTML = divs.map((d) => `
+      <div class="row" data-id="${d.id}" style="justify-content:space-between">
+        <span>${esc(d.name)}</span>
+        <button class="btn small danger" data-act="del-div">Remove</button>
+      </div>`).join("") || `<p class="muted" style="margin:0">None yet.</p>`;
+  }
+
+  function renderOptions(prefix, opts, kind) {
+    $(`${prefix}List`).dataset.kind = kind;
+    $(`${prefix}List`).innerHTML = opts.map((o) => `
+      <div class="row" data-id="${o.id}" style="justify-content:space-between">
+        <span class="${o.is_active ? "" : "status-off"}">${esc(o.label)} <span class="muted">(${esc(o.value)})</span></span>
+        <button class="btn small ${o.is_active ? "danger" : ""}" data-act="toggle-opt">${o.is_active ? "Hide" : "Show"}</button>
+      </div>`).join("") || `<p class="muted" style="margin:0">None yet.</p>`;
+  }
+
+  $("destForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    run(e.submitter, async () => {
+      await api("POST", "/api/admin/destinations", {
+        name: $("dName").value, division: $("dDivision").value,
+        latitude: parseFloat($("dLat").value), longitude: parseFloat($("dLon").value),
+      });
+      $("destForm").reset();
+      await loadCatalog();
+      toast("Destination added.");
+    });
+  });
+
+  $("divForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    run(e.submitter, async () => {
+      await api("POST", "/api/admin/divisions", { name: $("divName").value });
+      $("divName").value = "";
+      await loadCatalog();
+      toast("Division added.");
+    });
+  });
+
+  function optionAdder(formId, inputId, kind) {
+    $(formId).addEventListener("submit", (e) => {
+      e.preventDefault();
+      run(e.submitter, async () => {
+        await api("POST", `/api/admin/options/${kind}`, { label: $(inputId).value });
+        $(inputId).value = "";
+        await loadCatalog();
+        toast("Added.");
+      });
+    });
+  }
+  optionAdder("ttForm", "ttName", "trip-types");
+  optionAdder("acForm", "acName", "activities");
+
+  $("catalogView").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const id = btn.closest("[data-id]").dataset.id;
+    const act = btn.dataset.act;
+
+    if (act === "del-dest") run(btn, async () => {
+      await api("DELETE", `/api/admin/destinations/${id}`); await loadCatalog(); toast("Destination removed.");
+    });
+    else if (act === "del-div") run(btn, async () => {
+      await api("DELETE", `/api/admin/divisions/${id}`); await loadCatalog(); toast("Division removed.");
+    });
+    else if (act === "toggle-opt") run(btn, async () => {
+      const kind = btn.closest("[data-kind]").dataset.kind;
+      const active = btn.textContent.trim() === "Show";
+      await api("PATCH", `/api/admin/options/${kind}/${id}`, { is_active: active });
+      await loadCatalog();
+    });
+  });
 
   (async () => {
     try {

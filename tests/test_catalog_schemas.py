@@ -19,8 +19,8 @@ def test_placement_defaults_and_normalization():
         activities=["photography", "photography"],
         why="  Boat   rides\nsplash phones.  ",
     )
-    assert [t.value for t in p.trip_types] == ["hiking", "backpacking"]
-    assert [a.value for a in p.activities] == ["photography"]
+    assert p.trip_types == ["hiking", "backpacking"]
+    assert p.activities == ["photography"]
     assert p.priority.value == "recommended"
     assert p.why == "Boat rides splash phones."
     assert p.place.country_code == "BD"
@@ -31,10 +31,12 @@ def test_placement_needs_a_trip_type():
         placement(trip_types=[])
 
 
-@pytest.mark.parametrize("field,value", [("trip_types", ["space_tourism"]), ("activities", ["skydiving"])])
-def test_placement_rejects_values_the_public_form_does_not_offer(field, value):
-    with pytest.raises(ValidationError):
-        placement(**{field: value})
+def test_placement_slugifies_trip_types_and_activities():
+    # Values are validated against the admin-managed set in the coordinator
+    # route (which has a database); the schema only canonicalises them.
+    p = placement(trip_types=["Winter Sports"], activities=["Remote Work"])
+    assert p.trip_types == ["winter_sports"]
+    assert p.activities == ["remote_work"]
 
 
 @pytest.mark.parametrize("lat,lon", [(91, 0), (0, 181)])

@@ -10,16 +10,58 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import get_env_meta_info
 from app.db.engine import get_sessionmaker
-from app.db.models import Gadget, Place, Placement
+from app.db.models import ActivityOption, Gadget, Place, Placement, TripTypeOption
 from app.exceptions.exceptions import DatabaseNotConfiguredException
+from app.models.catalog import Option
 from app.services.destination.admin_areas import division_for_coords, normalize
 from app.services.destination.countries import get_country, home_country
 from app.services.destination.geocode import search_destinations
+from app.services.taxonomy import SEED_ACTIVITIES, SEED_TRIP_TYPES, list_options
 
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class FormOptions(BaseModel):
+    trip_types: list[Option]
+    activities: list[Option]
+
+
+@router.get("/options", response_model=FormOptions)
+async def form_options() -> FormOptions:
+    """Trip types and activities for the traveller form.
+
+    Best effort: if the database is unreachable the form still works off the
+    seed values, so a taxonomy outage never leaves the picker empty.
+    """
+    def seed() -> FormOptions:
+        return FormOptions(
+            trip_types=[Option(value=v, label=label) for v, label in SEED_TRIP_TYPES],
+            activities=[Option(value=v, label=label) for v, label in SEED_ACTIVITIES],
+        )
+
+    try:
+        sessionmaker = get_sessionmaker()
+    except DatabaseNotConfiguredException:
+        return seed()
+
+    try:
+        async with sessionmaker() as db:
+            trip_types = await list_options(db, TripTypeOption, active_only=True)
+            activities = await list_options(db, ActivityOption, active_only=True)
+    except SQLAlchemyError:
+        logger.warning("Form options lookup failed; using seed values", exc_info=True)
+        return seed()
+
+    if not trip_types or not activities:
+        return seed()
+
+    return FormOptions(
+        trip_types=[Option(value=o.value, label=o.label) for o in trip_types],
+        activities=[Option(value=o.value, label=o.label) for o in activities],
+    )
 
 
 class DestinationMatch(BaseModel):

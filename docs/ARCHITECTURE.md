@@ -375,6 +375,18 @@ things, this much, for this reason.* That is exactly the lookup a community
 gadget source will need, which is why it was modelled this way from the start
 rather than hanging trip types off the gadget.
 
+**The taxonomy is admin-managed.** Divisions, trip types and activities live in
+their own tables (`divisions`, `trip_types`, `activities`), seeded with the
+original values and editable from the admin panel's **Catalog settings**. Trip
+types and activities were hardcoded enums; they are now slugs the forms read
+live from the database. The traveller form stays loose (an unknown trip type
+just flows into the prompt, so a model call never depends on the taxonomy
+table), while the coordinator route validates placement values against the
+active set. Admin CRUD lives under `/api/admin/{options/trip-types,options/
+activities,divisions,destinations}`, and both forms read the live lists —
+the traveller via public `GET /options`, the coordinator via `GET
+/api/coordinator/options`.
+
 Two details worth knowing:
 
 - The gadget name index is `lower(name)`, declared **outside** the class body.

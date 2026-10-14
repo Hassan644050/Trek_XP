@@ -68,7 +68,7 @@ def build_gadget_prompt(context: TripContext) -> str:
     trip = context.trip
 
     activities = (
-        ", ".join(a.value for a in trip.activities)
+        ", ".join(trip.activities)
         if trip.activities
         else "none specified"
     )
@@ -97,7 +97,7 @@ def build_gadget_prompt(context: TripContext) -> str:
 TRIP
 Destination: {_place_label(context)}
 Dates: {trip.start_date} to {trip.end_date} ({trip.duration_days} days)
-Trip type: {trip.trip_type.value}
+Trip type: {trip.trip_type}
 Activities: {activities}
 {baggage_line}Travellers: {trip.travelers}
 

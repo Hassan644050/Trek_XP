@@ -182,3 +182,58 @@ class Placement(Base):
 
     gadget: Mapped[Gadget] = relationship(back_populates="placements")
     place: Mapped[Place] = relationship(lazy="joined")
+
+
+class Division(Base):
+    """An admin-managed region grouping for destinations, per country.
+
+    Seeded from the static admin dataset so the picker keeps working, and
+    editable from the admin panel. A place carries its division as a string,
+    so renaming here does not rewrite places -- the label is the key."""
+
+    __tablename__ = "divisions"
+    __table_args__ = (
+        UniqueConstraint("country_code", "name", name="uq_divisions_country_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    country_code: Mapped[str] = mapped_column(String(2))
+    name: Mapped[str] = mapped_column(String(60))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class TripTypeOption(Base):
+    """A trip type the forms offer, admin-managed.
+
+    `value` is the key stored on placements and sent in requests (a slug
+    like "beach"); `label` is what people see. Replaces the former hardcoded
+    enum, seeded with the same values so existing data stays valid."""
+
+    __tablename__ = "trip_types"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    value: Mapped[str] = mapped_column(String(30), unique=True)
+    label: Mapped[str] = mapped_column(String(60))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class ActivityOption(Base):
+    """An activity the forms offer, admin-managed. See TripTypeOption."""
+
+    __tablename__ = "activities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    value: Mapped[str] = mapped_column(String(30), unique=True)
+    label: Mapped[str] = mapped_column(String(60))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

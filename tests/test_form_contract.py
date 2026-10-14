@@ -70,7 +70,7 @@ def test_the_home_page_reads_the_default_destination_flag():
 def test_the_home_page_opens_on_a_real_trip_type():
     """The page keeps its own copy of the trip type list, so its default
     can name a value the API would reject."""
-    from app.models.trip import TripType
+    from app.services.taxonomy import SEED_TRIP_TYPES
 
     page = HOME_PAGE.read_text(encoding="utf-8")
     match = re.search(r'DEFAULT_TRIP_TYPE\s*=\s*"([^"]+)"', page)
@@ -79,8 +79,8 @@ def test_the_home_page_opens_on_a_real_trip_type():
 
     default = match.group(1)
 
-    assert default in {t.value for t in TripType}
-    assert default == TripType.BEACH.value
+    assert default in {v for v, _ in SEED_TRIP_TYPES}
+    assert default == "beach"
 
 
 # ---------- the gadget save body ----------

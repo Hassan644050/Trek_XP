@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.db.models import Role
 from app.models.recommendation import Priority
-from app.models.trip import Activity, TripType
 
 
 # Deliberately loose: real validation is that the admin who creates the
@@ -19,6 +18,14 @@ def _clean(value: str | None) -> str | None:
 
     value = " ".join(value.split())
     return value or None
+
+
+def _slug_list(items: list[str] | None) -> list[str] | None:
+    if items is None:
+        return None
+    import re
+    cleaned = (re.sub(r"[^a-z0-9]+", "_", v.strip().lower()).strip("_")[:30] for v in items)
+    return list(dict.fromkeys(c for c in cleaned if c))
 
 
 def _unique(items: list) -> list:
@@ -202,15 +209,17 @@ class GadgetUpdate(BaseModel):
 
 class PlacementIn(BaseModel):
     place: PlaceIn
-    trip_types: list[TripType] = Field(min_length=1)
-    activities: list[Activity] = Field(default_factory=list)
+    # Slugs validated against the active trip types / activities in the
+    # coordinator route, where a database session is available.
+    trip_types: list[str] = Field(min_length=1)
+    activities: list[str] = Field(default_factory=list)
     priority: Priority = Priority.RECOMMENDED
     why: str = Field(min_length=3, max_length=300)
 
     @field_validator("trip_types", "activities")
     @classmethod
-    def dedupe(cls, value: list) -> list:
-        return _unique(value)
+    def clean(cls, value: list) -> list:
+        return _slug_list(value)
 
     @field_validator("why")
     @classmethod
@@ -220,22 +229,22 @@ class PlacementIn(BaseModel):
 
 class PlacementUpdate(BaseModel):
     place: PlaceIn | None = None
-    trip_types: list[TripType] | None = Field(default=None, min_length=1)
-    activities: list[Activity] | None = None
+    trip_types: list[str] | None = Field(default=None, min_length=1)
+    activities: list[str] | None = None
     priority: Priority | None = None
     why: str | None = Field(default=None, min_length=3, max_length=300)
 
     @field_validator("trip_types", "activities")
     @classmethod
-    def dedupe(cls, value: list | None) -> list | None:
-        return _unique(value) if value is not None else None
+    def clean(cls, value: list | None) -> list | None:
+        return _slug_list(value)
 
 
 class PlacementOut(BaseModel):
     id: int
     place: PlaceOut
-    trip_types: list[TripType]
-    activities: list[Activity]
+    trip_types: list[str]
+    activities: list[str]
     priority: Priority
     why: str
     updated_at: datetime
@@ -265,10 +274,75 @@ class GadgetDetail(GadgetOut):
     placements: list[PlacementOut]
 
 
-class CatalogOptions(BaseModel):
-    """Choices the coordinator form offers, straight from the enums the
-    public trip form uses -- so the two can never drift apart."""
+class Option(BaseModel):
+    """An admin-managed choice: the slug stored/sent, and its display label."""
 
-    trip_types: list[str]
-    activities: list[str]
+    value: str
+    label: str
+
+
+class CatalogOptions(BaseModel):
+    """Choices the forms offer, read from the admin-managed tables so the
+    traveller and coordinator forms can never drift apart."""
+
+    trip_types: list[Option]
+    activities: list[Option]
     priorities: list[str]
+
+
+# ---------- admin: catalog settings ----------
+
+
+class OptionAdmin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    value: str
+    label: str
+    is_active: bool
+    sort_order: int
+
+
+class OptionCreate(BaseModel):
+    label: str = Field(min_length=1, max_length=60)
+
+
+class OptionUpdate(BaseModel):
+    label: str | None = Field(default=None, min_length=1, max_length=60)
+    is_active: bool | None = None
+
+
+class DivisionRow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    country_code: str
+    name: str
+
+
+class DivisionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+
+
+class DestinationRow(BaseModel):
+    id: int
+    name: str
+    latitude: float
+    longitude: float
+    division: str | None
+    country_code: str | None
+    placement_count: int
+
+
+class DestinationCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=200)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    division: str = Field(min_length=1, max_length=60)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+
+    @field_validator("name", "division")
+    @classmethod
+    def tidy(cls, value: str) -> str:
+        return " ".join(value.split())
