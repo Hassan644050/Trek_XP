@@ -1,5 +1,9 @@
 {
- "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead \u2014 see _anchored.",
+ "country": {
+  "code": "BD",
+  "name": "Bangladesh"
+ },
+ "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored.",
  "_default": "The place the home page starts on. Exactly one, enforced by tests.",
  "_anchored": {
   "Nilgiri": "geocoders returned the Nilgiri Hills in India, 1588km away; anchored to Chimbuk peak on the range it sits on",

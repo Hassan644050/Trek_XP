@@ -13,6 +13,7 @@ def ctx(name, lat, lon, trip_type="backpacking", activities=("photography",)):
     trip = TripRequest(
         destination=name, start_date=date(2026, 11, 10), end_date=date(2026, 11, 14),
         trip_type=trip_type, activities=list(activities), latitude=lat, longitude=lon,
+        country_code="BD", country_name="Bangladesh",
     )
     return TripContext(
         trip=trip, resolved_place=name, resolved_latitude=lat, resolved_longitude=lon)

@@ -30,8 +30,8 @@ from app.models.catalog import (
 )
 from app.models.recommendation import Priority
 from app.models.trip import Activity, TripType
+from app.services.destination.countries import home_country
 from app.services.destination.admin_areas import (
-    ADMIN_COUNTRY,
     district_names,
     divisions,
     find_district,
@@ -282,10 +282,12 @@ async def lookup_place(
 @router.get("/admin-areas", response_model=AdminAreasOut)
 async def admin_areas(_: User = Depends(require_coordinator)) -> AdminAreasOut:
     """Divisions and districts for the manual-entry dropdowns."""
+    country = home_country().code
+
     return AdminAreasOut(
         divisions=[
-            DivisionOut(name=division, districts=district_names(division))
-            for division in divisions()
+            DivisionOut(name=division, districts=district_names(country, division))
+            for division in divisions(country)
         ]
     )
 
@@ -301,15 +303,16 @@ async def manual_place(
     The district supplies the coordinates, so the climate lookup lands in
     the right place even though the exact spot is unmapped.
     """
-    district = find_district(payload.district)
+    country = home_country()
+    district = find_district(country.code, payload.district)
 
     if district is None:
         raise ResourceNotFoundException(f"'{payload.district}' is not a district we know.")
 
     return PlaceIn(
         name=payload.name,
-        country_code=ADMIN_COUNTRY,
-        country_name="Bangladesh",
+        country_code=country.code,
+        country_name=country.name,
         latitude=district.latitude,
         longitude=district.longitude,
         district=district.name,

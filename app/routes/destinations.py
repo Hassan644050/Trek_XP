@@ -1,15 +1,12 @@
 import json
 from functools import lru_cache
-from pathlib import Path
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
 from app.config import get_env_meta_info
+from app.services.destination.countries import get_country, home_country
 from app.services.destination.geocode import search_destinations
-
-
-FEATURED_PATH = Path(__file__).resolve().parents[1] / "data" / "bd_destinations.json"
 
 
 router = APIRouter()
@@ -64,16 +61,21 @@ class FeaturedDivision(BaseModel):
     places: list[FeaturedPlace]
 
 
-@lru_cache(maxsize=1)
-def _featured() -> list[FeaturedDivision]:
-    """Hand-checked destinations for the home market.
+@lru_cache(maxsize=8)
+def _featured(country_code: str) -> list[FeaturedDivision]:
+    """Hand-checked destinations for one country, grouped by division.
 
-    Static, and deliberately not geocoded at runtime: three of these
-    resolve to the wrong place entirely (Nilgiri matched the Nilgiri Hills
-    in India, 1,588km away), and two are on no map at all.
+    Static, and deliberately not geocoded at runtime: for Bangladesh three
+    of these resolve to the wrong place entirely (Nilgiri matched the
+    Nilgiri Hills in India, 1,588km away), and two are on no map at all.
     """
+    country = get_country(country_code)
+
+    if country is None:
+        return []
+
     try:
-        with FEATURED_PATH.open(encoding="utf-8") as handle:
+        with country.destinations_path.open(encoding="utf-8") as handle:
             data = json.load(handle)
     except (OSError, ValueError):
         return []
@@ -86,6 +88,8 @@ def _featured() -> list[FeaturedDivision]:
                     name=p["name"],
                     latitude=p["lat"],
                     longitude=p["lon"],
+                    country_code=country.code,
+                    country_name=country.name,
                     is_default=bool(p.get("default")),
                 )
                 for p in division["places"]
@@ -96,6 +100,14 @@ def _featured() -> list[FeaturedDivision]:
 
 
 @router.get("/destinations/featured", response_model=list[FeaturedDivision])
-async def featured() -> list[FeaturedDivision]:
-    """Popular destinations, grouped by division, for the picker."""
-    return _featured()
+async def featured(
+    country: str | None = Query(default=None, min_length=2, max_length=2),
+) -> list[FeaturedDivision]:
+    """Popular destinations, grouped by division, for the picker.
+
+    Defaults to the configured home country; `?country=` selects another
+    one once its data is in place.
+    """
+    code = (country or home_country().code).upper()
+
+    return _featured(code)

@@ -25,7 +25,8 @@ from app.models.recommendation import (
     Recommendation,
     normalize_gadget_name,
 )
-from app.services.destination.admin_areas import ADMIN_COUNTRY, division_for_coords, normalize
+from app.services.destination.admin_areas import division_for_coords, normalize
+from app.services.destination.countries import is_supported
 from app.services.media.storage import get_image_storage, variant_key
 from app.services.media.variants import DETAIL
 
@@ -55,10 +56,10 @@ async def load_catalog(db, context: TripContext) -> CatalogMatch:
     """Find the catalog gadgets for this trip's destination.
 
     A place matches when it is the same spot -- the same name close to the
-    same point -- or when it is in the same Bangladesh division. The
-    division rule is what makes a gadget a coordinator added for "Chattogram"
-    show for a trip to Cox's Bazar: coordinators enter items for a region,
-    while travellers pick specific spots within it.
+    same point -- or when it is in the same division of the same country.
+    The division rule is what makes a gadget a coordinator added for
+    "Chattogram" show for a trip to Cox's Bazar: coordinators enter items
+    for a region, while travellers pick specific spots within it.
     """
     name = (context.resolved_place or context.trip.destination or "").strip()
     lat, lon = context.resolved_latitude, context.resolved_longitude
@@ -66,13 +67,14 @@ async def load_catalog(db, context: TripContext) -> CatalogMatch:
     if not name and (lat is None or lon is None):
         return CatalogMatch()
 
-    division = _trip_division(context)
+    country = _trip_country(context)
+    division = _trip_division(context, country)
 
     # Small catalogs: load the places and match in Python, which keeps the
     # name, proximity and division rules in one place. When this table grows
     # large, store each place's division on the row and filter in SQL.
     places = (await db.scalars(select(Place))).all()
-    place_ids = [p.id for p in places if _place_matches(p, name, lat, lon, division)]
+    place_ids = [p.id for p in places if _place_matches(p, name, lat, lon, country, division)]
 
     if not place_ids:
         return CatalogMatch()
@@ -91,28 +93,29 @@ async def load_catalog(db, context: TripContext) -> CatalogMatch:
     )
 
 
-def _trip_division(context: TripContext) -> str | None:
-    """The division this trip falls in, or None outside Bangladesh."""
+def _trip_country(context: TripContext) -> str:
+    """The trip's country code, uppercased ("" if unknown)."""
+    return (context.country.country_code or context.trip.country_code or "").upper()
+
+
+def _trip_division(context: TripContext, country: str) -> str | None:
+    """The division this trip falls in, or None when the country has no
+    admin data (division matching then simply does not apply)."""
     lat, lon = context.resolved_latitude, context.resolved_longitude
 
-    if lat is None or lon is None:
+    if lat is None or lon is None or not is_supported(country):
         return None
 
-    country = (context.country.country_code or context.trip.country_code or "").upper()
-
-    if country and country != ADMIN_COUNTRY:
-        return None
-
-    return division_for_coords(lat, lon)
+    return division_for_coords(country, lat, lon)
 
 
-def _place_division(place: Place) -> str | None:
+def _place_division(place: Place, country: str) -> str | None:
     """A stored place's division: its own if set, else inferred from where
     it is. Geocoded places carry no division, so most are inferred."""
-    return place.division or division_for_coords(place.latitude, place.longitude)
+    return place.division or division_for_coords(country, place.latitude, place.longitude)
 
 
-def _place_matches(place, name, lat, lon, division) -> bool:
+def _place_matches(place, name, lat, lon, country, division) -> bool:
     # Same spot: same name, and nearby when coordinates are known.
     if name and normalize(place.name) == normalize(name):
         if (
@@ -125,8 +128,13 @@ def _place_matches(place, name, lat, lon, division) -> bool:
         ):
             return True
 
-    # Same region: a coordinator's entry for the division applies here too.
-    return division is not None and _place_division(place) == division
+    # Same region: a coordinator's entry for the division applies here too,
+    # but only within the same country -- a division name is not unique
+    # across countries.
+    if division is None or (place.country_code or "").upper() != country:
+        return False
+
+    return _place_division(place, country) == division
 
 
 def _existing_names(placements) -> list[str]:

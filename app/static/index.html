@@ -457,7 +457,7 @@
 <div class="wrap">
 
   <header class="hero">
-    <span class="badge">Explore Bangladesh</span>
+    <span class="badge" id="exploreBadge">Explore</span>
     <div style="display:flex;flex-direction:column;gap:12px">
       <h1>Where to next?</h1>
       <p>Pick a place, set your dates, and get a packing list made for your trip —
@@ -691,6 +691,11 @@
     renderDivisions();
     renderPlaces();
 
+    // The country label follows the data, so a future market needs no
+    // page edit -- every featured place carries its country name.
+    const country = featured[0]?.places?.[0]?.country_name;
+    if (country) $("exploreBadge").textContent = `Explore ${country}`;
+
     // Open on a finished list rather than an empty panel. Costs one model
     // call per visit -- see the caching note in docs/ARCHITECTURE.md.
     if (place) runSearch({ auto: true });
@@ -703,7 +708,7 @@
   function startOnDefault() {
     // The form opens on one destination so a first-time visitor sees it
     // filled in rather than empty. Which one is the dataset's call, not
-    // this page's -- see "_default" in bd_destinations.json. The dropdown
+    // this page's -- see "_default" in the country destinations file. The dropdown
     // opens on that place's division so its chip is already on screen.
     for (const division of featured) {
       const preset = division.places.find((p) => p.is_default);

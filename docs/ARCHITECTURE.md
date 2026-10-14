@@ -46,8 +46,8 @@ flowchart TB
     end
 
     subgraph owned["Data we own (static JSON)"]
-        D1["bd_admin.json<br/>8 divisions · 64 districts"]
-        D2["bd_destinations.json<br/>22 curated spots"]
+        D1["countries/bd/admin.json<br/>8 divisions · 64 districts"]
+        D2["countries/bd/destinations.json<br/>22 curated spots"]
         D3["plugs.json<br/>plug / voltage by country"]
     end
 
@@ -510,8 +510,8 @@ Three datasets live in the repo rather than being fetched. Each for a reason.
 
 | File | Contents | Why static |
 |---|---|---|
-| `bd_admin.json` | 8 divisions, 64 districts with coordinates, from OpenStreetMap administrative boundaries | Global gazetteers get roughly **11% of Bangladeshi districts wrong** — Kishoreganj placed in Rangpur Division, Rangpur in Dhaka, Moulvibazar in Chittagong, between 150 and 355 km off. All 64 were cross-checked by hand. |
-| `bd_destinations.json` | 22 curated spots across 6 divisions | Several are in no gazetteer at all; their coordinates are ours. Marked `_anchored` where hand-placed. |
+| `countries/bd/admin.json` | 8 divisions, 64 districts with coordinates, from OpenStreetMap administrative boundaries | Global gazetteers get roughly **11% of Bangladeshi districts wrong** — Kishoreganj placed in Rangpur Division, Rangpur in Dhaka, Moulvibazar in Chittagong, between 150 and 355 km off. All 64 were cross-checked by hand. |
+| `countries/bd/destinations.json` | 22 curated spots across 6 divisions | Several are in no gazetteer at all; their coordinates are ours. Marked `_anchored` where hand-placed. |
 | `plugs.json` | Plug types, voltage, frequency by country | Changes on a timescale of decades. A network call per request to learn that Bangladesh is 220V would be absurd. |
 
 Renamed districts keep their former spellings as aliases, so Chittagong,

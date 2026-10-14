@@ -131,34 +131,42 @@ def test_relevant_skips_retired_gadgets():
 from app.services.gadgets.catalog import _place_division, _place_matches  # noqa: E402
 
 
-def a_place(name, lat, lon, division=None):
-    return SimpleNamespace(name=name, latitude=lat, longitude=lon, division=division)
+def a_place(name, lat, lon, division=None, country_code="BD"):
+    return SimpleNamespace(
+        name=name, latitude=lat, longitude=lon, division=division, country_code=country_code)
 
 
 def test_same_spot_matches_by_name_and_proximity():
     cox = a_place("Cox's Bazar", 21.45, 91.96)
 
-    assert _place_matches(cox, "Cox's Bazar", 21.45, 91.96, "Chattogram")
+    assert _place_matches(cox, "Cox's Bazar", 21.45, 91.96, "BD", "Chattogram")
     # Same name a thousand km away is a different place.
-    assert not _place_matches(cox, "Cox's Bazar", 10.0, 80.0, None)
+    assert not _place_matches(cox, "Cox's Bazar", 10.0, 80.0, "BD", None)
 
 
 def test_a_region_entry_matches_another_spot_in_the_same_division():
     # The Sunglass case: entered for Chittagong, shown for a Cox's Bazar trip.
     chittagong = a_place("Chittagong", 22.3384, 91.83168)
 
-    assert _place_matches(chittagong, "Cox's Bazar", 21.4522, 91.9639, "Chattogram")
+    assert _place_matches(chittagong, "Cox's Bazar", 21.4522, 91.9639, "BD", "Chattogram")
 
 
 def test_another_division_does_not_match():
     sylhet = a_place("Sylhet", 24.899, 91.872)
 
-    assert not _place_matches(sylhet, "Cox's Bazar", 21.4522, 91.9639, "Chattogram")
+    assert not _place_matches(sylhet, "Cox's Bazar", 21.4522, 91.9639, "BD", "Chattogram")
+
+
+def test_a_place_in_another_country_does_not_match_by_division():
+    # A same-named division abroad must not pull in foreign places.
+    foreign = a_place("Chittagong", 22.3384, 91.83168, country_code="IN")
+
+    assert not _place_matches(foreign, "Cox's Bazar", 21.4522, 91.9639, "BD", "Chattogram")
 
 
 def test_place_division_prefers_the_stored_value_then_infers():
-    assert _place_division(a_place("X", 21.45, 91.96, division="Stored")) == "Stored"
-    assert _place_division(a_place("X", 21.45, 91.96)) == "Chattogram"
+    assert _place_division(a_place("X", 21.45, 91.96, division="Stored"), "BD") == "Stored"
+    assert _place_division(a_place("X", 21.45, 91.96), "BD") == "Chattogram"
 
 
 # ---------- catalog item images ----------

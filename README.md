@@ -92,7 +92,7 @@ There is no public sign-up: admins create coordinator accounts from the
 
 To start travellers off with something rather than an empty catalog, a
 dataset of generic travel products organized by destination ships in
-`app/data/catalog_seed.json`. Load it with:
+`app/data/countries/bd/catalog_seed.json`. Load it with:
 
 ```bash
 python -m scripts.seed_catalog          # --dry-run to preview
@@ -102,6 +102,25 @@ It creates the places, gadgets and placements behind those products, and
 is safe to re-run: existing places (by name and coordinates), gadgets (by
 name) and placements (by gadget-and-place) are left untouched. Coordinators
 refine from there — adding photos, brands and more destinations.
+
+### Adding a country
+
+Bangladesh is the first market; the data is keyed by country so others
+(India, Nepal, Sri Lanka) are a data drop-in rather than a code change.
+Each country lives in `app/data/countries/<code>/` (lowercase ISO code):
+
+| File | Contents |
+|---|---|
+| `destinations.json` | `{"country": {"code", "name"}, "divisions": [...]}` — the curated spots shown in the picker, grouped by division, one marked `"default": true` |
+| `admin.json` | `{"divisions": [{"name", "districts": [{"name", "lat", "lon", "also?"}]}]}` — administrative areas, for manual places and region-level catalog matching |
+| `catalog_seed.json` *(optional)* | Generic products by destination, loaded by `python -m scripts.seed_catalog <code>` |
+
+Plug and voltage data is already global (`app/data/plugs.json`, keyed by
+country). The app discovers the new folder automatically; set
+`HOME_COUNTRY` to make it the default the home page opens on, or pass
+`?country=<code>` to `/destinations/featured`. No code changes, and the
+region-matching and manual-place flows work for it as soon as its
+`admin.json` is present.
 
 ### Places the map services do not know
 
@@ -116,7 +135,7 @@ dropdowns instead. The district supplies the coordinates, which is precise
 enough for climate (and so for gear), and records which Bholaganj is meant.
 Once saved, the place is searchable for every coordinator.
 
-District coordinates live in `app/data/bd_admin.json` (8 divisions, 64
+District coordinates live in `app/data/countries/bd/admin.json` (8 divisions, 64
 districts), taken from OpenStreetMap administrative boundaries. It is
 static for the same reason the plug data is — but also because global
 gazetteers get roughly 11% of Bangladeshi districts wrong, matching

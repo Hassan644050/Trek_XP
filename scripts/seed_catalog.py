@@ -1,10 +1,11 @@
 """Load the generic travel-product dataset into the catalog.
 
-    python -m scripts.seed_catalog [--dry-run]
+    python -m scripts.seed_catalog [country] [--dry-run]
 
-Reads app/data/catalog_seed.json -- products organized by destination --
-and creates the places, gadgets and placements a traveller sees as
-community-verified items.
+Reads a country's catalog_seed.json -- products organized by destination,
+under app/data/countries/<code>/ -- and creates the places, gadgets and
+placements a traveller sees as community-verified items. The country code
+defaults to HOME_COUNTRY.
 
 Safe to re-run: a place is matched by name and coordinates, a gadget by
 its name, and a placement by its gadget-and-place pair, so nothing is
@@ -22,13 +23,14 @@ import sys
 
 from sqlalchemy import func, select
 
-from app.config import PROJECT_ROOT
 from app.db.engine import get_engine, get_sessionmaker
 from app.db.models import Gadget, Place, Placement, Role, User
 from app.models.recommendation import Priority
-
-
-SEED_PATH = PROJECT_ROOT / "app" / "data" / "catalog_seed.json"
+from app.services.destination.countries import (
+    get_country,
+    home_country,
+    supported_countries,
+)
 
 
 # A place already in the catalog under the same name this close is treated
@@ -51,8 +53,22 @@ def _find_place(existing: list, name: str, lat: float, lon: float):
 
 
 async def main() -> int:
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
     dry_run = "--dry-run" in sys.argv
-    data = json.loads(SEED_PATH.read_text(encoding="utf-8"))
+
+    code = (args[0] if args else home_country().code).upper()
+    country = get_country(code)
+
+    if country is None:
+        print(f"No data folder for country {code!r}. "
+              f"Known: {', '.join(sorted(supported_countries()))}")
+        return 1
+
+    if not country.catalog_seed_path.is_file():
+        print(f"{code} has no catalog_seed.json; nothing to load.")
+        return 1
+
+    data = json.loads(country.catalog_seed_path.read_text(encoding="utf-8"))
 
     async with get_sessionmaker()() as db:
         author = await db.scalar(select(User.id).where(User.role == Role.ADMIN).limit(1))
