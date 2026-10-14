@@ -470,7 +470,7 @@
       <form id="tripForm" style="display:flex;flex-direction:column;gap:32px">
 
         <section class="step">
-          <div class="step-head"><span class="step-num">1</span><h2>Your trip</h2></div>
+          <div class="step-head"><span class="step-num">1</span><h2>Where &amp; when</h2></div>
 
           <div class="field">
             <span class="label">Dates</span>
@@ -480,6 +480,16 @@
               <input type="date" id="end" aria-label="End date" />
             </div>
           </div>
+
+          <div class="field">
+            <span class="label">Division</span>
+            <select id="divisionSelect" aria-label="Division"></select>
+          </div>
+          <div class="chips" id="places"></div>
+        </section>
+
+        <section class="step">
+          <div class="step-head"><span class="step-num">2</span><h2>Trip details</h2></div>
 
           <div class="field">
             <span class="label">Trip type</span>
@@ -495,16 +505,6 @@
             <span class="label">Travellers</span>
             <div class="chips" id="pax"></div>
           </div>
-        </section>
-
-        <section class="step">
-          <div class="step-head"><span class="step-num">2</span><h2>Destination</h2></div>
-
-          <div class="field">
-            <span class="label">Division</span>
-            <select id="divisionSelect" aria-label="Division"></select>
-          </div>
-          <div class="chips" id="places"></div>
         </section>
 
         <p class="formError" id="formError" hidden role="alert"></p>
