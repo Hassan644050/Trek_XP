@@ -606,6 +606,12 @@
   const label = (v) => String(v).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
   const TRIP_TYPES = ["hiking", "business", "beach", "city", "backpacking", "winter_sports"];
+
+  // What the form opens on. The destination's default lives in the dataset
+  // because that file owns which places we curate; this one is a plain UI
+  // choice, so it lives here. tests/test_form_contract.py checks it stays
+  // a real TripType value.
+  const DEFAULT_TRIP_TYPE = "beach";
   const ACTIVITIES = ["photography", "diving", "camping", "cycling", "climbing", "remote_work"];
 
   const PRIORITIES = [
@@ -615,7 +621,7 @@
   ];
 
   let place = null;          // chosen destination, or null until one is picked
-  let tripType = "hiking";
+  let tripType = DEFAULT_TRIP_TYPE;
   let activities = new Set();
   let travellers = 2;
   let data = null;           // last /recommend response
@@ -680,6 +686,10 @@
     } catch { featured = []; }
     startOnDefault();
     renderFeatured();
+
+    // Open on a finished list rather than an empty panel. Costs one model
+    // call per visit -- see the caching note in docs/ARCHITECTURE.md.
+    if (place) runSearch({ auto: true });
   }
 
   function toPlace(p) {
@@ -739,8 +749,12 @@
 
   // ---------- submit ----------
 
-  $("tripForm").addEventListener("submit", async (e) => {
+  $("tripForm").addEventListener("submit", (e) => {
     e.preventDefault();
+    runSearch();
+  });
+
+  async function runSearch({ auto = false } = {}) {
     $("formError").hidden = true;
 
     if (!place) return fail("Pick a destination first.");
@@ -792,15 +806,21 @@
     } catch (err) {
       $("loading").hidden = true;
       $("idle").hidden = false;
-      fail(err.name === "AbortError"
-        ? "That took too long and was stopped. Please try again."
-        : err.message);
+
+      // Nobody asked for the opening list, so a failed one leaves the
+      // placeholder standing instead of greeting a first-time visitor
+      // with an error about a request they never made.
+      if (!auto) {
+        fail(err.name === "AbortError"
+          ? "That took too long and was stopped. Please try again."
+          : err.message);
+      }
     } finally {
       clearTimeout(reassure);
       clearTimeout(giveUp);
       $("submitBtn").disabled = false;
     }
-  });
+  }
 
   function fail(message) {
     $("formError").textContent = message;
