@@ -1,0 +1,2199 @@
+{
+  "_about": "Generic travel products for Bangladeshi tourist destinations, organized by destination. Loaded into the catalog by scripts/seed_catalog.py; safe to re-run.",
+  "destinations": [
+    {
+      "name": "Jaflong",
+      "division": "Sylhet",
+      "latitude": 25.173,
+      "longitude": 92.0203,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spray and river crossings soak loose gear."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps your phone safe near the falls."
+        },
+        {
+          "name": "Water Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Slippery rocks and shallow water underfoot."
+        },
+        {
+          "name": "Quick-Dry Towel",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "You will get wet and want to dry off fast."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A long trek in with nowhere to charge."
+        },
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Rough approach trails to the falls."
+        }
+      ]
+    },
+    {
+      "name": "Bholaganj Sada Pathor",
+      "division": "Sylhet",
+      "latitude": 25.0771,
+      "longitude": 91.795,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spray and river crossings soak loose gear."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps your phone safe near the falls."
+        },
+        {
+          "name": "Water Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Slippery rocks and shallow water underfoot."
+        },
+        {
+          "name": "Quick-Dry Towel",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "You will get wet and want to dry off fast."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A long trek in with nowhere to charge."
+        },
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Rough approach trails to the falls."
+        }
+      ]
+    },
+    {
+      "name": "Bichanakandi",
+      "division": "Sylhet",
+      "latitude": 25.0771,
+      "longitude": 91.795,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spray and river crossings soak loose gear."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps your phone safe near the falls."
+        },
+        {
+          "name": "Water Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Slippery rocks and shallow water underfoot."
+        },
+        {
+          "name": "Quick-Dry Towel",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "You will get wet and want to dry off fast."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A long trek in with nowhere to charge."
+        },
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Rough approach trails to the falls."
+        }
+      ]
+    },
+    {
+      "name": "Lalakhal",
+      "division": "Sylhet",
+      "latitude": 25.1165,
+      "longitude": 92.1842,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Splashes over the side of the boat."
+        },
+        {
+          "name": "Sunscreen (SPF 50)",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hours on open water with no shade."
+        },
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps bags dry out on the water."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Open water means long hours of direct sun."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Stay hydrated out on the water."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Day trips with no charging on the boat."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "optional",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spot birds and far riverbanks."
+        }
+      ]
+    },
+    {
+      "name": "Ratargul Swamp Forest",
+      "division": "Sylhet",
+      "latitude": 25.0121,
+      "longitude": 91.9229,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Splashes over the side of the boat."
+        },
+        {
+          "name": "Sunscreen (SPF 50)",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hours on open water with no shade."
+        },
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps bags dry out on the water."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Open water means long hours of direct sun."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Stay hydrated out on the water."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Day trips with no charging on the boat."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "optional",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spot birds and far riverbanks."
+        }
+      ]
+    },
+    {
+      "name": "Srimangal",
+      "division": "Sylhet",
+      "latitude": 24.3065,
+      "longitude": 91.7296,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Dense forest means mosquitoes and leeches."
+        },
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Muddy, root-crossed forest trails."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Birdwatching in the tea country and reserve."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Frequent short showers in the hills."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Long walks between the tea estates."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "optional",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Trails go dark early under the canopy."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "optional",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A full day out with little power."
+        }
+      ]
+    },
+    {
+      "name": "Lawachara National Park",
+      "division": "Sylhet",
+      "latitude": 24.3292,
+      "longitude": 91.7879,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Dense forest means mosquitoes and leeches."
+        },
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Muddy, root-crossed forest trails."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Birdwatching in the tea country and reserve."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Frequent short showers in the hills."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Long walks between the tea estates."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "optional",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Trails go dark early under the canopy."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "optional",
+          "trip_types": [
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A full day out with little power."
+        }
+      ]
+    },
+    {
+      "name": "Cox's Bazar",
+      "division": "Chattogram",
+      "latitude": 21.4522,
+      "longitude": 91.9639,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Reef-Safe Sunscreen",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Strong, direct coastal sun all day."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Protects your phone from sea spray and sand."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "There is little shade on an open beach."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Stay hydrated in the coastal heat."
+        },
+        {
+          "name": "Quick-Dry Towel",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Packs small and dries fast after a swim."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A full day out between charges."
+        },
+        {
+          "name": "Water Shoes",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Hot sand and the odd rocky patch underfoot."
+        }
+      ]
+    },
+    {
+      "name": "Saint Martin's Island",
+      "division": "Chattogram",
+      "latitude": 20.6113,
+      "longitude": 92.327,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Reef-Safe Sunscreen",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "diving"
+          ],
+          "why": "Protects the coral while you snorkel."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "beach",
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Island power is limited and often off at night."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "photography",
+            "diving"
+          ],
+          "why": "Sea spray on the boat and in the water."
+        },
+        {
+          "name": "Snorkel Set",
+          "category": "Water Sports",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "diving"
+          ],
+          "why": "Clear water and coral around the island."
+        },
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "diving"
+          ],
+          "why": "Keeps gear dry on the boat crossing."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Bottled water is scarce and pricey here."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "No shade on the open shore."
+        }
+      ]
+    },
+    {
+      "name": "Kaptai Lake",
+      "division": "Chattogram",
+      "latitude": 22.7595,
+      "longitude": 92.2761,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Splashes over the side of the boat."
+        },
+        {
+          "name": "Sunscreen (SPF 50)",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hours on open water with no shade."
+        },
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps bags dry out on the water."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Open water means long hours of direct sun."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Stay hydrated out on the water."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Day trips with no charging on the boat."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "optional",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spot birds and far riverbanks."
+        }
+      ]
+    },
+    {
+      "name": "Sajek Valley",
+      "division": "Chattogram",
+      "latitude": 23.3909,
+      "longitude": 92.2855,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Steep, uneven hill trails."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Few lights after dark in the hills."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Charging points are scarce on the trail."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hill weather turns wet without warning."
+        },
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Leeches and mosquitoes along the trails."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing",
+            "camping"
+          ],
+          "why": "Clinics are far from the hill tracts."
+        },
+        {
+          "name": "Water Purifier Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Stream water needs treating before drinking."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry a day's water, layers and snacks."
+        }
+      ]
+    },
+    {
+      "name": "Rangamati",
+      "division": "Chattogram",
+      "latitude": 22.6432,
+      "longitude": 92.1919,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Steep, uneven hill trails."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Few lights after dark in the hills."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Charging points are scarce on the trail."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hill weather turns wet without warning."
+        },
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Leeches and mosquitoes along the trails."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing",
+            "camping"
+          ],
+          "why": "Clinics are far from the hill tracts."
+        },
+        {
+          "name": "Water Purifier Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Stream water needs treating before drinking."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry a day's water, layers and snacks."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Splashes over the side of the boat."
+        },
+        {
+          "name": "Sunscreen (SPF 50)",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hours on open water with no shade."
+        },
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps bags dry out on the water."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Open water means long hours of direct sun."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Stay hydrated out on the water."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "optional",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spot birds and far riverbanks."
+        }
+      ]
+    },
+    {
+      "name": "Bandarban",
+      "division": "Chattogram",
+      "latitude": 22.1953,
+      "longitude": 92.2195,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Steep, uneven hill trails."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Few lights after dark in the hills."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Charging points are scarce on the trail."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hill weather turns wet without warning."
+        },
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Leeches and mosquitoes along the trails."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing",
+            "camping"
+          ],
+          "why": "Clinics are far from the hill tracts."
+        },
+        {
+          "name": "Water Purifier Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Stream water needs treating before drinking."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry a day's water, layers and snacks."
+        }
+      ]
+    },
+    {
+      "name": "Nilgiri",
+      "division": "Chattogram",
+      "latitude": 21.8203,
+      "longitude": 92.3796,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Steep, uneven hill trails."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Few lights after dark in the hills."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Charging points are scarce on the trail."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hill weather turns wet without warning."
+        },
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Leeches and mosquitoes along the trails."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing",
+            "camping"
+          ],
+          "why": "Clinics are far from the hill tracts."
+        },
+        {
+          "name": "Water Purifier Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Stream water needs treating before drinking."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry a day's water, layers and snacks."
+        }
+      ]
+    },
+    {
+      "name": "Nafakhum Waterfall",
+      "division": "Chattogram",
+      "latitude": 21.7202,
+      "longitude": 92.5336,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Spray and river crossings soak loose gear."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps your phone safe near the falls."
+        },
+        {
+          "name": "Water Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "Slippery rocks and shallow water underfoot."
+        },
+        {
+          "name": "Quick-Dry Towel",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [],
+          "why": "You will get wet and want to dry off fast."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Charging points are scarce on the trail."
+        },
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking",
+            "hiking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Steep, uneven hill trails."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Few lights after dark in the hills."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hill weather turns wet without warning."
+        },
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Leeches and mosquitoes along the trails."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing",
+            "camping"
+          ],
+          "why": "Clinics are far from the hill tracts."
+        },
+        {
+          "name": "Water Purifier Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Stream water needs treating before drinking."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry a day's water, layers and snacks."
+        }
+      ]
+    },
+    {
+      "name": "Khagrachhari",
+      "division": "Chattogram",
+      "latitude": 23.1079,
+      "longitude": 91.9701,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Trekking Shoes",
+          "category": "Comfort",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing"
+          ],
+          "why": "Steep, uneven hill trails."
+        },
+        {
+          "name": "Headlamp",
+          "category": "Lighting",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Few lights after dark in the hills."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Charging points are scarce on the trail."
+        },
+        {
+          "name": "Rain Poncho",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Hill weather turns wet without warning."
+        },
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Leeches and mosquitoes along the trails."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "climbing",
+            "camping"
+          ],
+          "why": "Clinics are far from the hill tracts."
+        },
+        {
+          "name": "Water Purifier Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [
+            "camping"
+          ],
+          "why": "Stream water needs treating before drinking."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "hiking",
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry a day's water, layers and snacks."
+        }
+      ]
+    },
+    {
+      "name": "Sundarbans",
+      "division": "Khulna",
+      "latitude": 22.024,
+      "longitude": 89.3136,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Insect Repellent",
+          "category": "Health",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Mosquitoes are relentless in the mangroves."
+        },
+        {
+          "name": "Binoculars",
+          "category": "Optics",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Wildlife is spotted at a distance from the boat."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "essential",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "No charging during days on the boat."
+        },
+        {
+          "name": "Dry Bag",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Keeps gear dry on multi-day boat safaris."
+        },
+        {
+          "name": "Sunscreen (SPF 50)",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "No shade on the open delta water."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Long exposed hours on deck."
+        },
+        {
+          "name": "First-Aid Kit",
+          "category": "Health",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "You are far from any clinic in the delta."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "backpacking"
+          ],
+          "activities": [],
+          "why": "Carry your own water on the safari."
+        }
+      ]
+    },
+    {
+      "name": "Kuakata",
+      "division": "Barishal",
+      "latitude": 21.8212,
+      "longitude": 90.1197,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Reef-Safe Sunscreen",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Strong, direct coastal sun all day."
+        },
+        {
+          "name": "Waterproof Phone Pouch",
+          "category": "Protection",
+          "priority": "essential",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "Protects your phone from sea spray and sand."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "There is little shade on an open beach."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Stay hydrated in the coastal heat."
+        },
+        {
+          "name": "Quick-Dry Towel",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Packs small and dries fast after a swim."
+        },
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [
+            "photography"
+          ],
+          "why": "A full day out between charges."
+        },
+        {
+          "name": "Water Shoes",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "beach"
+          ],
+          "activities": [],
+          "why": "Hot sand and the odd rocky patch underfoot."
+        }
+      ]
+    },
+    {
+      "name": "Dhaka",
+      "division": "Dhaka",
+      "latitude": 23.7104,
+      "longitude": 90.4074,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "photography",
+            "remote_work"
+          ],
+          "why": "Long days sightseeing between charges."
+        },
+        {
+          "name": "Universal Travel Adapter",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Mixed socket types at older sites and hotels."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Stay hydrated walking the sites."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [],
+          "why": "Carry water, a layer and a camera comfortably."
+        },
+        {
+          "name": "Portable Fan",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Humid, crowded streets and courtyards."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Open, shadeless ruins and plazas."
+        },
+        {
+          "name": "Power Strip",
+          "category": "Power",
+          "priority": "optional",
+          "trip_types": [
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Charge several devices from one hotel socket."
+        }
+      ]
+    },
+    {
+      "name": "Sonargaon",
+      "division": "Dhaka",
+      "latitude": 23.65,
+      "longitude": 90.6167,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "photography",
+            "remote_work"
+          ],
+          "why": "Long days sightseeing between charges."
+        },
+        {
+          "name": "Universal Travel Adapter",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Mixed socket types at older sites and hotels."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Stay hydrated walking the sites."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [],
+          "why": "Carry water, a layer and a camera comfortably."
+        },
+        {
+          "name": "Portable Fan",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Humid, crowded streets and courtyards."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Open, shadeless ruins and plazas."
+        },
+        {
+          "name": "Power Strip",
+          "category": "Power",
+          "priority": "optional",
+          "trip_types": [
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Charge several devices from one hotel socket."
+        }
+      ]
+    },
+    {
+      "name": "Paharpur",
+      "division": "Rajshahi",
+      "latitude": 25.0269,
+      "longitude": 88.9759,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "photography",
+            "remote_work"
+          ],
+          "why": "Long days sightseeing between charges."
+        },
+        {
+          "name": "Universal Travel Adapter",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Mixed socket types at older sites and hotels."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Stay hydrated walking the sites."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [],
+          "why": "Carry water, a layer and a camera comfortably."
+        },
+        {
+          "name": "Portable Fan",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Humid, crowded streets and courtyards."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Open, shadeless ruins and plazas."
+        },
+        {
+          "name": "Power Strip",
+          "category": "Power",
+          "priority": "optional",
+          "trip_types": [
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Charge several devices from one hotel socket."
+        }
+      ]
+    },
+    {
+      "name": "Rajshahi",
+      "division": "Rajshahi",
+      "latitude": 24.374,
+      "longitude": 88.6011,
+      "country_code": "BD",
+      "country_name": "Bangladesh",
+      "products": [
+        {
+          "name": "Power Bank",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "photography",
+            "remote_work"
+          ],
+          "why": "Long days sightseeing between charges."
+        },
+        {
+          "name": "Universal Travel Adapter",
+          "category": "Power",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Mixed socket types at older sites and hotels."
+        },
+        {
+          "name": "Reusable Water Bottle",
+          "category": "Hydration",
+          "priority": "recommended",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Stay hydrated walking the sites."
+        },
+        {
+          "name": "Daypack",
+          "category": "Comfort",
+          "priority": "recommended",
+          "trip_types": [
+            "city",
+            "business"
+          ],
+          "activities": [],
+          "why": "Carry water, a layer and a camera comfortably."
+        },
+        {
+          "name": "Portable Fan",
+          "category": "Comfort",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Humid, crowded streets and courtyards."
+        },
+        {
+          "name": "Sun Hat",
+          "category": "Protection",
+          "priority": "optional",
+          "trip_types": [
+            "city"
+          ],
+          "activities": [],
+          "why": "Open, shadeless ruins and plazas."
+        },
+        {
+          "name": "Power Strip",
+          "category": "Power",
+          "priority": "optional",
+          "trip_types": [
+            "business"
+          ],
+          "activities": [
+            "remote_work"
+          ],
+          "why": "Charge several devices from one hotel socket."
+        }
+      ]
+    }
+  ]
+}

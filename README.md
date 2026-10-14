@@ -88,6 +88,21 @@ priority and a reason. Admins also manage coordinator accounts there.
 There is no public sign-up: admins create coordinator accounts from the
 **Accounts** tab.
 
+### Seeding the catalog
+
+To start travellers off with something rather than an empty catalog, a
+dataset of generic travel products organized by destination ships in
+`app/data/catalog_seed.json`. Load it with:
+
+```bash
+python -m scripts.seed_catalog          # --dry-run to preview
+```
+
+It creates the places, gadgets and placements behind those products, and
+is safe to re-run: existing places (by name and coordinates), gadgets (by
+name) and placements (by gadget-and-place) are left untouched. Coordinators
+refine from there — adding photos, brands and more destinations.
+
 ### Places the map services do not know
 
 Spots like **Sada Pathor**, **Bichanakandi** and **Nilgiri** are in no
