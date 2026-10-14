@@ -7,9 +7,13 @@ you plan to do there — and Trek_XP combines destination facts (climate, plug
 type, voltage) with gadget knowledge to return a prioritised packing list, with
 the reasoning and the sources behind each item.
 
-> **Status: v1 scaffold.** The request/response shapes and the source
-> abstraction are in place. `POST /recommend` currently returns `501` — the
-> destination and gadget services are the next build step.
+> **Status: working end to end, not yet deployed.** Travellers get real
+> model-generated lists; coordinators have a full catalog area with sign-in,
+> images and placements. The community catalog is modelled and ready but not
+> yet wired into `/recommend`.
+
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the system fits
+together, request flows, the data model, and the extension seams.
 
 ## Setup
 
@@ -120,9 +124,16 @@ Bogra all still match.
 
 ### Images in production
 
-Images are stored on local disk (`media/`). Free hosting tiers erase disks
-on each deploy, so production needs an object store (S3, Cloudflare R2,
-Cloudinary) implementing `ImageStorage` in `app/services/media/storage.py`.
+Local disk (`media/`) in development; **Cloudflare R2** in production, because
+free hosting tiers erase disks on each deploy. Set the five `R2_*` variables in
+`.env.example` and R2 is used automatically — setting only some of them is
+refused at startup, since that would store images where the app cannot serve
+them.
+
+In the Cloudflare dashboard you need to: create a bucket, create an *Object
+Read & Write* API token scoped to it, and turn on public access (the `r2.dev`
+subdomain to start with, or a custom domain). Uploading does **not** make a
+bucket readable.
 
 ### Database tests
 
@@ -136,11 +147,15 @@ matches `DATABASE_URL`.
 | Step | Scope |
 |------|-------|
 | 1 | ✅ Models, `GadgetSource` ABC, route skeleton |
-| 2 | Destination services (Open-Meteo climate, REST Countries plug/voltage) in parallel |
-| 3 | `LLMGadgetSource` with structured JSON output |
-| 4 | Guardrails pass over `restrictions.json` |
-| 5 | Tests + demoable v1 |
-| 6+ | Redis cache → vector search → community catalog → MCP → streaming |
+| 2 | ✅ Destination services — Open-Meteo climate, OpenStreetMap landmarks, static plug data |
+| 3 | ✅ `LLMGadgetSource` with structured JSON output and bounded timeouts |
+| 4 | ✅ Coordinator area — auth, catalog, placements, image upload |
+| 5 | ✅ Test suite (235 tests, offline by default) |
+| 6 | ✅ Cloudflare R2 image storage |
+| 7 | Deploy — Procfile, pinned Python, CORS lockdown, `alembic upgrade head` |
+| 8 | Wire `CommunityCatalogSource` into `/recommend` so verified entries reach travellers |
+| 9 | Guardrails pass over a `restrictions.json` data file |
+| 10+ | Response cache → vector search → consent-based Facebook contributor channel |
 
 ## Endpoints
 
@@ -148,6 +163,7 @@ matches `DATABASE_URL`.
 |---|---|---|
 | `POST` | `/recommend` | Gadget recommendations for a trip |
 | `GET` | `/destinations` | Destination search for the picker |
+| `GET` | `/destinations/featured` | Curated spots, grouped by division |
 | `GET` | `/health` | Health check |
 | `GET` | `/coordinator` | Coordinator page |
 | `POST` | `/api/auth/login`, `/api/auth/logout` · `GET /api/auth/me` | Sign in / out, current user |
@@ -157,4 +173,6 @@ matches `DATABASE_URL`.
 | `POST` | `/api/coordinator/gadgets/{id}/placements` | Recommend a gadget for a destination |
 | `PATCH`, `DELETE` | `/api/coordinator/placements/{id}` | Edit / remove a placement |
 | `GET` | `/api/coordinator/places`, `/api/coordinator/places/lookup` | Saved places; full geocoder lookup |
+| `POST` | `/api/coordinator/places/manual` | Save a place no gazetteer knows, by district |
+| `GET` | `/api/coordinator/options`, `/api/coordinator/admin-areas` | Form choices; divisions and districts |
 | `GET`, `POST` · `PATCH` | `/api/admin/users` · `/api/admin/users/{id}` | Manage accounts (admin only) |
