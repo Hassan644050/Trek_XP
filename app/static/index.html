@@ -269,8 +269,10 @@
 
   .card.in-bag { border-color: var(--green); }
 
-  .card-img { aspect-ratio: 16 / 10; background: var(--surface); overflow: hidden; }
-  .card-img img { display: block; height: 100%; object-fit: cover; width: 100%; }
+  .card-img { aspect-ratio: 16 / 10; background: var(--paper); overflow: hidden; }
+  /* contain, not cover: show the whole product centred rather than cropping
+     its sides to fill the box. The padding keeps it off the edges. */
+  .card-img img { display: block; height: 100%; width: 100%; object-fit: contain; object-position: center; padding: 10px; }
 
   .card-tagline { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 0; }
 
