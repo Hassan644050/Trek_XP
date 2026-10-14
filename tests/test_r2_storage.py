@@ -1,3 +1,5 @@
+import io
+
 import pytest
 from botocore.exceptions import ClientError, EndpointConnectionError
 
@@ -26,10 +28,12 @@ SETTINGS = R2Settings(
 class FakeS3:
     """Records calls instead of reaching Cloudflare."""
 
-    def __init__(self, error=None):
+    def __init__(self, error=None, body=None):
         self.error = error
+        self.body = body
         self.puts = []
         self.deletes = []
+        self.gets = []
 
     def put_object(self, **kwargs):
         if self.error is not None:
@@ -40,6 +44,12 @@ class FakeS3:
         if self.error is not None:
             raise self.error
         self.deletes.append(kwargs)
+
+    def get_object(self, **kwargs):
+        if self.error is not None:
+            raise self.error
+        self.gets.append(kwargs)
+        return {"Body": io.BytesIO(self.body)}
 
 
 def storage(client=None, settings=SETTINGS):
@@ -208,3 +218,25 @@ def test_factory_falls_back_to_local_disk(no_dotenv):
         assert isinstance(get_image_storage(), LocalImageStorage)
     finally:
         get_image_storage.cache_clear()
+
+
+def test_read_returns_the_stored_bytes():
+    client = FakeS3(body=b"webp-bytes")
+    key = new_image_key()
+
+    assert storage(client).read(key) == b"webp-bytes"
+    assert client.gets == [{"Bucket": "trekxp-images", "Key": key}]
+
+
+def test_a_missing_object_reads_as_none_not_an_error():
+    """The backfill asks whether a rendition exists; absence is an answer."""
+    missing = ClientError({"Error": {"Code": "NoSuchKey", "Message": "nope"}}, "GetObject")
+
+    assert storage(FakeS3(error=missing)).read(new_image_key()) is None
+
+
+def test_a_real_read_failure_is_still_an_error():
+    denied = ClientError({"Error": {"Code": "AccessDenied", "Message": "no"}}, "GetObject")
+
+    with pytest.raises(ImageStorageException):
+        storage(FakeS3(error=denied)).read(new_image_key())

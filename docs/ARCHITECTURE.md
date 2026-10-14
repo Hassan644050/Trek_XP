@@ -258,6 +258,12 @@ A whole set is written or none of it is: a failure part way through removes
 what it already wrote, because a half-written set would hand the listing a
 thumbnail that 404s.
 
+**Images stored before renditions existed** have only the plain key, so the
+listing asks for a `_thumb` copy that was never written and shows a broken
+image. `python -m scripts.backfill_renditions` rebuilds the missing ones from
+the stored full copy — the use that keeping a full copy was for. It never
+rewrites the full copy itself, and it is safe to run repeatedly.
+
 ---
 
 ## 5. Layer map
@@ -436,6 +442,7 @@ unreadable-JSON error.
 ```python
 class ImageStorage(ABC):
     def save(self, key: str, data: bytes) -> None: ...
+    def read(self, key: str) -> bytes | None: ...
     def delete(self, key: str) -> None: ...
     def url(self, key: str) -> str: ...
 ```

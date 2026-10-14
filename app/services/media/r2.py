@@ -92,6 +92,28 @@ class R2ImageStorage(ImageStorage):
                 "The image could not be stored just now."
             ) from exc
 
+    def read(self, key: str) -> bytes | None:
+        self._checked(key)
+
+        try:
+            return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+        except ClientError as exc:
+            # A missing object is an answer, not a failure.
+            if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+                return None
+
+            logger.warning("R2 get_object failed for %s: %s", key, exc)
+
+            raise ImageStorageException(
+                "The image could not be read just now."
+            ) from exc
+        except BotoCoreError as exc:
+            logger.warning("R2 get_object failed for %s: %s", key, exc)
+
+            raise ImageStorageException(
+                "The image could not be read just now."
+            ) from exc
+
     def delete(self, key: str) -> None:
         self._checked(key)
 

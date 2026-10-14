@@ -127,6 +127,17 @@ def test_storage_round_trip(tmp_path):
     storage.delete(key)  # deleting twice is harmless
 
 
+def test_reading_back_what_was_saved(tmp_path):
+    storage = LocalImageStorage(tmp_path, "/media")
+    key = new_image_key()
+
+    assert storage.read(key) is None  # nothing stored yet
+
+    storage.save(key, b"webp-bytes")
+
+    assert storage.read(key) == b"webp-bytes"
+
+
 @pytest.mark.parametrize(
     "key", ["../../etc/passwd", "gadgets/../secret.webp", "gadgets/abc.webp", "/abs/path.webp"]
 )

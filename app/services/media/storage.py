@@ -56,6 +56,14 @@ class ImageStorage(ABC):
     def save(self, key: str, data: bytes) -> None: ...
 
     @abstractmethod
+    def read(self, key: str) -> bytes | None:
+        """The stored bytes, or None if the key holds nothing.
+
+        Only the full rendition is ever read back, and only to derive the
+        smaller ones from it -- which is what keeping a full copy is for.
+        """
+
+    @abstractmethod
     def delete(self, key: str) -> None: ...
 
     @abstractmethod
@@ -80,6 +88,11 @@ class LocalImageStorage(ImageStorage):
         tmp = path.with_suffix(".tmp")
         tmp.write_bytes(data)
         tmp.replace(path)
+
+    def read(self, key: str) -> bytes | None:
+        path = self._path(key)
+
+        return path.read_bytes() if path.exists() else None
 
     def delete(self, key: str) -> None:
         self._path(key).unlink(missing_ok=True)
