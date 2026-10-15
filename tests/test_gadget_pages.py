@@ -79,3 +79,24 @@ def test_not_found_is_404_and_noindex():
 
     assert response.status_code == 404
     assert 'name="robots" content="noindex"' in response.body.decode()
+
+
+def other(name, slug, category="Protection"):
+    return SimpleNamespace(
+        name=name, slug=slug, category=category, brand=None, image_key=None)
+
+
+def test_detail_offers_same_category_alternatives():
+    similar = [other("Rain Poncho", "rain-poncho"), other("Sun Hat", "sun-hat")]
+    html = _render_detail(REQUEST, gadget(), similar)
+
+    assert "Other Protection options" in html
+    assert 'href="/gadget/rain-poncho"' in html
+    assert 'href="/gadget/sun-hat"' in html
+    # Destinations remain, now as chips linking to the personalised home page.
+    assert 'href="/?to=coxs-bazar"' in html
+
+
+def test_detail_without_alternatives_omits_the_options_section():
+    html = _render_detail(REQUEST, gadget(), [])
+    assert "options</h2>" not in html

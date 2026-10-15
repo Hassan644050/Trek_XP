@@ -112,6 +112,8 @@ _STYLE = """
   .field .label { font-size: 13px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 10px; }
   .tags { display: flex; gap: 8px; flex-wrap: wrap; }
   .tag { padding: 8px 14px; font-size: 14px; font-weight: 800; background: var(--paper); border: 1.5px solid var(--line); }
+  a.tag { color: var(--ink); text-decoration: none; }
+  a.tag:hover { border-color: var(--green); color: var(--green); text-decoration: none; }
   .cta { margin-top: auto; align-self: flex-start; padding: 16px 28px; font: 900 16px var(--sans);
     cursor: pointer; border: 2px solid var(--green); background: var(--green); color: #fff; }
   .cta:hover { text-decoration: none; }
@@ -224,7 +226,23 @@ def _trip_types(gadget: Gadget) -> list[str]:
     return values
 
 
-def _render_detail(request: Request, gadget: Gadget) -> str:
+def _option_card(gadget: Gadget) -> str:
+    image = _image_url(gadget.image_key)
+    maker = gadget.brand or gadget.category or ""
+    photo = (
+        f'<div class="ph"><img src="{_e(image)}" alt="{_e(gadget.name)}" loading="lazy" /></div>'
+        if image else '<div class="ph"><span>No image</span></div>'
+    )
+    return (
+        f'<a class="idx-card" href="/gadget/{_e(gadget.slug)}">{photo}'
+        f'<div class="n">{_e(gadget.name)}</div>'
+        + (f'<div class="c">{_e(maker)}</div>' if maker else "")
+        + "</a>"
+    )
+
+
+def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | None = None) -> str:
+    similar = similar or []
     canonical = _abs(request, f"/gadget/{gadget.slug}")
     image = _image_url(gadget.image_key)
     image_abs = _abs(request, image) if image else None
@@ -244,33 +262,40 @@ def _render_detail(request: Request, gadget: Gadget) -> str:
         else f'<div class="photo empty"><span class="badge">{badge}</span>No image</div>'
     )
 
-    tags = "".join(
+    trip_tags = "".join(
         f'<span class="tag">{_e(v.replace("_", " ").title())}</span>'
         for v in _trip_types(gadget)[:8]
     )
     best_for = (
         f'<div class="field"><span class="label">Best for</span>'
-        f'<div class="tags">{tags}</div></div>'
-        if tags else ""
+        f'<div class="tags">{trip_tags}</div></div>'
+        if trip_tags else ""
     )
 
+    # Destinations stay, as compact chips in the hero, linking to the
+    # personalised home page -- the main middle section is for alternatives.
     dests = _destinations(gadget)
-    if dests:
-        cards = "".join(
-            f'<a class="dest-card" href="/?to={_e(url_slug(name))}">'
-            f'<span class="n">{_e(name)}</span>'
-            + (f'<span class="d">{_e(div)}</span>' if div else "")
-            + "</a>"
-            for name, div in dests
-        )
-        dest_section = f"""
+    dest_chips = "".join(
+        f'<a class="tag" href="/?to={_e(url_slug(name))}">{_e(name)}</a>'
+        for name, _div in dests[:8]
+    )
+    recommended_for = (
+        f'<div class="field"><span class="label">Recommended for</span>'
+        f'<div class="tags">{dest_chips}</div></div>'
+        if dest_chips else ""
+    )
+
+    if similar:
+        cat = _e(gadget.category) if gadget.category else "gear"
+        cards = "".join(_option_card(g) for g in similar)
+        options_section = f"""
   <section class="panel">
-    <h2>Recommended for these destinations</h2>
-    <span class="sub">Tap a place to build a packing list tailored to it.</span>
-    <div class="dest-grid">{cards}</div>
+    <h2>Other {cat} options</h2>
+    <span class="sub">Similar gadgets the community recommends — pick the one that suits your trip.</span>
+    <div class="idx-grid">{cards}</div>
   </section>"""
     else:
-        dest_section = ""
+        options_section = ""
 
     body = f"""
   <nav class="crumb">
@@ -290,9 +315,10 @@ def _render_detail(request: Request, gadget: Gadget) -> str:
         <p>{_e(description)}</p>
       </div>
       {best_for}
+      {recommended_for}
       <a class="cta" href="/">Build your packing list →</a>
     </div>
-  </section>{dest_section}
+  </section>{options_section}
   <section class="panel">
     <h2>Traveler experiences</h2>
     <p class="empty">No experiences yet. Travellers who used this on a trip can share how it held
@@ -343,30 +369,55 @@ def _render_detail(request: Request, gadget: Gadget) -> str:
 
 @router.get("/gadget/{slug}", response_class=HTMLResponse, include_in_schema=False)
 async def gadget_detail(slug: str, request: Request) -> HTMLResponse:
-    gadget = await _load_by_slug(slug)
+    gadget, similar = await _load_detail(slug)
 
     if gadget is None:
         return _not_found(request)
 
-    return HTMLResponse(_render_detail(request, gadget), headers={"Cache-Control": CACHE})
+    return HTMLResponse(
+        _render_detail(request, gadget, similar), headers={"Cache-Control": CACHE}
+    )
 
 
-async def _load_by_slug(slug: str) -> Gadget | None:
+async def _load_detail(slug: str) -> tuple[Gadget | None, list[Gadget]]:
+    """The gadget, plus other active gadgets in the same category to offer
+    as alternatives. Best effort: a database problem yields nothing."""
     try:
         sessionmaker = get_sessionmaker()
     except DatabaseNotConfiguredException:
-        return None
+        return None, []
 
     try:
         async with sessionmaker() as db:
-            return await db.scalar(
+            gadget = await db.scalar(
                 select(Gadget)
                 .where(Gadget.slug == slug, Gadget.is_active.is_(True))
                 .options(selectinload(Gadget.placements).joinedload(Placement.place))
             )
+            if gadget is None:
+                return None, []
+
+            similar: list[Gadget] = []
+            if gadget.category:
+                similar = list(
+                    (
+                        await db.scalars(
+                            select(Gadget)
+                            .where(
+                                Gadget.category == gadget.category,
+                                Gadget.id != gadget.id,
+                                Gadget.is_active.is_(True),
+                                Gadget.slug.is_not(None),
+                            )
+                            .order_by(Gadget.name)
+                            .limit(6)
+                        )
+                    ).all()
+                )
+            return gadget, similar
     except SQLAlchemyError:
         logger.warning("Gadget detail lookup failed for %r", slug, exc_info=True)
-        return None
+        return None, []
 
 
 # ---------- index page ----------
