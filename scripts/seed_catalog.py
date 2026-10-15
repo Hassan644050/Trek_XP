@@ -24,7 +24,7 @@ import sys
 from sqlalchemy import func, select
 
 from app.db.engine import get_engine, get_sessionmaker
-from app.db.models import Gadget, Place, Placement, Role, User
+from app.db.models import Gadget, GadgetVariant, Place, Placement, Role, User
 from app.models.recommendation import Priority
 from app.services.slug import url_slug
 from app.services.destination.countries import (
@@ -150,6 +150,34 @@ async def main() -> int:
                 ))
                 new_placements += 1
 
+        # 3. Variants (buying options) per gadget, matched by brand + quality.
+        new_variants = 0
+        existing_variants = {
+            tuple(row)
+            for row in (await db.execute(
+                select(GadgetVariant.gadget_id, GadgetVariant.brand, GadgetVariant.quality)
+            )).all()
+        }
+        for name, variants in data.get("variants", {}).items():
+            if name.startswith("_"):
+                continue
+            gid = gadgets.get(name.lower())
+            if gid is None:
+                continue
+            gid = gid if isinstance(gid, int) else gid.id
+            for v in variants:
+                key = (gid, v["brand"], v["quality"])
+                if key in existing_variants:
+                    continue
+                existing_variants.add(key)
+                db.add(GadgetVariant(
+                    gadget_id=gid, brand=v["brand"], quality=v["quality"],
+                    price=v["price"], color=v.get("color"), vendor=v.get("vendor"),
+                    url=v.get("url"), currency=v.get("currency", "BDT"),
+                    created_by_id=author,
+                ))
+                new_variants += 1
+
         if dry_run:
             await db.rollback()
             print("[dry run] nothing written.")
@@ -161,7 +189,8 @@ async def main() -> int:
     verb = "would add" if dry_run else "added"
     print(
         f"{verb}: {new_places} place(s), {new_gadgets} gadget(s), "
-        f"{new_placements} placement(s); {skipped} placement(s) already present, "
+        f"{new_placements} placement(s), {new_variants} variant(s); "
+        f"{skipped} placement(s) already present, "
         f"across {len(data['destinations'])} destination(s)."
     )
     return 0

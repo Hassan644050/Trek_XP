@@ -2195,5 +2195,146 @@
         }
       ]
     }
-  ]
+  ],
+  "variants": {
+    "_about": "Buying options per gadget (brand, quality tier, price in BDT, colour, vendor). Loaded by scripts/seed_catalog.py; matched by gadget name + brand + quality.",
+    "Power Bank": [
+      {
+        "brand": "Generic 10,000mAh",
+        "quality": "budget",
+        "price": 1200,
+        "color": "Black",
+        "vendor": "Local market"
+      },
+      {
+        "brand": "Anker PowerCore",
+        "quality": "standard",
+        "price": 2900,
+        "color": "Black",
+        "vendor": "Daraz"
+      },
+      {
+        "brand": "Anker Prime 20K",
+        "quality": "premium",
+        "price": 6500,
+        "color": "Graphite",
+        "vendor": "Pickaboo"
+      }
+    ],
+    "Dry Bag": [
+      {
+        "brand": "Generic 20L",
+        "quality": "budget",
+        "price": 650,
+        "color": "Yellow",
+        "vendor": "Local market"
+      },
+      {
+        "brand": "Sea to Summit Big River",
+        "quality": "standard",
+        "price": 1800,
+        "color": "Blue",
+        "vendor": "Daraz"
+      },
+      {
+        "brand": "NRS Heavy-Duty",
+        "quality": "premium",
+        "price": 3600,
+        "color": "Green",
+        "vendor": "Pickaboo"
+      }
+    ],
+    "Headlamp": [
+      {
+        "brand": "Generic LED",
+        "quality": "budget",
+        "price": 450,
+        "color": "Black",
+        "vendor": "Local market"
+      },
+      {
+        "brand": "Energizer Vision",
+        "quality": "standard",
+        "price": 1300,
+        "color": "Black/Green",
+        "vendor": "Daraz"
+      },
+      {
+        "brand": "Petzl Actik Core",
+        "quality": "premium",
+        "price": 4200,
+        "color": "Black",
+        "vendor": "Pickaboo"
+      }
+    ],
+    "Waterproof Phone Pouch": [
+      {
+        "brand": "Generic IPX8",
+        "quality": "budget",
+        "price": 250,
+        "color": "Clear",
+        "vendor": "Local market"
+      },
+      {
+        "brand": "JOTO Universal",
+        "quality": "standard",
+        "price": 750,
+        "color": "Black",
+        "vendor": "Daraz"
+      },
+      {
+        "brand": "Mpow Pro",
+        "quality": "premium",
+        "price": 1400,
+        "color": "Blue",
+        "vendor": "Daraz"
+      }
+    ],
+    "Reusable Water Bottle": [
+      {
+        "brand": "Generic BPA-free",
+        "quality": "budget",
+        "price": 350,
+        "color": "Assorted",
+        "vendor": "Local market"
+      },
+      {
+        "brand": "Milton Thermosteel",
+        "quality": "standard",
+        "price": 1100,
+        "color": "Steel",
+        "vendor": "Daraz"
+      },
+      {
+        "brand": "Hydro Flask 621ml",
+        "quality": "premium",
+        "price": 3800,
+        "color": "Pacific",
+        "vendor": "Pickaboo"
+      }
+    ],
+    "Trekking Shoes": [
+      {
+        "brand": "Bata Hiking",
+        "quality": "budget",
+        "price": 2200,
+        "color": "Brown",
+        "vendor": "Bata"
+      },
+      {
+        "brand": "Quechua MH100",
+        "quality": "standard",
+        "price": 4500,
+        "color": "Grey",
+        "vendor": "Decathlon"
+      },
+      {
+        "brand": "Salomon X Ultra",
+        "quality": "premium",
+        "price": 12500,
+        "color": "Black/Red",
+        "vendor": "Pickaboo"
+      }
+    ]
+  }
 }

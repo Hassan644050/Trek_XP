@@ -11,7 +11,15 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import require_coordinator
 from app.config import get_env_meta_info
 from app.db.engine import get_db
-from app.db.models import ActivityOption, Gadget, Placement, Place, TripTypeOption, User
+from app.db.models import (
+    ActivityOption,
+    Gadget,
+    GadgetVariant,
+    Placement,
+    Place,
+    TripTypeOption,
+    User,
+)
 from app.exceptions.exceptions import (
     InvalidInputException,
     ResourceConflictException,
@@ -19,6 +27,8 @@ from app.exceptions.exceptions import (
 )
 from app.models.catalog import (
     Option,
+    VariantIn,
+    VariantOut,
     AdminAreasOut,
     CatalogOptions,
     DivisionOut,
@@ -152,6 +162,7 @@ def _gadget_detail(gadget: Gadget) -> GadgetDetail:
     return GadgetDetail(
         **_gadget_out(gadget).model_dump(),
         placements=[_placement_out(p) for p in gadget.placements],
+        variants=[VariantOut.model_validate(v) for v in gadget.variants],
     )
 
 
@@ -162,7 +173,10 @@ async def _load_gadget(db: AsyncSession, gadget_id: int) -> Gadget:
     gadget = await db.scalar(
         select(Gadget)
         .where(Gadget.id == gadget_id)
-        .options(selectinload(Gadget.placements).joinedload(Placement.place))
+        .options(
+            selectinload(Gadget.placements).joinedload(Placement.place),
+            selectinload(Gadget.variants),
+        )
         .execution_options(populate_existing=True)
     )
 
@@ -578,6 +592,47 @@ async def delete_placement(
     gadget_id = placement.gadget_id
 
     await db.delete(placement)
+    await db.commit()
+
+    return _gadget_detail(await _load_gadget(db, gadget_id))
+
+
+# ---------- variants (buying options) ----------
+
+
+@router.post("/gadgets/{gadget_id}/variants", response_model=GadgetDetail, status_code=201)
+async def add_variant(
+    gadget_id: int,
+    payload: VariantIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_coordinator),
+) -> GadgetDetail:
+    await _load_gadget(db, gadget_id)
+
+    db.add(GadgetVariant(
+        gadget_id=gadget_id, brand=payload.brand, model_name=payload.model_name,
+        color=payload.color, quality=payload.quality, price=payload.price,
+        currency=payload.currency, vendor=payload.vendor, url=payload.url,
+        created_by_id=user.id,
+    ))
+    await db.commit()
+
+    return _gadget_detail(await _load_gadget(db, gadget_id))
+
+
+@router.delete("/variants/{variant_id}", response_model=GadgetDetail)
+async def delete_variant(
+    variant_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_coordinator),
+) -> GadgetDetail:
+    variant = await db.get(GadgetVariant, variant_id)
+
+    if variant is None:
+        raise ResourceNotFoundException("That variant no longer exists.")
+
+    gadget_id = variant.gadget_id
+    await db.delete(variant)
     await db.commit()
 
     return _gadget_detail(await _load_gadget(db, gadget_id))

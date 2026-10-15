@@ -436,6 +436,31 @@
         <div class="stack" id="placementForm" hidden></div>
         <div class="stack" id="placementList"></div>
       </div>
+
+      <div class="section" id="variantSection" hidden>
+        <div class="row">
+          <h3>Buying options</h3>
+          <button class="btn small" id="addVariant" style="margin-left:auto">+ Add variant</button>
+        </div>
+        <form class="stack" id="variantForm" hidden novalidate>
+          <div class="grid2">
+            <label>Brand <input type="text" id="vBrand" maxlength="80" required placeholder="e.g. Anker" /></label>
+            <label>Model <input type="text" id="vModel" maxlength="80" placeholder="optional" /></label>
+            <label>Colour <input type="text" id="vColor" maxlength="40" placeholder="e.g. Black" /></label>
+            <label>Quality
+              <select id="vQuality"><option value="budget">Budget</option><option value="standard" selected>Standard</option><option value="premium">Premium</option></select>
+            </label>
+            <label>Price (৳) <input type="number" id="vPrice" min="0" step="1" required placeholder="2900" /></label>
+            <label>Vendor <input type="text" id="vVendor" maxlength="80" placeholder="e.g. Daraz" /></label>
+          </div>
+          <label>Link <input type="url" id="vUrl" maxlength="300" placeholder="https://… (optional)" /></label>
+          <div class="row">
+            <button class="btn primary small" type="submit">Add option</button>
+            <button type="button" class="btn small" id="cancelVariant">Cancel</button>
+          </div>
+        </form>
+        <div class="stack" id="variantList"></div>
+      </div>
     </div>
   </div>
 </main>
@@ -762,10 +787,12 @@
     // Image and placements need a saved gadget to attach to.
     $("imageSection").hidden = !gadget;
     $("placementSection").hidden = !gadget;
+    $("variantSection").hidden = !gadget;
 
     if (gadget) {
       renderImage();
       renderPlacements();
+      renderVariants();
     } else {
       $("gName").focus();
     }
@@ -779,6 +806,7 @@
     $("editorTitle").textContent = gadget.name;
     renderImage();
     renderPlacements();
+    renderVariants();
     return loadGadgets();
   }
 
@@ -820,6 +848,7 @@
       $("gadgetForm").hidden = true;
       $("imageSection").hidden = true;
       $("placementSection").hidden = true;
+      $("variantSection").hidden = true;
       $("editorEmpty").hidden = false;
       await loadGadgets();
       toast("Gadget deleted.");
@@ -1247,6 +1276,55 @@
   });
 
   // ---------- start ----------
+
+  // ---------- variants (buying options) ----------
+
+  function renderVariants() {
+    const list = $("variantList");
+    const vs = current?.variants || [];
+    if (!vs.length) {
+      list.innerHTML = `<p class="muted" style="margin:0">No buying options yet. Add brands and prices travellers can compare.</p>`;
+      return;
+    }
+    list.innerHTML = vs.map((v) => {
+      const bits = [v.quality, v.color, v.vendor].filter(Boolean).map(esc).join(" · ");
+      return `
+      <div class="placement" data-id="${v.id}">
+        <div class="placement-head">
+          <span class="place">${esc(v.brand)}${v.model_name ? " " + esc(v.model_name) : ""}
+            <span class="muted" style="font-weight:500">${bits}</span></span>
+          <span class="place" style="margin-left:auto;font-weight:700">৳${Number(v.price).toLocaleString()}</span>
+          <span class="actions"><button class="btn small danger" data-act="del-variant">Remove</button></span>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  $("addVariant").addEventListener("click", () => { $("variantForm").hidden = false; $("vBrand").focus(); });
+  $("cancelVariant").addEventListener("click", () => { $("variantForm").reset(); $("variantForm").hidden = true; });
+
+  $("variantForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    run(e.submitter, async () => {
+      const g = await api("POST", `/api/coordinator/gadgets/${current.id}/variants`, {
+        brand: $("vBrand").value, model_name: $("vModel").value || null, color: $("vColor").value || null,
+        quality: $("vQuality").value, price: parseInt($("vPrice").value || "0", 10),
+        vendor: $("vVendor").value || null, url: $("vUrl").value || null,
+      });
+      $("variantForm").reset(); $("variantForm").hidden = true;
+      await refresh(g); toast("Buying option added.");
+    });
+  });
+
+  $("variantList").addEventListener("click", (e) => {
+    const btn = e.target.closest('button[data-act="del-variant"]');
+    if (!btn) return;
+    const id = btn.closest("[data-id]").dataset.id;
+    run(btn, async () => {
+      const g = await api("DELETE", `/api/coordinator/variants/${id}`);
+      await refresh(g); toast("Buying option removed.");
+    });
+  });
 
   // ---------- catalog settings (admin) ----------
 

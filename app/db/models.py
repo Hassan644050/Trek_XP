@@ -142,6 +142,11 @@ class Gadget(Base):
         cascade="all, delete-orphan",
         order_by="Placement.id",
     )
+    variants: Mapped[list["GadgetVariant"]] = relationship(
+        back_populates="gadget",
+        cascade="all, delete-orphan",
+        order_by="GadgetVariant.price",
+    )
 
 
 # Case-insensitive uniqueness: "Power bank" and "power bank" collide.
@@ -241,3 +246,34 @@ class ActivityOption(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class GadgetVariant(Base):
+    """A buyable variant of a gadget: a specific brand/model offering with
+    its own price, colour and quality tier, from our inventory or a vendor.
+
+    Shown on the gadget's public detail page so a traveller can compare the
+    options for the same item."""
+
+    __tablename__ = "gadget_variants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    gadget_id: Mapped[int] = mapped_column(
+        ForeignKey("gadgets.id", ondelete="CASCADE"), index=True
+    )
+    brand: Mapped[str] = mapped_column(String(80))
+    model_name: Mapped[str | None] = mapped_column(String(80))
+    color: Mapped[str | None] = mapped_column(String(40))
+    # One of budget / standard / premium -- the quality tier.
+    quality: Mapped[str] = mapped_column(String(20))
+    # Whole currency units (e.g. taka); fractional pricing is not needed here.
+    price: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="BDT", server_default="BDT")
+    vendor: Mapped[str | None] = mapped_column(String(80))
+    url: Mapped[str | None] = mapped_column(String(300))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    gadget: Mapped[Gadget] = relationship(back_populates="variants")

@@ -129,6 +129,20 @@ _STYLE = """
   .dest-card .d { font-size: 14px; color: var(--ink-soft); }
   .empty { margin: 0; font-size: 16px; color: var(--ink-soft); }
 
+  .var-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .var-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; text-align: left;
+    background: var(--paper); border: 2px solid var(--line-soft); }
+  a.var-card:hover { border-color: var(--green); text-decoration: none; }
+  .var-card .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .var-tier { font-size: 12px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 10px; }
+  .var-tier.budget { background: var(--line-soft); color: var(--ink); }
+  .var-tier.standard { background: var(--green); color: #fff; }
+  .var-tier.premium { background: var(--amber); color: oklch(0.26 0.05 155); }
+  .var-card .brand { font-size: 19px; font-weight: 900; color: var(--ink); }
+  .var-card .note { font-size: 14px; color: var(--ink-soft); }
+  .var-card .price { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; color: var(--ink); }
+  .var-card .vendor { font-size: 13px; font-weight: 800; color: var(--green); }
+
   .idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   .idx-card { display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--line-soft); }
   .idx-card:hover { border-color: var(--green); text-decoration: none; }
@@ -226,6 +240,57 @@ def _trip_types(gadget: Gadget) -> list[str]:
     return values
 
 
+_CURRENCY_SYMBOL = {"BDT": "৳", "USD": "$", "EUR": "€", "GBP": "£", "INR": "₹"}
+_QUALITY_ORDER = {"budget": 0, "standard": 1, "premium": 2}
+
+
+def _price(variant) -> str:
+    symbol = _CURRENCY_SYMBOL.get(variant.currency, variant.currency + " ")
+    return f"{symbol}{variant.price:,}"
+
+
+def _variant_card(variant) -> str:
+    quality = (variant.quality or "standard").lower()
+    tier_class = quality if quality in _QUALITY_ORDER else "standard"
+    note_bits = [b for b in (variant.color, variant.vendor and f"from {variant.vendor}") if b]
+    note = " · ".join(note_bits)
+    model = f" {variant.model_name}" if variant.model_name else ""
+
+    inner = (
+        f'<div class="top"><span class="var-tier {tier_class}">{_e(quality.title())}</span>'
+        + (f'<span class="vendor">View ↗</span>' if variant.url else "")
+        + "</div>"
+        f'<div style="display:flex;flex-direction:column;gap:4px">'
+        f'<span class="brand">{_e(variant.brand)}{_e(model)}</span>'
+        + (f'<span class="note">{_e(note)}</span>' if note else "")
+        + "</div>"
+        f'<span class="price">{_e(_price(variant))}</span>'
+    )
+
+    if variant.url:
+        return (
+            f'<a class="var-card" href="{_e(variant.url)}" target="_blank" rel="noopener nofollow">{inner}</a>'
+        )
+    return f'<div class="var-card">{inner}</div>'
+
+
+def _variants_section(gadget: Gadget) -> str:
+    variants = sorted(
+        gadget.variants,
+        key=lambda v: (_QUALITY_ORDER.get((v.quality or "").lower(), 1), v.price),
+    )
+    if not variants:
+        return ""
+
+    cards = "".join(_variant_card(v) for v in variants)
+    return f"""
+  <section class="panel">
+    <h2>Buying options</h2>
+    <span class="sub">The same gadget from different brands and vendors — compare price, quality and colour.</span>
+    <div class="var-grid">{cards}</div>
+  </section>"""
+
+
 def _option_card(gadget: Gadget) -> str:
     image = _image_url(gadget.image_key)
     maker = gadget.brand or gadget.category or ""
@@ -285,17 +350,18 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
         if dest_chips else ""
     )
 
+    variants_section = _variants_section(gadget)
+
     if similar:
-        cat = _e(gadget.category) if gadget.category else "gear"
         cards = "".join(_option_card(g) for g in similar)
-        options_section = f"""
+        similar_section = f"""
   <section class="panel">
-    <h2>Other {cat} options</h2>
-    <span class="sub">Similar gadgets the community recommends — pick the one that suits your trip.</span>
+    <h2>Similar gadgets</h2>
+    <span class="sub">Other gadgets the community recommends for the same kind of trip.</span>
     <div class="idx-grid">{cards}</div>
   </section>"""
     else:
-        options_section = ""
+        similar_section = ""
 
     body = f"""
   <nav class="crumb">
@@ -318,7 +384,7 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
       {recommended_for}
       <a class="cta" href="/">Build your packing list →</a>
     </div>
-  </section>{options_section}
+  </section>{variants_section}{similar_section}
   <section class="panel">
     <h2>Traveler experiences</h2>
     <p class="empty">No experiences yet. Travellers who used this on a trip can share how it held
@@ -392,7 +458,10 @@ async def _load_detail(slug: str) -> tuple[Gadget | None, list[Gadget]]:
             gadget = await db.scalar(
                 select(Gadget)
                 .where(Gadget.slug == slug, Gadget.is_active.is_(True))
-                .options(selectinload(Gadget.placements).joinedload(Placement.place))
+                .options(
+                    selectinload(Gadget.placements).joinedload(Placement.place),
+                    selectinload(Gadget.variants),
+                )
             )
             if gadget is None:
                 return None, []

@@ -17,6 +17,13 @@ def placement(place_name, division, trip_types):
     )
 
 
+def variant(brand, quality, price, **over):
+    base = dict(brand=brand, model_name=None, color=None, quality=quality,
+                price=price, currency="BDT", vendor=None, url=None)
+    base.update(over)
+    return SimpleNamespace(**base)
+
+
 def gadget(**over):
     base = dict(
         name="Waterproof Dry Bag", slug="waterproof-dry-bag", brand="Sea to Summit",
@@ -27,6 +34,7 @@ def gadget(**over):
             placement("Saint Martin's Island", "Chattogram", ["beach", "backpacking"]),
             placement("Cox's Bazar", "Chattogram", ["hiking"]),  # same place again
         ],
+        variants=[],
     )
     base.update(over)
     return SimpleNamespace(**base)
@@ -86,17 +94,44 @@ def other(name, slug, category="Protection"):
         name=name, slug=slug, category=category, brand=None, image_key=None)
 
 
-def test_detail_offers_same_category_alternatives():
+def test_detail_offers_similar_gadgets():
     similar = [other("Rain Poncho", "rain-poncho"), other("Sun Hat", "sun-hat")]
     html = _render_detail(REQUEST, gadget(), similar)
 
-    assert "Other Protection options" in html
+    assert "Similar gadgets" in html
     assert 'href="/gadget/rain-poncho"' in html
     assert 'href="/gadget/sun-hat"' in html
     # Destinations remain, now as chips linking to the personalised home page.
     assert 'href="/?to=coxs-bazar"' in html
 
 
-def test_detail_without_alternatives_omits_the_options_section():
+def test_detail_without_similar_gadgets_omits_that_section():
     html = _render_detail(REQUEST, gadget(), [])
-    assert "options</h2>" not in html
+    assert "Similar gadgets" not in html
+
+
+def test_buying_options_render_sorted_by_quality_then_price():
+    variants = [
+        variant("Anker Prime", "premium", 6500, color="Graphite", vendor="Pickaboo"),
+        variant("Generic", "budget", 1200, vendor="Local market"),
+        variant("Anker Core", "standard", 2900, vendor="Daraz"),
+    ]
+    html = _render_detail(REQUEST, gadget(variants=variants))
+
+    assert "Buying options" in html
+    # Budget first, then standard, then premium (quality order).
+    assert html.index("Generic") < html.index("Anker Core") < html.index("Anker Prime")
+    assert "৳1,200" in html and "৳6,500" in html
+    assert 'var-tier budget' in html and 'var-tier premium' in html
+
+
+def test_a_variant_with_a_url_links_out_safely():
+    v = variant("Anker", "standard", 2900, url="https://daraz.com.bd/x")
+    html = _render_detail(REQUEST, gadget(variants=[v]))
+
+    assert 'href="https://daraz.com.bd/x"' in html
+    assert 'rel="noopener nofollow"' in html
+
+
+def test_no_variants_means_no_buying_options_section():
+    assert "Buying options" not in _render_detail(REQUEST, gadget(variants=[]))

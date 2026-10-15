@@ -270,8 +270,65 @@ class GadgetOut(BaseModel):
     updated_at: datetime
 
 
+QUALITY_LEVELS = ("budget", "standard", "premium")
+
+
+class VariantIn(BaseModel):
+    brand: str = Field(min_length=1, max_length=80)
+    model_name: str | None = Field(default=None, max_length=80)
+    color: str | None = Field(default=None, max_length=40)
+    quality: str = Field(default="standard")
+    price: int = Field(ge=0, le=10_000_000)
+    currency: str = Field(default="BDT", min_length=3, max_length=3)
+    vendor: str | None = Field(default=None, max_length=80)
+    url: str | None = Field(default=None, max_length=300)
+
+    @field_validator("brand", "model_name", "color", "vendor")
+    @classmethod
+    def tidy(cls, value: str | None) -> str | None:
+        return _clean(value)
+
+    @field_validator("quality")
+    @classmethod
+    def known_quality(cls, value: str) -> str:
+        value = value.strip().lower()
+        if value not in QUALITY_LEVELS:
+            raise ValueError(f"quality must be one of {', '.join(QUALITY_LEVELS)}")
+        return value
+
+    @field_validator("currency")
+    @classmethod
+    def upper_currency(cls, value: str) -> str:
+        return value.strip().upper()
+
+    @field_validator("url")
+    @classmethod
+    def http_url(cls, value: str | None) -> str | None:
+        value = (value or "").strip()
+        if not value:
+            return None
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("url must start with http:// or https://")
+        return value
+
+
+class VariantOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    brand: str
+    model_name: str | None
+    color: str | None
+    quality: str
+    price: int
+    currency: str
+    vendor: str | None
+    url: str | None
+
+
 class GadgetDetail(GadgetOut):
     placements: list[PlacementOut]
+    variants: list[VariantOut] = []
 
 
 class Option(BaseModel):
