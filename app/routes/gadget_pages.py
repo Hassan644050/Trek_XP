@@ -3,6 +3,11 @@
 Rendered on the server (not fetched by JS) so the content, title and
 social/preview tags are in the HTML a crawler sees. One page per gadget at
 /gadget/<slug>, plus an index at /gadgets for crawlability.
+
+The layout follows the shared Trek_XP detail-page design: a two-column
+hero (photo + details), a category badge, a monospace eyebrow, a tinted
+"Why you need it" box, "Best for" tags, and cream section panels in the
+green/amber brand palette.
 """
 
 import html
@@ -57,7 +62,94 @@ def _image_url(image_key: str | None) -> str | None:
     return get_image_storage().url(variant_key(image_key, DETAIL.name))
 
 
-# ---------- the shared HTML shell ----------
+# ---------- the shared HTML shell (detail-page design) ----------
+
+_STYLE = """
+  :root {
+    --bg: oklch(0.92 0.045 150); --panel: oklch(0.985 0.012 100); --paper: #fff;
+    --ink: oklch(0.26 0.03 155); --ink-soft: oklch(0.45 0.03 155); --ink-faint: oklch(0.55 0.03 155);
+    --green: oklch(0.32 0.07 155); --green-mid: oklch(0.42 0.09 155);
+    --badge: oklch(0.42 0.1 155); --tint: oklch(0.92 0.05 150);
+    --amber: oklch(0.8 0.13 85); --line: oklch(0.84 0.03 150); --line-soft: oklch(0.88 0.02 150);
+    --sans: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: oklch(0.15 0.02 155); --panel: oklch(0.2 0.02 155); --paper: oklch(0.24 0.02 155);
+      --ink: oklch(0.93 0.012 150); --ink-soft: oklch(0.72 0.02 150); --ink-faint: oklch(0.6 0.02 150);
+      --green: oklch(0.72 0.09 155); --green-mid: oklch(0.64 0.1 155);
+      --badge: oklch(0.5 0.11 155); --tint: oklch(0.28 0.04 150);
+      --amber: oklch(0.8 0.13 85); --line: oklch(0.4 0.03 150); --line-soft: oklch(0.34 0.02 150);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+    font-weight: 600; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  a { color: var(--green); text-decoration: none; }
+  a:hover { color: var(--green-mid); text-decoration: underline; }
+  .page { max-width: 1200px; margin: 0 auto; padding: 32px 36px 64px;
+    display: flex; flex-direction: column; gap: 24px; }
+  .crumb { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; flex-wrap: wrap; }
+  .crumb .sep { color: var(--ink-faint); }
+  .crumb .here { color: var(--ink-soft); }
+
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); background: var(--panel); }
+  .hero .photo { position: relative; min-height: 460px; background: var(--paper); }
+  .hero .photo .badge { position: absolute; z-index: 1; top: 18px; left: 18px; font-size: 13px;
+    font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 12px;
+    background: var(--badge); color: #fff; }
+  .hero .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 28px; }
+  .hero .photo.empty { display: flex; align-items: center; justify-content: center;
+    color: var(--ink-faint); font: 700 13px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+  .hero .info { display: flex; flex-direction: column; gap: 22px; padding: 40px; }
+  .eye { font: 700 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--green-mid); }
+  .hero h1 { margin: 0; font-size: 44px; line-height: 1.02; font-weight: 900; letter-spacing: -0.02em; text-wrap: pretty; }
+  .why { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; background: var(--tint); }
+  .why .label { font-size: 13px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+  .why p { margin: 0; font-size: 17px; line-height: 1.5; font-weight: 600; text-wrap: pretty; }
+  .field .label { font-size: 13px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 10px; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { padding: 8px 14px; font-size: 14px; font-weight: 800; background: var(--paper); border: 1.5px solid var(--line); }
+  .cta { margin-top: auto; align-self: flex-start; padding: 16px 28px; font: 900 16px var(--sans);
+    cursor: pointer; border: 2px solid var(--green); background: var(--green); color: #fff; }
+  .cta:hover { text-decoration: none; }
+
+  .panel { display: flex; flex-direction: column; gap: 18px; padding: 32px; background: var(--panel); }
+  .panel h2 { margin: 0; font-size: 28px; font-weight: 900; }
+  .panel .sub { font-size: 16px; color: var(--ink-soft); }
+  .dest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .dest-card { display: flex; flex-direction: column; gap: 4px; padding: 20px; background: var(--paper);
+    border: 2px solid var(--line-soft); }
+  .dest-card:hover { border-color: var(--green); text-decoration: none; }
+  .dest-card .n { font-size: 19px; font-weight: 900; color: var(--ink); }
+  .dest-card .d { font-size: 14px; color: var(--ink-soft); }
+  .empty { margin: 0; font-size: 16px; color: var(--ink-soft); }
+
+  .idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .idx-card { display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--line-soft); }
+  .idx-card:hover { border-color: var(--green); text-decoration: none; }
+  .idx-card .ph { aspect-ratio: 4 / 3; background: var(--paper); position: relative; border-bottom: 1px solid var(--line-soft); }
+  .idx-card .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 16px; }
+  .idx-card .ph span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--ink-faint); font: 700 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+  .idx-card .n { padding: 14px 16px 4px; font-size: 17px; font-weight: 900; color: var(--ink); }
+  .idx-card .c { padding: 0 16px 16px; font-size: 13px; color: var(--ink-soft); }
+
+  footer { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line-soft);
+    color: var(--ink-faint); font-size: 14px; }
+
+  @media (max-width: 760px) {
+    .page { padding: 20px 16px 48px; }
+    .hero { grid-template-columns: 1fr; }
+    .hero .photo { min-height: 300px; }
+    .hero .info { padding: 24px; }
+    .hero h1 { font-size: 34px; }
+    .panel { padding: 22px; }
+    .panel h2 { font-size: 23px; }
+  }
+"""
 
 
 def _shell(*, title: str, description: str, canonical: str, head_extra: str, body: str) -> str:
@@ -71,75 +163,14 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 <link rel="canonical" href="{_e(canonical)}" />
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" />
 {head_extra}
-<style>
-  :root {{
-    --green: #1f6b4a; --green-deep: #184f38; --amber: #c98a1e;
-    --ink: #1a2420; --ink-soft: #4a5a52; --line: #d8e0db;
-    --surface: #f4f6f4; --paper: #ffffff;
-    --sans: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{
-      --green: #58c48d; --green-deep: #3f9d6e; --amber: #e0a73c;
-      --ink: #e7efe9; --ink-soft: #a7b6ae; --line: #2b3832;
-      --surface: #131a16; --paper: #1b231e;
-      color-scheme: dark;
-    }}
-  }}
-  * {{ box-sizing: border-box; }}
-  body {{ margin: 0; background: var(--surface); color: var(--ink);
-    font-family: var(--sans); font-weight: 600; line-height: 1.6; }}
-  a {{ color: var(--green-deep); }}
-  @media (prefers-color-scheme: dark) {{ a {{ color: var(--green); }} }}
-  .wrap {{ max-width: 920px; margin: 0 auto; padding: 24px 20px 64px; }}
-  .top {{ display: flex; align-items: center; gap: 10px; padding-bottom: 20px; }}
-  .top .mark {{ font-weight: 900; font-size: 20px; letter-spacing: -0.02em; }}
-  .top .mark span {{ color: var(--green); }}
-  nav.crumb {{ font-size: 13px; color: var(--ink-soft); margin-bottom: 18px; }}
-  nav.crumb a {{ text-decoration: none; }}
-  h1 {{ font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 900; letter-spacing: -0.03em;
-    line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }}
-  .sub {{ color: var(--ink-soft); font-size: 1.05rem; margin: 0 0 20px; }}
-  .card {{ background: var(--paper); border: 1px solid var(--line); }}
-  .hero {{ display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 0; overflow: hidden; }}
-  .hero .photo {{ aspect-ratio: 4 / 3; background: var(--surface); display: flex; }}
-  .hero .photo img {{ width: 100%; height: 100%; object-fit: contain; padding: 18px; }}
-  .hero .photo.empty {{ align-items: center; justify-content: center; color: var(--ink-soft);
-    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }}
-  .hero .body {{ padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; }}
-  .tags {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-  .tag {{ font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-    padding: 4px 9px; border: 1px solid var(--line); color: var(--ink-soft); }}
-  .tag.cat {{ background: var(--green); color: #fff; border-color: var(--green); }}
-  .desc {{ margin: 6px 0 0; color: var(--ink); font-weight: 600; }}
-  section.block {{ margin-top: 32px; }}
-  section.block h2 {{ font-size: 1.1rem; font-weight: 900; letter-spacing: -0.01em; margin: 0 0 12px; }}
-  ul.dests {{ list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }}
-  ul.dests a {{ display: inline-block; text-decoration: none; padding: 8px 13px;
-    background: var(--paper); border: 1px solid var(--line); font-weight: 700; }}
-  ul.dests a:hover {{ border-color: var(--green); }}
-  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }}
-  .grid a {{ display: flex; flex-direction: column; text-decoration: none; color: inherit;
-    background: var(--paper); border: 1px solid var(--line); }}
-  .grid a:hover {{ border-color: var(--green); }}
-  .grid .ph {{ aspect-ratio: 4 / 3; background: var(--surface); display: flex;
-    align-items: center; justify-content: center; }}
-  .grid .ph img {{ width: 100%; height: 100%; object-fit: contain; padding: 12px; }}
-  .grid .ph span {{ color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }}
-  .grid .n {{ padding: 10px 12px; font-weight: 800; }}
-  .grid .c {{ padding: 0 12px 12px; color: var(--ink-soft); font-size: 13px; font-weight: 600; }}
-  .cta {{ display: inline-block; margin-top: 26px; background: var(--green); color: #fff;
-    text-decoration: none; font-weight: 800; padding: 12px 20px; }}
-  footer {{ margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
-    color: var(--ink-soft); font-size: 13px; }}
-  @media (max-width: 640px) {{ .hero {{ grid-template-columns: 1fr; }} }}
-</style>
+<style>{_STYLE}</style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top"><span class="mark">Trek<span>_XP</span></span></div>
+<div class="page">
 {body}
   <footer>
     <a href="/gadgets">All gadgets</a> · <a href="/">Build your packing list</a> ·
@@ -153,11 +184,13 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 
 def _not_found(request: Request) -> HTMLResponse:
     body = """
-  <nav class="crumb"><a href="/">Home</a> · <a href="/gadgets">Gadgets</a></nav>
-  <h1>Gadget not found</h1>
-  <p class="sub">That gadget is not in our catalogue. Browse all gadgets, or build a
-     packing list for your trip.</p>
-  <a class="cta" href="/gadgets">Browse all gadgets</a>
+  <nav class="crumb"><a href="/">← Trek_XP</a><span class="sep">/</span><span class="here">Not found</span></nav>
+  <section class="panel">
+    <h2>Gadget not found</h2>
+    <p class="empty">That gadget is not in our catalogue. Browse all gadgets, or build a
+       packing list for your trip.</p>
+    <a class="cta" href="/gadgets">Browse all gadgets</a>
+  </section>
 """
     html_text = _shell(
         title="Gadget not found — Trek_XP",
@@ -197,52 +230,74 @@ def _render_detail(request: Request, gadget: Gadget) -> str:
     image_abs = _abs(request, image) if image else None
 
     maker = " ".join(filter(None, [gadget.brand, gadget.model_name]))
+    eyebrow = maker or "Community-verified gear"
     description = (gadget.description or "").strip() or (
         f"{gadget.name}" + (f" by {gadget.brand}" if gadget.brand else "")
         + " — travel gear recommended by the Trek_XP community for your trip."
     )
 
-    tags = []
-    if gadget.category:
-        tags.append(f'<span class="tag cat">{_e(gadget.category)}</span>')
-    if gadget.color:
-        tags.append(f'<span class="tag">{_e(gadget.color)}</span>')
-    for value in _trip_types(gadget)[:6]:
-        tags.append(f'<span class="tag">{_e(value.replace("_", " "))}</span>')
-
+    badge = _e(gadget.category) if gadget.category else "Gear"
     photo = (
-        f'<div class="photo"><img src="{_e(image)}" alt="{_e(gadget.name)}" /></div>'
-        if image else '<div class="photo empty">No image</div>'
+        f'<div class="photo"><span class="badge">{badge}</span>'
+        f'<img src="{_e(image)}" alt="{_e(gadget.name)}" /></div>'
+        if image
+        else f'<div class="photo empty"><span class="badge">{badge}</span>No image</div>'
+    )
+
+    tags = "".join(
+        f'<span class="tag">{_e(v.replace("_", " ").title())}</span>'
+        for v in _trip_types(gadget)[:8]
+    )
+    best_for = (
+        f'<div class="field"><span class="label">Best for</span>'
+        f'<div class="tags">{tags}</div></div>'
+        if tags else ""
     )
 
     dests = _destinations(gadget)
     if dests:
-        items = "".join(
-            f'<li><a href="/?to={_e(url_slug(name))}">{_e(name)}'
-            + (f' <span style="color:var(--ink-soft);font-weight:600">· {_e(div)}</span>' if div else "")
-            + "</a></li>"
+        cards = "".join(
+            f'<a class="dest-card" href="/?to={_e(url_slug(name))}">'
+            f'<span class="n">{_e(name)}</span>'
+            + (f'<span class="d">{_e(div)}</span>' if div else "")
+            + "</a>"
             for name, div in dests
         )
-        dest_block = f"""
-  <section class="block">
+        dest_section = f"""
+  <section class="panel">
     <h2>Recommended for these destinations</h2>
-    <ul class="dests">{items}</ul>
+    <span class="sub">Tap a place to build a packing list tailored to it.</span>
+    <div class="dest-grid">{cards}</div>
   </section>"""
     else:
-        dest_block = ""
+        dest_section = ""
 
     body = f"""
-  <nav class="crumb"><a href="/">Home</a> · <a href="/gadgets">Gadgets</a> · {_e(gadget.name)}</nav>
-  <div class="card hero">
+  <nav class="crumb">
+    <a href="/">← Trek_XP</a><span class="sep">/</span>
+    <a href="/gadgets">Gadgets</a>{f'<span class="sep">/</span><span class="here">{_e(gadget.category)}</span>' if gadget.category else ''}
+    <span class="sep">/</span><span class="here">{_e(gadget.name)}</span>
+  </nav>
+  <section class="hero">
     {photo}
-    <div class="body">
-      <h1>{_e(gadget.name)}</h1>
-      {f'<p class="sub">{_e(maker)}</p>' if maker else ''}
-      <div class="tags">{''.join(tags)}</div>
-      <p class="desc">{_e(description)}</p>
+    <div class="info">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span class="eye">{_e(eyebrow)}</span>
+        <h1>{_e(gadget.name)}</h1>
+      </div>
+      <div class="why">
+        <span class="label">Why you need it</span>
+        <p>{_e(description)}</p>
+      </div>
+      {best_for}
+      <a class="cta" href="/">Build your packing list →</a>
     </div>
-  </div>{dest_block}
-  <a class="cta" href="/">Build your packing list →</a>
+  </section>{dest_section}
+  <section class="panel">
+    <h2>Traveler experiences</h2>
+    <p class="empty">No experiences yet. Travellers who used this on a trip can share how it held
+       up from their packing list.</p>
+  </section>
 """
 
     product = {
@@ -267,11 +322,11 @@ def _render_detail(request: Request, gadget: Gadget) -> str:
         if image_abs else '<meta name="twitter:card" content="summary" />'
     )
     head_extra = (
-        f'<meta property="og:type" content="product" />'
+        '<meta property="og:type" content="product" />'
         f'<meta property="og:title" content="{_e(gadget.name)}" />'
         f'<meta property="og:description" content="{_e(description)}" />'
         f'<meta property="og:url" content="{_e(canonical)}" />'
-        f'<meta property="og:site_name" content="Trek_XP" />'
+        '<meta property="og:site_name" content="Trek_XP" />'
         f'{og_image}'
         f'<script type="application/ld+json">{_json_ld(product)}</script>'
     )
@@ -322,7 +377,7 @@ async def gadget_index(request: Request) -> HTMLResponse:
     gadgets = await _load_active_gadgets()
 
     cards = "".join(
-        f'<a href="/gadget/{_e(g.slug)}">'
+        f'<a class="idx-card" href="/gadget/{_e(g.slug)}">'
         + (
             f'<div class="ph"><img src="{_e(_image_url(g.image_key))}" alt="{_e(g.name)}" loading="lazy" /></div>'
             if g.image_key else '<div class="ph"><span>No image</span></div>'
@@ -331,14 +386,15 @@ async def gadget_index(request: Request) -> HTMLResponse:
         + (f'<div class="c">{_e(g.category)}</div>' if g.category else "")
         + "</a>"
         for g in gadgets
-    ) or '<p class="sub">No gadgets in the catalogue yet.</p>'
+    ) or '<p class="empty">No gadgets in the catalogue yet.</p>'
 
     body = f"""
-  <nav class="crumb"><a href="/">Home</a> · Gadgets</nav>
-  <h1>Travel gadgets</h1>
-  <p class="sub">Community-verified gear, recommended per destination. {len(gadgets)} in the catalogue.</p>
-  <div class="grid">{cards}</div>
-  <a class="cta" href="/">Build your packing list →</a>
+  <nav class="crumb"><a href="/">← Trek_XP</a><span class="sep">/</span><span class="here">Gadgets</span></nav>
+  <section class="panel">
+    <h2>Travel gadgets</h2>
+    <span class="sub">Community-verified gear, recommended per destination. {len(gadgets)} in the catalogue.</span>
+    <div class="idx-grid">{cards}</div>
+  </section>
 """
     html_text = _shell(
         title="Travel gadgets — Trek_XP",
