@@ -88,7 +88,7 @@ _STYLE = """
     font-weight: 600; -webkit-font-smoothing: antialiased; line-height: 1.5; }
   a { color: var(--green); text-decoration: none; }
   a:hover { color: var(--green-mid); text-decoration: underline; }
-  .page { max-width: 1200px; margin: 0 auto; padding: 32px 36px 64px;
+  .page { max-width: none; margin: 0 auto; padding: 32px 36px 64px;
     display: flex; flex-direction: column; gap: 24px; }
   .crumb { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; flex-wrap: wrap; }
   .crumb .sep { color: var(--ink-faint); }
