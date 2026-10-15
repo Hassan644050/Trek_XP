@@ -26,6 +26,7 @@ from sqlalchemy import func, select
 from app.db.engine import get_engine, get_sessionmaker
 from app.db.models import Gadget, Place, Placement, Role, User
 from app.models.recommendation import Priority
+from app.services.slug import url_slug
 from app.services.destination.countries import (
     get_country,
     home_country,
@@ -83,6 +84,9 @@ async def main() -> int:
             tuple(row)
             for row in (await db.execute(select(Placement.gadget_id, Placement.place_id))).all()
         }
+        used_slugs = {
+            s for (s,) in (await db.execute(select(Gadget.slug).where(Gadget.slug.is_not(None)))).all()
+        }
 
         # 1. Create any missing places and gadgets, then flush to get ids.
         #    place_for maps each dataset destination to its Place (reused or new).
@@ -105,8 +109,14 @@ async def main() -> int:
             for product in dest["products"]:
                 name = product["name"]
                 if name.lower() not in gadgets:
+                    base = url_slug(name) or "gadget"
+                    slug, k = base, 1
+                    while slug in used_slugs:
+                        k += 1
+                        slug = f"{base}-{k}"
+                    used_slugs.add(slug)
                     db.add(gadget := Gadget(
-                        name=name, category=product["category"],
+                        name=name, slug=slug, category=product["category"],
                         created_by_id=author, updated_by_id=author,
                     ))
                     gadgets[name.lower()] = gadget

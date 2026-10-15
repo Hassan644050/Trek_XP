@@ -199,6 +199,8 @@ matches `DATABASE_URL`.
 | `GET` | `/destinations` | Destination search for the picker |
 | `GET` | `/destinations/featured` | Curated spots, grouped by division |
 | `GET` | `/health` | Health check |
+| `GET` | `/gadget/{slug}` | Public, SEO-friendly gadget detail page (server-rendered) |
+| `GET` | `/gadgets` | Public index of all gadgets |
 | `GET` | `/coordinator` | Coordinator page |
 | `POST` | `/api/auth/login`, `/api/auth/logout` · `GET /api/auth/me` | Sign in / out, current user |
 | `GET`, `POST` | `/api/coordinator/gadgets` | List / create gadgets |

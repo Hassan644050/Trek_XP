@@ -36,6 +36,8 @@ class Recommendation(BaseModel):
     # Only catalog items have a photo; the model's suggestions are names, so
     # this stays None for them.
     image_url: str | None = None
+    # Link to the gadget's public detail page, for catalog items only.
+    page_url: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

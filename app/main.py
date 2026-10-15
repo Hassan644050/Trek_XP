@@ -10,6 +10,7 @@ from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
 from app.routes.coordinator import router as coordinator_router
 from app.routes.destinations import router as destinations_router
+from app.routes.gadget_pages import router as gadget_pages_router
 from app.routes.health import router as health_router
 from app.routes.recommend import router as recommend_router
 from app.services.media.storage import LocalImageStorage, get_image_storage
@@ -28,6 +29,7 @@ register_exception_handlers(app)
 
 app.include_router(recommend_router)
 app.include_router(destinations_router)
+app.include_router(gadget_pages_router)
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(coordinator_router)

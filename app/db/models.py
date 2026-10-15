@@ -109,9 +109,13 @@ class Gadget(Base):
     """A gadget entered once and reused across destinations."""
 
     __tablename__ = "gadgets"
+    __table_args__ = (UniqueConstraint("slug", name="uq_gadgets_slug"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
+    # The search-friendly URL key for the gadget's public detail page,
+    # /gadget/<slug>. Unique; derived from the name when a gadget is saved.
+    slug: Mapped[str | None] = mapped_column(String(140))
     brand: Mapped[str | None] = mapped_column(String(80))
     model_name: Mapped[str | None] = mapped_column(String(80))
     category: Mapped[str | None] = mapped_column(String(60))

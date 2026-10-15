@@ -36,6 +36,7 @@ from app.models.catalog import (
 from app.models.recommendation import Priority
 from app.services.destination.countries import home_country
 from app.services.taxonomy import active_values, list_options
+from app.services.slug import unique_gadget_slug
 from app.services.destination.admin_areas import (
     district_names,
     divisions,
@@ -374,7 +375,12 @@ async def create_gadget(
     if await _name_taken(db, payload.name):
         raise ResourceConflictException(conflict)
 
-    gadget = Gadget(**payload.model_dump(), created_by_id=user.id, updated_by_id=user.id)
+    gadget = Gadget(
+        **payload.model_dump(),
+        slug=await unique_gadget_slug(db, payload.name),
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
     db.add(gadget)
     await _commit_or_conflict(db, conflict)
 
@@ -410,6 +416,10 @@ async def update_gadget(
 
     for field, value in changes.items():
         setattr(gadget, field, value)
+
+    if "name" in changes:
+        # Keep the public URL in step with the name.
+        gadget.slug = await unique_gadget_slug(db, changes["name"], except_id=gadget.id)
 
     gadget.updated_by_id = user.id
     await _commit_or_conflict(db, conflict)
