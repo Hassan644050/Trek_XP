@@ -90,13 +90,6 @@ _STYLE = """
   a:hover { color: var(--green-mid); text-decoration: underline; }
   .page { max-width: none; margin: 0 auto; padding: 32px 36px 64px;
     display: flex; flex-direction: column; gap: 24px; }
-  .site-header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    border-bottom: 2px solid var(--green); padding-bottom: 16px; }
-  .site-header .brand { color: var(--ink); font-weight: 900; font-size: 20px; letter-spacing: -0.02em; text-decoration: none; }
-  .site-header .brand span { color: var(--green); }
-  .site-header .login { background: var(--green); color: var(--paper); text-decoration: none;
-    font: 800 14px var(--sans); padding: 10px 18px; }
-  .site-header .login:hover { background: var(--green-mid); text-decoration: none; }
   .crumb { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; flex-wrap: wrap; }
   .crumb .sep { color: var(--ink-faint); }
   .crumb .here { color: var(--ink-soft); }
@@ -190,13 +183,20 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" />
 {head_extra}
 <style>{_STYLE}</style>
+<link rel="stylesheet" href="/site-header.css" />
+<script src="/site-header.js" defer></script>
 </head>
 <body>
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="/">Trek XP</a>
+    <nav>
+      <a class="hbtn register" href="/coordinator#register">Register</a>
+      <a class="hbtn login" href="/coordinator">Login</a>
+    </nav>
+  </div>
+</header>
 <div class="page">
-  <header class="site-header">
-    <a class="brand" href="/">Trek<span>_XP</span></a>
-    <a class="login" href="/coordinator">Log in</a>
-  </header>
 {body}
   <footer>
     <a href="/gadgets">All gadgets</a> · <a href="/">Build your packing list</a> ·

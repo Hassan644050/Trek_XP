@@ -50,6 +50,15 @@ def test_detail_has_title_canonical_and_description():
     assert 'name="description" content="Keeps your gear dry."' in html
 
 
+def test_detail_has_the_master_header():
+    html = _render_detail(REQUEST, gadget())
+
+    assert '<header class="site-header">' in html
+    assert '<link rel="stylesheet" href="/site-header.css" />' in html
+    assert '<a class="hbtn login" href="/coordinator">Login</a>' in html
+    assert 'class="hbtn register"' in html
+
+
 def test_detail_has_valid_product_json_ld():
     html = _render_detail(REQUEST, gadget())
     block = re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S)
