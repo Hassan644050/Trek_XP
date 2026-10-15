@@ -82,6 +82,23 @@
     padding: 36px 36px 64px;
   }
 
+  /* Master header, shared with the gadget pages. */
+  .site-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 2px solid var(--green);
+    padding-bottom: 16px;
+  }
+  .site-header .brand { color: var(--ink); font-weight: 900; font-size: 20px; letter-spacing: -0.02em; text-decoration: none; }
+  .site-header .brand span { color: var(--green); }
+  .site-header .login {
+    background: var(--green); color: var(--paper); text-decoration: none;
+    font: 800 14px var(--sans); padding: 10px 18px;
+  }
+  .site-header .login:hover { background: var(--green-mid); }
+
   .eyebrow {
     color: var(--green-mid);
     font: 700 12px var(--mono);
@@ -465,6 +482,11 @@
 <body>
 
 <div class="wrap">
+
+  <header class="site-header">
+    <a class="brand" href="/">Trek<span>_XP</span></a>
+    <a class="login" href="/coordinator">Log in</a>
+  </header>
 
   <header class="hero">
     <span class="badge" id="exploreBadge">Explore</span>

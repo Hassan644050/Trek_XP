@@ -90,6 +90,13 @@ _STYLE = """
   a:hover { color: var(--green-mid); text-decoration: underline; }
   .page { max-width: none; margin: 0 auto; padding: 32px 36px 64px;
     display: flex; flex-direction: column; gap: 24px; }
+  .site-header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border-bottom: 2px solid var(--green); padding-bottom: 16px; }
+  .site-header .brand { color: var(--ink); font-weight: 900; font-size: 20px; letter-spacing: -0.02em; text-decoration: none; }
+  .site-header .brand span { color: var(--green); }
+  .site-header .login { background: var(--green); color: var(--paper); text-decoration: none;
+    font: 800 14px var(--sans); padding: 10px 18px; }
+  .site-header .login:hover { background: var(--green-mid); text-decoration: none; }
   .crumb { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; flex-wrap: wrap; }
   .crumb .sep { color: var(--ink-faint); }
   .crumb .here { color: var(--ink-soft); }
@@ -186,6 +193,10 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 </head>
 <body>
 <div class="page">
+  <header class="site-header">
+    <a class="brand" href="/">Trek<span>_XP</span></a>
+    <a class="login" href="/coordinator">Log in</a>
+  </header>
 {body}
   <footer>
     <a href="/gadgets">All gadgets</a> · <a href="/">Build your packing list</a> ·
@@ -199,7 +210,7 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 
 def _not_found(request: Request) -> HTMLResponse:
     body = """
-  <nav class="crumb"><a href="/">← Trek_XP</a><span class="sep">/</span><span class="here">Not found</span></nav>
+  <nav class="crumb"><a href="/">Home</a><span class="sep">/</span><span class="here">Not found</span></nav>
   <section class="panel">
     <h2>Gadget not found</h2>
     <p class="empty">That gadget is not in our catalogue. Browse all gadgets, or build a
@@ -363,7 +374,7 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
 
     body = f"""
   <nav class="crumb">
-    <a href="/">← Trek_XP</a><span class="sep">/</span>
+    <a href="/">Home</a><span class="sep">/</span>
     <a href="/gadgets">Gadgets</a>{f'<span class="sep">/</span><span class="here">{_e(gadget.category)}</span>' if gadget.category else ''}
     <span class="sep">/</span><span class="here">{_e(gadget.name)}</span>
   </nav>
@@ -509,7 +520,7 @@ async def gadget_index(request: Request) -> HTMLResponse:
     ) or '<p class="empty">No gadgets in the catalogue yet.</p>'
 
     body = f"""
-  <nav class="crumb"><a href="/">← Trek_XP</a><span class="sep">/</span><span class="here">Gadgets</span></nav>
+  <nav class="crumb"><a href="/">Home</a><span class="sep">/</span><span class="here">Gadgets</span></nav>
   <section class="panel">
     <h2>Travel gadgets</h2>
     <span class="sub">Community-verified gear, recommended per destination. {len(gadgets)} in the catalogue.</span>
