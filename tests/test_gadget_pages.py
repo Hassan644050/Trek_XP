@@ -4,7 +4,9 @@ import json
 import re
 from types import SimpleNamespace
 
-from app.routes.gadget_pages import _destinations, _not_found, _render_detail
+import pytest
+
+from app.routes.gadget_pages import _not_found, _render_detail, _type_key
 
 
 REQUEST = SimpleNamespace(base_url="https://trekxp.example/")
@@ -59,20 +61,22 @@ def test_detail_has_valid_product_json_ld():
     assert data["url"] == "https://trekxp.example/gadget/waterproof-dry-bag"
 
 
-def test_detail_links_each_destination_to_the_personalised_home_page():
+def test_detail_has_no_recommended_for_destination_section():
     html = _render_detail(REQUEST, gadget())
-
-    # Apostrophe dropped (coxs-bazar), not turned into a dash (cox-s-bazar).
-    assert 'href="/?to=cox-s-bazar"' not in html
-    assert 'href="/?to=coxs-bazar"' in html
-    assert 'href="/?to=saint-martins-island"' in html
+    assert "Recommended for" not in html
+    assert 'href="/?to=' not in html
 
 
-def test_destinations_are_unique_and_sorted():
-    assert _destinations(gadget()) == [
-        ("Cox's Bazar", "Chattogram"),
-        ("Saint Martin's Island", "Chattogram"),
-    ]
+@pytest.mark.parametrize("name,expected", [
+    ("Sun Hat", "hat"),
+    ("Bucket Hat", "hat"),
+    ("Water Shoes", "shoe"),
+    ("Trekking Shoes", "shoe"),
+    ("Waterproof Dry Bag", "bag"),
+    ("Sunscreen (SPF 50)", "sunscreen"),
+])
+def test_type_key(name, expected):
+    assert _type_key(name) == expected
 
 
 def test_detail_escapes_user_content():
@@ -94,20 +98,20 @@ def other(name, slug, category="Protection"):
         name=name, slug=slug, category=category, brand=None, image_key=None)
 
 
-def test_detail_offers_similar_gadgets():
-    similar = [other("Rain Poncho", "rain-poncho"), other("Sun Hat", "sun-hat")]
+def test_detail_offers_more_of_the_same_type():
+    # gadget() is a "Waterproof Dry Bag" -> type "bag" -> "More Bags".
+    similar = [other("Dry Bag", "dry-bag"), other("Compression Bag", "compression-bag")]
     html = _render_detail(REQUEST, gadget(), similar)
 
-    assert "Similar gadgets" in html
-    assert 'href="/gadget/rain-poncho"' in html
-    assert 'href="/gadget/sun-hat"' in html
-    # Destinations remain, now as chips linking to the personalised home page.
-    assert 'href="/?to=coxs-bazar"' in html
-
-
-def test_detail_without_similar_gadgets_omits_that_section():
-    html = _render_detail(REQUEST, gadget(), [])
+    assert "More Bags" in html
     assert "Similar gadgets" not in html
+    assert 'href="/gadget/dry-bag"' in html
+    assert 'href="/gadget/compression-bag"' in html
+
+
+def test_detail_without_same_type_gadgets_omits_that_section():
+    html = _render_detail(REQUEST, gadget(), [])
+    assert "More Bags" not in html
 
 
 def test_buying_options_render_sorted_by_quality_then_price():

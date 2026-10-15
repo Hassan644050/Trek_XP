@@ -25,7 +25,6 @@ from app.db.models import Gadget, Placement
 from app.exceptions.exceptions import DatabaseNotConfiguredException
 from app.services.media.storage import get_image_storage, variant_key
 from app.services.media.variants import DETAIL
-from app.services.slug import url_slug
 
 
 logger = logging.getLogger(__name__)
@@ -221,14 +220,22 @@ def _not_found(request: Request) -> HTMLResponse:
 # ---------- detail page ----------
 
 
-def _destinations(gadget: Gadget) -> list[tuple[str, str]]:
-    """Unique (place name, division) for the places this gadget is placed at."""
-    seen: dict[str, tuple[str, str]] = {}
-    for placement in gadget.placements:
-        place = placement.place
-        if place.name not in seen:
-            seen[place.name] = (place.name, place.division or "")
-    return sorted(seen.values())
+def _type_key(name: str) -> str:
+    """The kind of product a gadget is, from its name's head noun: "Sun Hat"
+    and "Bucket Hat" are both "hat", "Water Shoes" and "Trekking Shoes" both
+    "shoe". Used to show other gadgets of the same type, not the whole
+    category. Parentheticals are dropped and a trailing plural -s stripped."""
+    import re
+
+    cleaned = re.sub(r"\([^)]*\)", " ", name)
+    words = re.findall(r"[a-zA-Z]+", cleaned)
+    if not words:
+        return ""
+
+    head = words[-1].lower()
+    if len(head) > 3 and head.endswith("s"):
+        head = head[:-1]
+    return head
 
 
 def _trip_types(gadget: Gadget) -> list[str]:
@@ -339,25 +346,16 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
 
     # Destinations stay, as compact chips in the hero, linking to the
     # personalised home page -- the main middle section is for alternatives.
-    dests = _destinations(gadget)
-    dest_chips = "".join(
-        f'<a class="tag" href="/?to={_e(url_slug(name))}">{_e(name)}</a>'
-        for name, _div in dests[:8]
-    )
-    recommended_for = (
-        f'<div class="field"><span class="label">Recommended for</span>'
-        f'<div class="tags">{dest_chips}</div></div>'
-        if dest_chips else ""
-    )
-
     variants_section = _variants_section(gadget)
 
     if similar:
+        head = _type_key(gadget.name)
+        heading = f"More {head.title()}s" if head else "More like this"
         cards = "".join(_option_card(g) for g in similar)
         similar_section = f"""
   <section class="panel">
-    <h2>Similar gadgets</h2>
-    <span class="sub">Other gadgets the community recommends for the same kind of trip.</span>
+    <h2>{_e(heading)}</h2>
+    <span class="sub">Other {_e(head + 's' if head else 'gadgets')} in the community catalogue.</span>
     <div class="idx-grid">{cards}</div>
   </section>"""
     else:
@@ -381,7 +379,6 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
         <p>{_e(description)}</p>
       </div>
       {best_for}
-      {recommended_for}
       <a class="cta" href="/">Build your packing list →</a>
     </div>
   </section>{variants_section}{similar_section}
@@ -467,22 +464,25 @@ async def _load_detail(slug: str) -> tuple[Gadget | None, list[Gadget]]:
                 return None, []
 
             similar: list[Gadget] = []
-            if gadget.category:
-                similar = list(
-                    (
-                        await db.scalars(
-                            select(Gadget)
-                            .where(
-                                Gadget.category == gadget.category,
-                                Gadget.id != gadget.id,
-                                Gadget.is_active.is_(True),
-                                Gadget.slug.is_not(None),
-                            )
-                            .order_by(Gadget.name)
-                            .limit(6)
+            head = _type_key(gadget.name)
+            if head:
+                # Prefilter in SQL on the head word, then keep only exact
+                # same-type matches (so "Sun Hat" finds other hats, not
+                # everything in the Protection category).
+                candidates = (
+                    await db.scalars(
+                        select(Gadget)
+                        .where(
+                            Gadget.id != gadget.id,
+                            Gadget.is_active.is_(True),
+                            Gadget.slug.is_not(None),
+                            Gadget.name.ilike(f"%{head}%"),
                         )
-                    ).all()
-                )
+                        .order_by(Gadget.name)
+                        .limit(24)
+                    )
+                ).all()
+                similar = [g for g in candidates if _type_key(g.name) == head][:6]
             return gadget, similar
     except SQLAlchemyError:
         logger.warning("Gadget detail lookup failed for %r", slug, exc_info=True)
