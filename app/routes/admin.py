@@ -322,3 +322,110 @@ async def delete_destination(
 
     await db.delete(place)
     await db.commit()
+
+
+# ---------- home page hero photos ----------
+
+import asyncio
+
+from fastapi import File, Form, UploadFile
+
+from app.db.models import HeroImage
+from app.models.catalog import HeroImageOut
+from app.services.heroes import forget_heroes, hero_out, hero_slug, list_heroes
+from app.services.media.image_sets import discard_image_set, store_image_set
+from app.services.media.images import HERO_MAX_UPLOAD_BYTES, process_image
+from app.services.media.storage import get_image_storage, new_image_key
+from app.services.media.variants import HERO_VARIANT_NAMES, HERO_VARIANTS
+
+
+@router.get("/heroes", response_model=list[HeroImageOut])
+async def list_hero_images(
+    country: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[HeroImageOut]:
+    code = (country or home_country().code).upper()
+    return [hero_out(h) for h in await list_heroes(db, code)]
+
+
+@router.put("/heroes", response_model=HeroImageOut)
+async def upload_hero_image(
+    file: UploadFile = File(...),
+    alt: str = Form(..., max_length=200),
+    # Blank sets the country's default hero; a name sets that destination's.
+    place: str = Form("", max_length=200),
+    country: str | None = Form(None, min_length=2, max_length=2),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+) -> HeroImageOut:
+    code = (country or home_country().code).upper()
+    place_name = " ".join(place.split()) or None
+    slug = hero_slug(place_name)
+    alt = " ".join(alt.split())
+
+    if place_name and not slug:
+        raise InvalidInputException("Enter a destination name with letters or numbers.")
+    if len(alt) < 3:
+        raise InvalidInputException("Describe the photo in a few words, for screen readers.")
+
+    # Read one byte past the limit: enough to know it is too big without
+    # holding an arbitrarily large upload in memory.
+    data = await file.read(HERO_MAX_UPLOAD_BYTES + 1)
+
+    # Decoding and re-encoding is CPU-bound; keep it off the event loop.
+    renditions = await asyncio.to_thread(
+        process_image, data, HERO_VARIANTS, HERO_MAX_UPLOAD_BYTES
+    )
+
+    storage = get_image_storage()
+    new_key = new_image_key("heroes")
+    await store_image_set(storage, new_key, renditions)
+
+    hero = await db.scalar(
+        select(HeroImage).where(HeroImage.country_code == code, HeroImage.place_slug == slug)
+    )
+    old_key = hero.image_key if hero else None
+
+    if hero is None:
+        hero = HeroImage(country_code=code, place_slug=slug)
+        db.add(hero)
+
+    hero.place_name = place_name
+    hero.alt = alt
+    hero.image_key = new_key
+    hero.updated_by_id = user.id
+
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        await discard_image_set(storage, new_key, HERO_VARIANT_NAMES)
+        raise
+
+    forget_heroes()
+
+    if old_key:
+        await discard_image_set(storage, old_key, HERO_VARIANT_NAMES)
+
+    await db.refresh(hero)
+    return hero_out(hero)
+
+
+@router.delete("/heroes/{hero_id}", status_code=204)
+async def delete_hero_image(
+    hero_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> None:
+    hero = await db.get(HeroImage, hero_id)
+
+    if hero is None:
+        return
+
+    old_key = hero.image_key
+    await db.delete(hero)
+    await db.commit()
+    forget_heroes()
+
+    await discard_image_set(get_image_storage(), old_key, HERO_VARIANT_NAMES)

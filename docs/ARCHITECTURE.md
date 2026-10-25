@@ -594,7 +594,6 @@ and image upload · R2 storage · 235 tests.
 | Guardrails are prose, not rules | Drone bans and airline power-bank limits are mentioned in the prompt. They belong in a data file checked deterministically, so they are testable without the model |
 | "Share experience" is a stub | The button shows a toast. No reviews backend |
 | No caching | Every request re-geocodes and re-asks the model. Identical trips should not cost twice |
-| Hero image missing | The restyled traveller page has no photo |
 | Facebook contributor channel | Designed as consent-based only — contributors opt in, nothing is scraped. Not started |
 
 **One deliberate inconsistency:** `baggage` was removed from the traveller form

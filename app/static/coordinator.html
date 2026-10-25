@@ -218,6 +218,7 @@
   }
 
   .preview img { height: 100%; object-fit: cover; width: 100%; }
+  .hero-thumb { aspect-ratio: 16 / 7; background: var(--line, #ddd); display: block; object-fit: cover; width: 160px; }
 
   /* ---------- placements ---------- */
 
@@ -513,6 +514,29 @@
         <table>
           <thead><tr><th>Name</th><th>Division</th><th>Coordinates</th><th>Gadgets</th><th></th></tr></thead>
           <tbody id="destRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card stack">
+      <h2>Home page photos</h2>
+      <p class="muted" style="margin:0">The photo behind the home page heading. Leave the destination blank to set the
+        default; a destination's own photo replaces it when a traveller picks that place.</p>
+      <form class="stack" id="heroForm" novalidate>
+        <div class="grid2">
+          <label>Destination <input type="text" id="hPlace" maxlength="200" list="heroPlaces" placeholder="Blank = default for every destination" /></label>
+          <label>Describe the photo <input type="text" id="hAlt" maxlength="200" required placeholder="e.g. Sunset over the beach at Cox's Bazar" /></label>
+        </div>
+        <datalist id="heroPlaces"></datalist>
+        <input type="file" id="hFile" accept="image/jpeg,image/png,image/webp" />
+        <p class="muted" style="margin:0">A wide landscape photo works best. JPEG, PNG or WebP, up to 10 MB.
+          Resized for phones and desktops and stripped of location data. Uploading for a destination that already has one replaces it.</p>
+        <div class="row"><button class="btn primary" type="submit">Upload photo</button></div>
+      </form>
+      <div class="card" style="padding:0">
+        <table>
+          <thead><tr><th>Photo</th><th>Shown for</th><th>Description</th><th></th></tr></thead>
+          <tbody id="heroRows"></tbody>
         </table>
       </div>
     </div>
@@ -1329,14 +1353,17 @@
   // ---------- catalog settings (admin) ----------
 
   async function loadCatalog() {
-    const [dests, divs, tt, ac] = await Promise.all([
+    const [dests, divs, tt, ac, heroes] = await Promise.all([
       api("GET", "/api/admin/destinations"),
       api("GET", "/api/admin/divisions"),
       api("GET", "/api/admin/options/trip-types"),
       api("GET", "/api/admin/options/activities"),
+      api("GET", "/api/admin/heroes"),
     ]);
     catalogDivisions = divs;
     renderDestinations(dests);
+    renderHeroes(heroes);
+    loadHeroPlaces();
     renderDivisions(divs);
     renderOptions("tt", tt, "trip-types");
     renderOptions("ac", ac, "activities");
@@ -1358,6 +1385,51 @@
         </div></td>
       </tr>`).join("") : `<tr><td colspan="5" class="muted">No destinations yet.</td></tr>`;
   }
+
+  function renderHeroes(rows) {
+    $("heroRows").innerHTML = rows.length ? rows.map((h) => `
+      <tr data-id="${h.id}">
+        <td><img class="hero-thumb" src="${esc(h.small_url)}" alt="" loading="lazy" /></td>
+        <td>${h.place_slug ? esc(h.place_name) : "<strong>Default</strong> — every destination"}</td>
+        <td class="muted">${esc(h.alt)}</td>
+        <td><div class="row" style="justify-content:flex-end">
+          <button class="btn small danger" data-act="del-hero">Delete</button>
+        </div></td>
+      </tr>`).join("") : `<tr><td colspan="4" class="muted">No photos yet — the home page shows its plain green gradient.</td></tr>`;
+  }
+
+  // Suggest the places travellers can actually pick, so a typed name
+  // produces the same slug the home page looks up.
+  async function loadHeroPlaces() {
+    try {
+      const res = await fetch("/destinations/featured");
+      const divisions = res.ok ? await res.json() : [];
+      const names = [...new Set(divisions.flatMap((d) => d.places.map((p) => p.name)))].sort();
+      $("heroPlaces").innerHTML = names.map((n) => `<option value="${esc(n)}"></option>`).join("");
+    } catch { /* suggestions are a convenience */ }
+  }
+
+  const MAX_HERO_BYTES = 10 * 1024 * 1024;
+
+  $("heroForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const file = $("hFile").files[0];
+    if (!file) return toast("Choose a photo to upload.", true);
+    // Checked again on the server; this just saves a wasted upload.
+    if (file.size > MAX_HERO_BYTES) return toast("That photo is over 10 MB. Choose a smaller one.", true);
+
+    const form = new FormData();
+    form.append("file", file);
+    form.append("place", $("hPlace").value);
+    form.append("alt", $("hAlt").value);
+
+    run(e.submitter, async () => {
+      await api("PUT", "/api/admin/heroes", form);
+      $("heroForm").reset();
+      await loadCatalog();
+      toast("Photo saved.");
+    });
+  });
 
   function renderDivisions(divs) {
     $("divList").innerHTML = divs.map((d) => `
@@ -1419,7 +1491,13 @@
     const id = btn.closest("[data-id]").dataset.id;
     const act = btn.dataset.act;
 
-    if (act === "del-dest") run(btn, async () => {
+    if (act === "del-hero") {
+      if (!confirm("Delete this home page photo?")) return;
+      run(btn, async () => {
+        await api("DELETE", `/api/admin/heroes/${id}`); await loadCatalog(); toast("Photo deleted.");
+      });
+    }
+    else if (act === "del-dest") run(btn, async () => {
       await api("DELETE", `/api/admin/destinations/${id}`); await loadCatalog(); toast("Destination removed.");
     });
     else if (act === "del-div") run(btn, async () => {

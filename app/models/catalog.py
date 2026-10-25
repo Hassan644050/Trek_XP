@@ -403,3 +403,18 @@ class DestinationCreate(BaseModel):
     @classmethod
     def tidy(cls, value: str) -> str:
         return " ".join(value.split())
+
+
+# ---------- home page hero photos ----------
+
+
+class HeroImageOut(BaseModel):
+    id: int
+    # "" is the country's default hero; otherwise the destination's URL slug,
+    # the same one the home page puts in ?to=<slug>.
+    place_slug: str
+    place_name: str | None
+    alt: str
+    small_url: str
+    image_url: str
+    updated_at: datetime

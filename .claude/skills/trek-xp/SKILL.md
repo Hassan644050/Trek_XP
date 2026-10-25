@@ -84,6 +84,12 @@ never return a status code or leak provider/SQL detail from a service.
   rename), brand, model_name, category, color, `is_active`, image renditions
   (thumb / detail / full), and **variants** ("Buying options": brand, colour,
   quality `budget|standard|premium`, price in BDT, vendor, url).
+- **Home page hero photos** (`hero_images`): admins upload in Catalog
+  settings; keyed by destination slug (same as `?to=`), `""` = the country
+  default. The page shows the picked place's photo, else the default, else
+  the gradient. `GET /heroes` is cached in-process; admin writes call
+  `forget_heroes()`. Renditions: `HERO_VARIANTS` (small 1080, full 2400),
+  keys under `heroes/`.
 - **Detail page "More {type}s"** = other active gadgets of the same head noun
   (`_type_key`), not the same category. No "Recommended for" section.
 
@@ -107,7 +113,7 @@ never return a status code or leak provider/SQL detail from a service.
   per page; change the shared file.
 - **Images:** request the rendition you show (`thumb_url` for cards,
   `detail_url` for the detail page). Storage keys are generated, never taken
-  from input.
+  from input. Save/delete rendition sets with `services/media/image_sets.py`.
 
 ## Recipes
 

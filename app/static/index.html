@@ -106,6 +106,33 @@
     padding: 40px;
   }
 
+  /* Admin-uploaded photo (GET /heroes), swapped as the destination changes.
+     It sits under a green scrim so the white heading stays readable on any
+     photo; without one the gradient above shows, as before. */
+  .hero { isolation: isolate; overflow: hidden; position: relative; }
+  .hero.has-photo { min-height: 320px; }
+  .hero-photo {
+    height: 100%;
+    inset: 0;
+    object-fit: cover;
+    opacity: 0;
+    position: absolute;
+    transition: opacity 0.4s ease;
+    width: 100%;
+    z-index: -2;
+  }
+  .hero.has-photo .hero-photo { opacity: 1; }
+  .hero.has-photo::before {
+    background:
+      linear-gradient(90deg, oklch(0.2 0.05 160 / 0.88) 0%, oklch(0.2 0.05 160 / 0.6) 45%, oklch(0.2 0.05 160 / 0.12) 100%),
+      linear-gradient(0deg, oklch(0.2 0.05 160 / 0.45) 0%, transparent 55%);
+    content: "";
+    inset: 0;
+    position: absolute;
+    z-index: -1;
+  }
+  @media (prefers-reduced-motion: reduce) { .hero-photo { transition: none; } }
+
   .hero .badge {
     align-self: flex-start;
     border: 1.5px solid var(--amber);
@@ -455,6 +482,9 @@
     .board { grid-template-columns: 1fr; }
     .hero { padding: 28px; }
     .hero h1 { font-size: 38px; }
+    /* Text spans the full width on a phone, so darken evenly. */
+    .hero.has-photo { min-height: 280px; }
+    .hero.has-photo::before { background: oklch(0.2 0.05 160 / 0.62); }
     .grid { grid-template-columns: 1fr; }
     .readout { grid-template-columns: 1fr; }
     .cell { border-bottom: 2px solid var(--line-firm); border-right: 0; }
@@ -478,7 +508,8 @@
 
 <div class="wrap">
 
-  <header class="hero">
+  <header class="hero" id="hero">
+    <img class="hero-photo" id="heroPhoto" alt="" />
     <span class="badge" id="exploreBadge">Explore</span>
     <div style="display:flex;flex-direction:column;gap:12px">
       <h1 id="heroTitle">Where to next?</h1>
@@ -840,6 +871,57 @@
   function setPlace(p) {
     place = p;
     $("placeSub").textContent = place ? place.name : "Pick a destination to start";
+    showHero();
+  }
+
+  // ---------- hero photo ----------
+  //
+  // Admins upload one default photo and, optionally, one per destination,
+  // keyed by the same slug as ?to=. The chosen place's photo wins; else the
+  // default; else the plain gradient.
+
+  const heroes = { bySlug: {}, fallback: null };
+  let heroShown = null;
+
+  async function loadHeroes() {
+    try {
+      const res = await fetch("/heroes");
+      for (const h of res.ok ? await res.json() : []) {
+        if (h.place_slug) heroes.bySlug[h.place_slug] = h;
+        else heroes.fallback = h;
+      }
+    } catch { /* no photos: the gradient stays */ }
+    showHero();
+  }
+
+  function showHero() {
+    const h = (place && heroes.bySlug[slugify(place.name)]) || heroes.fallback;
+    if (h === heroShown) return;
+    heroShown = h;
+
+    const img = $("heroPhoto");
+    const clear = () => {
+      $("hero").classList.remove("has-photo");
+      img.removeAttribute("srcset");
+      img.removeAttribute("src");
+      img.alt = "";
+    };
+    if (!h) return clear();
+
+    // Decode off-screen first, so switching places never flashes a
+    // half-loaded photo or an empty frame.
+    const next = new Image();
+    next.sizes = "100vw";
+    next.srcset = `${h.small_url} 1080w, ${h.image_url} 2400w`;
+    next.src = h.image_url;
+    next.decode().then(() => {
+      if (heroShown !== h) return;  // another place was picked meanwhile
+      img.sizes = next.sizes;
+      img.srcset = next.srcset;
+      img.src = next.src;
+      img.alt = h.alt;
+      $("hero").classList.add("has-photo");
+    }, () => { if (heroShown === h) clear(); });
   }
 
   function pick(p) {
@@ -1127,6 +1209,7 @@
   render();
   loadOptions();
   loadFeatured();
+  loadHeroes();
 })();
 </script>
 </body>

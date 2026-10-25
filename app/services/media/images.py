@@ -4,10 +4,13 @@ import warnings
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.exceptions.exceptions import InvalidImageException
-from app.services.media.variants import FULL, VARIANTS, Variant
+from app.services.media.variants import VARIANTS, Variant
 
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+# Hero photos are full-width landscapes straight off a camera or phone,
+# which routinely exceed the gadget limit.
+HERO_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 ACCEPTED_FORMATS = {"JPEG", "PNG", "WEBP"}
 
 # Refuse anything that would decode to more than ~40 megapixels. A tiny
@@ -27,10 +30,15 @@ def _encode(image: Image.Image, variant: Variant) -> bytes:
     return out.getvalue()
 
 
-def process_image(data: bytes) -> dict[str, bytes]:
+def process_image(
+    data: bytes,
+    variants: tuple[Variant, ...] = VARIANTS,
+    max_bytes: int = MAX_UPLOAD_BYTES,
+) -> dict[str, bytes]:
     """Validate an upload and re-encode it as one WebP per rendition.
 
-    Returns {variant name: encoded bytes} for every variant in VARIANTS.
+    Returns {variant name: encoded bytes} for every one of `variants` --
+    the gadget renditions by default, HERO_VARIANTS for a hero photo.
 
     Re-encoding rather than storing the original is the security step: the
     output contains only pixels, so EXIF (including phone GPS location) and
@@ -45,8 +53,8 @@ def process_image(data: bytes) -> dict[str, bytes]:
     if not data:
         raise InvalidImageException("The uploaded file is empty.")
 
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise InvalidImageException("Images must be 5 MB or smaller.")
+    if len(data) > max_bytes:
+        raise InvalidImageException(f"Images must be {max_bytes // (1024 * 1024)} MB or smaller.")
 
     try:
         with warnings.catch_warnings():
@@ -80,11 +88,12 @@ def process_image(data: bytes) -> dict[str, bytes]:
                 # Downscaling a 40 megapixel photo three times over is
                 # wasted work, and 480px off 1200px is indistinguishable
                 # from 480px off the original.
-                image.thumbnail((FULL.max_side, FULL.max_side))
+                largest = max(variant.max_side for variant in variants)
+                image.thumbnail((largest, largest))
 
                 return {
                     variant.name: _encode(image, variant)
-                    for variant in VARIANTS
+                    for variant in variants
                 }
 
     except InvalidImageException:

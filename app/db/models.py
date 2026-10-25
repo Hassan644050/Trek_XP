@@ -277,3 +277,29 @@ class GadgetVariant(Base):
     )
 
     gadget: Mapped[Gadget] = relationship(back_populates="variants")
+
+
+class HeroImage(Base):
+    """A photo for the home page hero, uploaded by an admin.
+
+    Keyed by the destination's URL slug -- the same slug the home page uses
+    in ?to=<slug> -- rather than a place row, because the curated spots in
+    destinations.json have no row. An empty slug is the country's default
+    hero, shown when the chosen destination has no photo of its own."""
+
+    __tablename__ = "hero_images"
+    __table_args__ = (
+        UniqueConstraint("country_code", "place_slug", name="uq_hero_images_place"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    country_code: Mapped[str] = mapped_column(String(2))
+    # "" for the default hero; otherwise url_slug(place_name).
+    place_slug: Mapped[str] = mapped_column(String(140))
+    place_name: Mapped[str | None] = mapped_column(String(200))
+    alt: Mapped[str] = mapped_column(String(200))
+    image_key: Mapped[str] = mapped_column(String(100))
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

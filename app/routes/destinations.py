@@ -12,10 +12,11 @@ from app.config import get_env_meta_info
 from app.db.engine import get_sessionmaker
 from app.db.models import ActivityOption, Gadget, Place, Placement, TripTypeOption
 from app.exceptions.exceptions import DatabaseNotConfiguredException
-from app.models.catalog import Option
+from app.models.catalog import HeroImageOut, Option
 from app.services.destination.admin_areas import division_for_coords, normalize
 from app.services.destination.countries import get_country, home_country
 from app.services.destination.geocode import search_destinations
+from app.services.heroes import cached_heroes, hero_out, list_heroes, remember_heroes
 from app.services.taxonomy import SEED_ACTIVITIES, SEED_TRIP_TYPES, list_options
 
 
@@ -62,6 +63,38 @@ async def form_options() -> FormOptions:
         trip_types=[Option(value=o.value, label=o.label) for o in trip_types],
         activities=[Option(value=o.value, label=o.label) for o in activities],
     )
+
+
+@router.get("/heroes", response_model=list[HeroImageOut])
+async def hero_images(country: str | None = None) -> list[HeroImageOut]:
+    """Hero photos for the home page: the country's default (place_slug "")
+    and any per-destination ones, which the page swaps in as the traveller
+    picks a place.
+
+    Best effort, like /options: without the database the hero keeps its
+    plain gradient, so an outage costs a photo, never the page.
+    """
+    code = (country or home_country().code).upper()
+
+    cached = cached_heroes(code)
+    if cached is not None:
+        return cached
+
+    try:
+        sessionmaker = get_sessionmaker()
+    except DatabaseNotConfiguredException:
+        return []
+
+    try:
+        async with sessionmaker() as db:
+            heroes = [hero_out(h) for h in await list_heroes(db, code)]
+    except SQLAlchemyError:
+        # Not cached: the next visitor tries the database again.
+        logger.warning("Hero image lookup failed; showing none", exc_info=True)
+        return []
+
+    remember_heroes(code, heroes)
+    return heroes
 
 
 class DestinationMatch(BaseModel):

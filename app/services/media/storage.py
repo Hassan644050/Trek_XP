@@ -10,13 +10,18 @@ from app.services.media.variants import FULL, VARIANT_NAMES
 
 # Keys are generated here, never taken from users, so this pattern doubles
 # as a guard against path traversal if a key is ever read back from input.
-_KEY_PATTERN = re.compile(r"^gadgets/[0-9a-f]{32}(_[a-z]{3,10})?\.webp$")
+_KEY_PATTERN = re.compile(r"^(gadgets|heroes)/[0-9a-f]{32}(_[a-z]{3,10})?\.webp$")
+
+KEY_FOLDERS = ("gadgets", "heroes")
 
 
-def new_image_key() -> str:
+def new_image_key(folder: str = "gadgets") -> str:
     # A fresh random key per upload: replacing an image changes its URL,
     # so browsers and CDNs never show a stale cached copy.
-    return f"gadgets/{uuid.uuid4().hex}.webp"
+    if folder not in KEY_FOLDERS:
+        raise ValueError(f"unknown image folder {folder!r}")
+
+    return f"{folder}/{uuid.uuid4().hex}.webp"
 
 
 def is_valid_key(key: str) -> bool:
@@ -37,9 +42,10 @@ def variant_key(key: str, variant: str) -> str:
     return f"{key.removesuffix('.webp')}_{variant}.webp"
 
 
-def all_keys(key: str) -> list[str]:
-    """Every rendition of one upload -- what deleting it has to remove."""
-    return [variant_key(key, name) for name in VARIANT_NAMES]
+def all_keys(key: str, names: tuple[str, ...] = VARIANT_NAMES) -> list[str]:
+    """Every rendition of one upload -- what deleting it has to remove.
+    Pass HERO_VARIANT_NAMES for a hero photo."""
+    return [variant_key(key, name) for name in names]
 
 
 class ImageStorage(ABC):

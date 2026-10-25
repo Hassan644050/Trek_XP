@@ -37,4 +37,18 @@ VARIANTS = (THUMB, DETAIL, FULL)
 
 VARIANT_NAMES = tuple(variant.name for variant in VARIANTS)
 
+
+# ---------- home page hero photos ----------
+#
+# The hero spans the page width and crops with object-fit: cover, so its
+# renditions are wide. Phones get HERO_SMALL (a ~343px-wide hero at 3x);
+# desktops get HERO_FULL (a ~1900px hero at about 1.25x). The large one is
+# named "full" so it takes the plain, unsuffixed key, like a gadget's FULL.
+HERO_SMALL = Variant("small", 1080, 78)
+HERO_FULL = Variant("full", 2400, 78)
+
+HERO_VARIANTS = (HERO_SMALL, HERO_FULL)
+
+HERO_VARIANT_NAMES = tuple(variant.name for variant in HERO_VARIANTS)
+
 BY_NAME = {variant.name: variant for variant in VARIANTS}

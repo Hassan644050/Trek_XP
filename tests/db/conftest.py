@@ -22,6 +22,7 @@ from app.config import PROJECT_ROOT
 from app.db.engine import build_engine_config, get_db
 from app.db.models import Role, User
 from app.main import app
+from app.services.heroes import forget_heroes
 from app.services.media.storage import LocalImageStorage
 
 
@@ -30,7 +31,7 @@ load_dotenv()
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 CSRF = {"X-Requested-With": "trekxp"}
 PASSWORD = "correct horse battery"
-TABLES = "placements, gadgets, places, auth_sessions, users"
+TABLES = "hero_images, placements, gadgets, places, auth_sessions, users"
 
 
 def pytest_collection_modifyitems(config, items):
@@ -100,6 +101,11 @@ def db_app(migrated, tmp_path, monkeypatch):
     storage = LocalImageStorage(tmp_path / "media", "/media")
     app.dependency_overrides[get_db] = test_db
     monkeypatch.setattr("app.routes.coordinator.get_image_storage", lambda: storage)
+    monkeypatch.setattr("app.routes.admin.get_image_storage", lambda: storage)
+    monkeypatch.setattr("app.services.heroes.get_image_storage", lambda: storage)
+    # The public hero list is cached in-process; a truncated table must not
+    # be answered from a previous test's cache.
+    forget_heroes()
     monkeypatch.setenv("MAX_FAILED_LOGINS", "3")
     monkeypatch.setenv("COOKIE_SECURE", "false")
 
