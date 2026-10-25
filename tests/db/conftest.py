@@ -22,7 +22,7 @@ from app.config import PROJECT_ROOT
 from app.db.engine import build_engine_config, get_db
 from app.db.models import Role, User
 from app.main import app
-from app.services.heroes import forget_heroes
+from app.services.read_cache import clear_read_caches
 from app.services.media.storage import LocalImageStorage
 
 
@@ -103,9 +103,9 @@ def db_app(migrated, tmp_path, monkeypatch):
     monkeypatch.setattr("app.routes.coordinator.get_image_storage", lambda: storage)
     monkeypatch.setattr("app.routes.admin.get_image_storage", lambda: storage)
     monkeypatch.setattr("app.services.heroes.get_image_storage", lambda: storage)
-    # The public hero list is cached in-process; a truncated table must not
-    # be answered from a previous test's cache.
-    forget_heroes()
+    # Public reads are cached in-process; a truncated table must not be
+    # answered from a previous test's cache.
+    clear_read_caches()
     monkeypatch.setenv("MAX_FAILED_LOGINS", "3")
     monkeypatch.setenv("COOKIE_SECURE", "false")
 

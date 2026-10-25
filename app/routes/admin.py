@@ -332,7 +332,7 @@ from fastapi import File, Form, UploadFile
 
 from app.db.models import HeroImage
 from app.models.catalog import HeroImageOut
-from app.services.heroes import forget_heroes, hero_out, hero_slug, list_heroes
+from app.services.heroes import hero_out, hero_slug, list_heroes
 from app.services.media.image_sets import discard_image_set, store_image_set
 from app.services.media.images import HERO_MAX_UPLOAD_BYTES, process_image
 from app.services.media.storage import get_image_storage, new_image_key
@@ -403,8 +403,6 @@ async def upload_hero_image(
         await discard_image_set(storage, new_key, HERO_VARIANT_NAMES)
         raise
 
-    forget_heroes()
-
     if old_key:
         await discard_image_set(storage, old_key, HERO_VARIANT_NAMES)
 
@@ -426,6 +424,5 @@ async def delete_hero_image(
     old_key = hero.image_key
     await db.delete(hero)
     await db.commit()
-    forget_heroes()
 
     await discard_image_set(get_image_storage(), old_key, HERO_VARIANT_NAMES)

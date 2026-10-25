@@ -1,6 +1,8 @@
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -10,13 +12,25 @@ from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
 from app.routes.coordinator import router as coordinator_router
 from app.routes.destinations import router as destinations_router
+from app.routes.destinations import warm_public_caches
 from app.routes.gadget_pages import router as gadget_pages_router
 from app.routes.health import router as health_router
 from app.routes.recommend import router as recommend_router
 from app.services.media.storage import LocalImageStorage, get_image_storage
+from app.services.read_cache import clear_read_caches
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # In the background: startup never waits on the database, and a slow or
+    # unreachable one costs nothing but a cold first request.
+    warm = asyncio.create_task(warm_public_caches())
+    yield
+    warm.cancel()
 
 
 app = FastAPI(
+    lifespan=lifespan,
     title="Trek_XP API",
     version="0.1.0",
     description=(
@@ -26,6 +40,26 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+
+_CATALOG_WRITE_PREFIXES = ("/api/admin/", "/api/coordinator/")
+
+
+@app.middleware("http")
+async def drop_read_caches_after_catalog_writes(request: Request, call_next):
+    """Any successful admin or coordinator write can change what the public
+    pages show (options, destinations, hero photos), so the cached copies
+    are dropped -- in one place, instead of in every write route."""
+    response = await call_next(request)
+
+    if (
+        request.method not in ("GET", "HEAD", "OPTIONS")
+        and request.url.path.startswith(_CATALOG_WRITE_PREFIXES)
+        and response.status_code < 400
+    ):
+        clear_read_caches()
+
+    return response
 
 app.include_router(recommend_router)
 app.include_router(destinations_router)

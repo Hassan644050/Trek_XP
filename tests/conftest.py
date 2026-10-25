@@ -38,6 +38,17 @@ def fresh_osm_state(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def fresh_read_caches():
+    """The public reads (/options, featured, heroes) are cached in-process;
+    a value cached by one test must not answer the next."""
+    from app.services.read_cache import clear_read_caches
+
+    clear_read_caches()
+    yield
+    clear_read_caches()
+
+
+@pytest.fixture(autouse=True)
 def no_catalog_db(monkeypatch):
     """Keep offline route tests away from a real database.
 

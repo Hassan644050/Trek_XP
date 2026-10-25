@@ -1,8 +1,6 @@
 """Home page hero photos: lookup and serialization shared by the public
 read and the admin panel."""
 
-import time
-
 from sqlalchemy import select
 
 from app.db.models import HeroImage
@@ -44,31 +42,3 @@ async def list_heroes(db, country_code: str) -> list[HeroImage]:
         ).all()
     )
 
-
-# ---------- public read cache ----------
-#
-# Every home page view asks for the hero list, and each lookup is a fresh
-# connection to Neon (pooler, NullPool) -- measured at ~2.7s, which made the
-# photo pop in seconds after the page. Photos change rarely, so the public
-# list is cached per country and dropped whenever an admin changes one.
-# With several workers, a worker that did not handle the upload catches up
-# within the TTL.
-
-HERO_CACHE_SECONDS = 300
-
-_cache: dict[str, tuple[float, list[HeroImageOut]]] = {}
-
-
-def cached_heroes(country_code: str) -> list[HeroImageOut] | None:
-    hit = _cache.get(country_code)
-    if hit and hit[0] > time.monotonic():
-        return hit[1]
-    return None
-
-
-def remember_heroes(country_code: str, heroes: list[HeroImageOut]) -> None:
-    _cache[country_code] = (time.monotonic() + HERO_CACHE_SECONDS, heroes)
-
-
-def forget_heroes() -> None:
-    _cache.clear()

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from collections import OrderedDict
@@ -16,7 +17,8 @@ from app.models.catalog import HeroImageOut, Option
 from app.services.destination.admin_areas import division_for_coords, normalize
 from app.services.destination.countries import get_country, home_country, is_supported
 from app.services.destination.geocode import search_destinations
-from app.services.heroes import cached_heroes, hero_out, list_heroes, remember_heroes
+from app.services.heroes import hero_out, list_heroes
+from app.services.read_cache import ReadCache
 from app.services.taxonomy import SEED_ACTIVITIES, SEED_TRIP_TYPES, list_options
 
 
@@ -24,10 +26,36 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Public, read-mostly lookups every home page view makes; see read_cache.py.
+_options_cache = ReadCache("form options")
+_featured_cache = ReadCache("featured destinations")
+_hero_cache = ReadCache("hero images")
+
 
 class FormOptions(BaseModel):
     trip_types: list[Option]
     activities: list[Option]
+
+
+def _seed_options() -> FormOptions:
+    return FormOptions(
+        trip_types=[Option(value=v, label=label) for v, label in SEED_TRIP_TYPES],
+        activities=[Option(value=v, label=label) for v, label in SEED_ACTIVITIES],
+    )
+
+
+async def _load_options() -> FormOptions:
+    async with get_sessionmaker()() as db:
+        trip_types = await list_options(db, TripTypeOption, active_only=True)
+        activities = await list_options(db, ActivityOption, active_only=True)
+
+    if not trip_types or not activities:
+        return _seed_options()
+
+    return FormOptions(
+        trip_types=[Option(value=o.value, label=o.label) for o in trip_types],
+        activities=[Option(value=o.value, label=o.label) for o in activities],
+    )
 
 
 @router.get("/options", response_model=FormOptions)
@@ -37,32 +65,13 @@ async def form_options() -> FormOptions:
     Best effort: if the database is unreachable the form still works off the
     seed values, so a taxonomy outage never leaves the picker empty.
     """
-    def seed() -> FormOptions:
-        return FormOptions(
-            trip_types=[Option(value=v, label=label) for v, label in SEED_TRIP_TYPES],
-            activities=[Option(value=v, label=label) for v, label in SEED_ACTIVITIES],
-        )
-
     try:
-        sessionmaker = get_sessionmaker()
+        return await _options_cache.get("all", _load_options)
     except DatabaseNotConfiguredException:
-        return seed()
-
-    try:
-        async with sessionmaker() as db:
-            trip_types = await list_options(db, TripTypeOption, active_only=True)
-            activities = await list_options(db, ActivityOption, active_only=True)
+        return _seed_options()
     except SQLAlchemyError:
         logger.warning("Form options lookup failed; using seed values", exc_info=True)
-        return seed()
-
-    if not trip_types or not activities:
-        return seed()
-
-    return FormOptions(
-        trip_types=[Option(value=o.value, label=o.label) for o in trip_types],
-        activities=[Option(value=o.value, label=o.label) for o in activities],
-    )
+        return _seed_options()
 
 
 @router.get("/heroes", response_model=list[HeroImageOut])
@@ -83,25 +92,17 @@ async def hero_images(
     if not is_supported(code):
         return []
 
-    cached = cached_heroes(code)
-    if cached is not None:
-        return cached
+    async def load() -> list[HeroImageOut]:
+        async with get_sessionmaker()() as db:
+            return [hero_out(h) for h in await list_heroes(db, code)]
 
     try:
-        sessionmaker = get_sessionmaker()
+        return await _hero_cache.get(code, load)
     except DatabaseNotConfiguredException:
         return []
-
-    try:
-        async with sessionmaker() as db:
-            heroes = [hero_out(h) for h in await list_heroes(db, code)]
     except SQLAlchemyError:
-        # Not cached: the next visitor tries the database again.
         logger.warning("Hero image lookup failed; showing none", exc_info=True)
         return []
-
-    remember_heroes(code, heroes)
-    return heroes
 
 
 class DestinationMatch(BaseModel):
@@ -195,35 +196,27 @@ async def _catalog_places(country_code: str) -> list[Place]:
     """Catalog places in this country that have at least one active gadget.
 
     So a destination a coordinator enters and stocks becomes selectable on
-    the home page, not only matchable behind the scenes. Best effort: with
-    no database the picker falls back to the curated list alone.
+    the home page, not only matchable behind the scenes. Raises when the
+    database is missing or unreachable; `featured` then falls back to the
+    curated list alone.
     """
-    try:
-        sessionmaker = get_sessionmaker()
-    except DatabaseNotConfiguredException:
-        return []
-
     stocked = (
         select(Placement.place_id)
         .join(Gadget, Gadget.id == Placement.gadget_id)
         .where(Gadget.is_active.is_(True))
     )
 
-    try:
-        async with sessionmaker() as db:
-            return list(
-                (
-                    await db.scalars(
-                        select(Place).where(
-                            Place.country_code == country_code,
-                            Place.id.in_(stocked),
-                        )
+    async with get_sessionmaker()() as db:
+        return list(
+            (
+                await db.scalars(
+                    select(Place).where(
+                        Place.country_code == country_code,
+                        Place.id.in_(stocked),
                     )
-                ).all()
-            )
-    except SQLAlchemyError:
-        logger.warning("Featured catalog-place lookup failed", exc_info=True)
-        return []
+                )
+            ).all()
+        )
 
 
 def _merge(curated: list[FeaturedDivision], places: list[Place], country_code: str) -> list[FeaturedDivision]:
@@ -278,4 +271,27 @@ async def featured(
     """
     code = (country or home_country().code).upper()
 
-    return _merge(_curated(code), await _catalog_places(code), code)
+    async def load() -> list[FeaturedDivision]:
+        return _merge(_curated(code), await _catalog_places(code), code)
+
+    try:
+        return await _featured_cache.get(code, load)
+    except DatabaseNotConfiguredException:
+        return _merge(_curated(code), [], code)
+    except SQLAlchemyError:
+        logger.warning("Featured catalog-place lookup failed", exc_info=True)
+        return _merge(_curated(code), [], code)
+
+
+async def warm_public_caches() -> None:
+    """Fill the home page caches at startup, so the first visitor after a
+    deploy or restart does not wait on the database either. Best effort:
+    each route already falls back on its own when the database is down."""
+    try:
+        await asyncio.gather(
+            form_options(),
+            featured(country=None),
+            hero_images(country=None),
+        )
+    except Exception:
+        logger.warning("Warming the public caches failed", exc_info=True)

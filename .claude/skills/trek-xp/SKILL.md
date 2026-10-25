@@ -87,9 +87,14 @@ never return a status code or leak provider/SQL detail from a service.
 - **Home page hero photos** (`hero_images`): admins upload in Catalog
   settings; keyed by destination slug (same as `?to=`), `""` = the country
   default. The page shows the picked place's photo, else the default, else
-  the gradient. `GET /heroes` is cached in-process; admin writes call
-  `forget_heroes()`. Renditions: `HERO_VARIANTS` (small 1080, full 2400),
+  the gradient. Renditions: `HERO_VARIANTS` (small 1080, full 2400),
   keys under `heroes/`.
+- **Public reads are cached in-process** (`services/read_cache.py`):
+  `/options`, `/destinations/featured`, `/heroes`. Stale-while-revalidate
+  after 60s, warmed at startup, cleared by middleware after any successful
+  `/api/admin` or `/api/coordinator` write. A new public read the home page
+  makes on every view should use a `ReadCache` too — each uncached Neon
+  lookup costs seconds from a dev machine.
 - **Detail page "More {type}s"** = other active gadgets of the same head noun
   (`_type_key`), not the same category. No "Recommended for" section.
 

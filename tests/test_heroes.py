@@ -1,15 +1,11 @@
 """Hero photo helpers: slugs, renditions, keys and the public-read cache."""
 
 import io
-from datetime import datetime, timezone
-from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
-from app.models.catalog import HeroImageOut
-from app.services import heroes
-from app.services.heroes import cached_heroes, forget_heroes, hero_slug, remember_heroes
+from app.services.heroes import hero_slug
 from app.services.media.images import process_image
 from app.services.media.storage import all_keys, is_valid_key, new_image_key
 from app.services.media.variants import HERO_FULL, HERO_SMALL, HERO_VARIANT_NAMES, HERO_VARIANTS
@@ -61,42 +57,11 @@ def test_hero_keys_live_in_their_own_folder():
         new_image_key("../elsewhere")
 
 
-def _out(slug="") -> HeroImageOut:
-    return HeroImageOut(
-        id=1, place_slug=slug, place_name=None, alt="x", small_url="/s", image_url="/f",
-        updated_at=datetime.now(timezone.utc),
-    )
-
-
-def test_cache_returns_until_forgotten():
-    forget_heroes()
-    assert cached_heroes("BD") is None
-
-    remember_heroes("BD", [_out()])
-    assert cached_heroes("BD")[0].place_slug == ""
-    assert cached_heroes("NP") is None  # per country
-
-    forget_heroes()
-    assert cached_heroes("BD") is None
-
-
-def test_cache_expires(monkeypatch):
-    forget_heroes()
-    clock = SimpleNamespace(now=1000.0)
-    monkeypatch.setattr(heroes.time, "monotonic", lambda: clock.now)
-
-    remember_heroes("BD", [_out()])
-    clock.now += heroes.HERO_CACHE_SECONDS + 1
-    assert cached_heroes("BD") is None
-
-
-def test_an_unserved_country_gets_no_heroes_and_no_cache_entry():
+def test_an_unserved_country_gets_no_heroes():
     from fastapi.testclient import TestClient
 
     from app.main import app
 
-    forget_heroes()
     response = TestClient(app).get("/heroes?country=XY")
 
     assert response.status_code == 200 and response.json() == []
-    assert cached_heroes("XY") is None
