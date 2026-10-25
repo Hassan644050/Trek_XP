@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import get_env_meta_info
 from app.db.engine import get_sessionmaker
-from app.db.models import ActivityOption, Gadget, Place, Placement, TripTypeOption
+from app.db.models import ActivityOption, Place, TripTypeOption
 from app.exceptions.exceptions import DatabaseNotConfiguredException
 from app.models.catalog import HeroImageOut, Option
 from app.services.destination.admin_areas import division_for_coords, normalize
@@ -193,34 +193,30 @@ def _curated(country_code: str) -> list[FeaturedDivision]:
 
 
 async def _catalog_places(country_code: str) -> list[Place]:
-    """Catalog places in this country that have at least one active gadget.
+    """Every destination on file in this country -- whether or not it has
+    gadgets yet.
 
-    So a destination a coordinator enters and stocks becomes selectable on
-    the home page, not only matchable behind the scenes. Raises when the
-    database is missing or unreachable; `featured` then falls back to the
-    curated list alone.
+    A place an admin or coordinator adds is selectable on the home page
+    straight away: for a place with no verified gadgets the model suggests
+    the whole list, and its new items go to the coordinators' review queue,
+    so the place fills in over time. Places that cannot be filed under a
+    division are left out by _merge. Raises when the database is missing or
+    unreachable; `featured` then falls back to the curated list alone.
     """
-    stocked = (
-        select(Placement.place_id)
-        .join(Gadget, Gadget.id == Placement.gadget_id)
-        .where(Gadget.is_active.is_(True))
-    )
-
     async with get_sessionmaker()() as db:
         return list(
             (
                 await db.scalars(
-                    select(Place).where(
-                        Place.country_code == country_code,
-                        Place.id.in_(stocked),
-                    )
+                    select(Place)
+                    .where(Place.country_code == country_code)
+                    .order_by(Place.name)
                 )
             ).all()
         )
 
 
 def _merge(curated: list[FeaturedDivision], places: list[Place], country_code: str) -> list[FeaturedDivision]:
-    """Curated destinations first, with stocked catalog places added to
+    """Curated destinations first, with the other catalog places added to
     their division. A catalog place already curated is left to the curated
     entry, which keeps its anchored coordinates and the home-page default."""
     groups: OrderedDict[str, list[FeaturedPlace]] = OrderedDict()
@@ -265,8 +261,8 @@ async def featured(
 ) -> list[FeaturedDivision]:
     """Destinations grouped by division, for the picker.
 
-    Curated showcase spots plus any catalog destination a coordinator has
-    stocked. Defaults to the configured home country; `?country=` selects
+    Curated showcase spots plus every other destination on file, with or
+    without gadgets -- the model suggests gear for any of them. Defaults to the configured home country; `?country=` selects
     another once its data is in place.
     """
     code = (country or home_country().code).upper()

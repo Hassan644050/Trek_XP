@@ -1,4 +1,4 @@
-"""Merging coordinator-stocked catalog places into the home-page picker."""
+"""Merging catalog places (with or without gadgets) into the home-page picker."""
 
 from types import SimpleNamespace
 
@@ -23,7 +23,7 @@ def place(name, lat, lon, division=None, country_code="BD"):
         country_code=country_code, country_name="Bangladesh")
 
 
-def test_a_stocked_catalog_place_is_added_to_its_division():
+def test_a_catalog_place_is_added_to_its_division():
     # Nikli: a coordinator-entered place in Dhaka division.
     merged = _merge(curated_bd(), [place("Nikli", 24.31, 90.95, division="Dhaka")], "BD")
 
