@@ -23,7 +23,13 @@
   login.href = "/";
   login.addEventListener("click", async (e) => {
     e.preventDefault();
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    // The server refuses writes without this header (CSRF protection), so
+    // without it the session would stay open behind a "logged out" page.
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "trekxp" },
+    });
     location.reload();
   });
 })();

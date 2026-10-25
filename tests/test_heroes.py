@@ -88,3 +88,15 @@ def test_cache_expires(monkeypatch):
     remember_heroes("BD", [_out()])
     clock.now += heroes.HERO_CACHE_SECONDS + 1
     assert cached_heroes("BD") is None
+
+
+def test_an_unserved_country_gets_no_heroes_and_no_cache_entry():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    forget_heroes()
+    response = TestClient(app).get("/heroes?country=XY")
+
+    assert response.status_code == 200 and response.json() == []
+    assert cached_heroes("XY") is None

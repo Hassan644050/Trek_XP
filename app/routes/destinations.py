@@ -14,7 +14,7 @@ from app.db.models import ActivityOption, Gadget, Place, Placement, TripTypeOpti
 from app.exceptions.exceptions import DatabaseNotConfiguredException
 from app.models.catalog import HeroImageOut, Option
 from app.services.destination.admin_areas import division_for_coords, normalize
-from app.services.destination.countries import get_country, home_country
+from app.services.destination.countries import get_country, home_country, is_supported
 from app.services.destination.geocode import search_destinations
 from app.services.heroes import cached_heroes, hero_out, list_heroes, remember_heroes
 from app.services.taxonomy import SEED_ACTIVITIES, SEED_TRIP_TYPES, list_options
@@ -66,7 +66,9 @@ async def form_options() -> FormOptions:
 
 
 @router.get("/heroes", response_model=list[HeroImageOut])
-async def hero_images(country: str | None = None) -> list[HeroImageOut]:
+async def hero_images(
+    country: str | None = Query(default=None, min_length=2, max_length=2),
+) -> list[HeroImageOut]:
     """Hero photos for the home page: the country's default (place_slug "")
     and any per-destination ones, which the page swaps in as the traveller
     picks a place.
@@ -75,6 +77,11 @@ async def hero_images(country: str | None = None) -> list[HeroImageOut]:
     plain gradient, so an outage costs a photo, never the page.
     """
     code = (country or home_country().code).upper()
+
+    # Only countries we serve: otherwise every made-up code would cost a
+    # database query and leave an entry in the cache.
+    if not is_supported(code):
+        return []
 
     cached = cached_heroes(code)
     if cached is not None:
