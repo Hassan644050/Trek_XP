@@ -26,6 +26,8 @@
     --danger: #b3261e;
     --danger-wash: #fbe9e7;
     --ok: #2e7d32;
+    /* Chart bars: the accent, validated for contrast on the surface. */
+    --chart-bar: #b4550a;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     --r: 3px;
@@ -48,6 +50,7 @@
       --danger: #f2948a;
       --danger-wash: #2c1614;
       --ok: #81c784;
+      --chart-bar: #c97a22;
     }
   }
 
@@ -313,6 +316,30 @@
 
   /* ---------- accounts ---------- */
 
+  /* ---------- visitors (admin) ---------- */
+
+  .tiles { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tile { display: flex; flex-direction: column; gap: 4px; }
+  .tile .k { color: var(--ink-soft); font-size: 12.5px; font-weight: 600; }
+  .tile .v { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 650; line-height: 1.1; }
+  .tile.hero .v { font-size: 48px; }
+  .tile .s { color: var(--ink-faint); font-size: 12px; }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { display: block; overflow: visible; width: 100%; }
+  .chart-wrap .grid { stroke: var(--line-soft); stroke-width: 1; }
+  .chart-wrap .axis { fill: var(--ink-faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .chart-wrap .bar { fill: var(--chart-bar); }
+  .chart-wrap .hit { cursor: default; fill: transparent; outline: none; }
+  .chart-wrap .hit:hover + .bar, .chart-wrap .hit:focus + .bar { fill: var(--signal-ink); }
+  .chart-tip {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12); font-size: 12.5px; padding: 8px 10px;
+    pointer-events: none; position: absolute; white-space: nowrap; z-index: 5;
+  }
+  .chart-tip strong { font-size: 15px; }
+  .rank td:last-child, .rank th:last-child { font-variant-numeric: tabular-nums; text-align: right; }
+  @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
+
   table { border-collapse: collapse; width: 100%; }
   th, td { border-bottom: 1px solid var(--line-soft); padding: 9px 8px; text-align: left; vertical-align: middle; }
   th { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -355,6 +382,7 @@
     <button class="tab" data-tab="gadgets" aria-selected="true">Gadgets</button>
     <button class="tab" data-tab="catalog" id="catalogTab" hidden>Catalog settings</button>
     <button class="tab" data-tab="accounts" id="accountsTab" hidden>Accounts</button>
+    <button class="tab" data-tab="visitors" id="visitorsTab" hidden>Visitors</button>
   </nav>
   <div class="who" id="who" hidden>
     <b id="whoName"></b> · <span id="whoRole"></span>
@@ -572,6 +600,56 @@
   </div>
 </main>
 
+<!-- ============ visitors (admin) ============ -->
+
+<main id="visitorsView" hidden>
+  <div class="stack">
+    <div class="row" style="justify-content:space-between">
+      <div class="stack" style="gap:2px">
+        <h2>Visitors</h2>
+        <p class="muted" style="margin:0">Anonymous and cookie-free: no IP addresses are stored, bots and signed-in staff are not counted.
+          A visitor is counted once per day.</p>
+      </div>
+      <div class="row">
+        <label style="flex-direction:row;align-items:center;gap:8px">Period
+          <select id="vDays" style="width:auto">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </label>
+        <button class="btn small" id="vRefresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <div class="card tile hero"><span class="k">Visitors today</span><span class="v" id="vToday">—</span><span class="s" id="vTodaySub"></span></div>
+      <div class="card tile"><span class="k">Average visitors a day</span><span class="v" id="vAvg">—</span><span class="s" id="vAvgSub"></span></div>
+      <div class="card tile"><span class="k">Page views</span><span class="v" id="vViews">—</span><span class="s" id="vViewsSub"></span></div>
+      <div class="card tile"><span class="k">Packing lists made</span><span class="v" id="vLists">—</span><span class="s" id="vListsSub"></span></div>
+    </div>
+
+    <div class="card stack">
+      <h2 id="vChartTitle">Visitors per day</h2>
+      <div class="chart-wrap" id="vChart"></div>
+      <details>
+        <summary class="muted" style="cursor:pointer">Show the daily numbers as a table</summary>
+        <table class="rank" style="margin-top:8px">
+          <thead><tr><th>Day</th><th>Visitors</th><th>Page views</th><th>Packing lists</th></tr></thead>
+          <tbody id="vTable"></tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="grid2" style="align-items:start">
+      <div class="card stack"><h2>Top destinations</h2><p class="muted" style="margin:0">Packing lists made, by destination.</p><table class="rank"><tbody id="vDest"></tbody></table></div>
+      <div class="card stack"><h2>Top pages</h2><p class="muted" style="margin:0">Page views.</p><table class="rank"><tbody id="vPages"></tbody></table></div>
+      <div class="card stack"><h2>Where visitors come from</h2><p class="muted" style="margin:0">Other sites that linked here. Visitors who typed the address or used a bookmark are not listed.</p><table class="rank"><tbody id="vRefs"></tbody></table></div>
+      <div class="card stack"><h2>Devices and trip types</h2><table class="rank"><tbody id="vDevices"></tbody></table><table class="rank"><tbody id="vTrips"></tbody></table></div>
+    </div>
+  </div>
+</main>
+
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -672,7 +750,7 @@
   // ---------- views ----------
 
   function showView(name) {
-    for (const v of ["signinView", "gadgetsView", "catalogView", "accountsView"]) $(v).hidden = v !== name;
+    for (const v of ["signinView", "gadgetsView", "catalogView", "accountsView", "visitorsView"]) $(v).hidden = v !== name;
     for (const t of document.querySelectorAll(".tab")) {
       t.setAttribute("aria-selected", String(`${t.dataset.tab}View` === name));
     }
@@ -695,6 +773,7 @@
     $("tabs").hidden = false;
     $("accountsTab").hidden = user.role !== "admin";
     $("catalogTab").hidden = user.role !== "admin";
+    $("visitorsTab").hidden = user.role !== "admin";
 
     options = await api("GET", "/api/coordinator/options");
     showView("gadgetsView");
@@ -705,6 +784,7 @@
     showView(`${tab.dataset.tab}View`);
     if (tab.dataset.tab === "accounts") run(null, loadUsers);
     if (tab.dataset.tab === "catalog") run(null, loadCatalog);
+    if (tab.dataset.tab === "visitors") run(null, loadVisitors);
   }));
 
   // ---------- sign in / out ----------
@@ -1510,6 +1590,165 @@
       await loadCatalog();
     });
   });
+
+  // ---------- visitors (admin) ----------
+
+  const fmt = (n) => Number(n).toLocaleString();
+  const dayLabel = (iso, opts) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, opts);
+  let visitorData = null;
+
+  async function loadVisitors() {
+    visitorData = await api("GET", `/api/admin/analytics?days=${$("vDays").value}`);
+    renderVisitors(visitorData);
+  }
+
+  function renderVisitors(d) {
+    const daysWord = `last ${d.days} days`;
+    $("vToday").textContent = fmt(d.today.visitors);
+    $("vTodaySub").textContent = `${fmt(d.today.page_views)} page views · ${fmt(d.today.lists)} lists today`;
+    $("vAvg").textContent = fmt(Math.round(d.totals.visitors / d.days));
+    $("vAvgSub").textContent = daysWord;
+    $("vViews").textContent = fmt(d.totals.page_views);
+    $("vViewsSub").textContent = daysWord;
+    $("vLists").textContent = fmt(d.totals.lists);
+    $("vListsSub").textContent = daysWord;
+    $("vChartTitle").textContent = `Visitors per day, ${daysWord}`;
+
+    const tbody = $("vTable");
+    tbody.replaceChildren(...[...d.daily].reverse().map((r) => {
+      const tr = document.createElement("tr");
+      for (const v of [dayLabel(r.day, { weekday: "short", day: "numeric", month: "short" }),
+                       fmt(r.visitors), fmt(r.page_views), fmt(r.lists)]) {
+        const td = document.createElement("td");
+        td.textContent = v;
+        tr.append(td);
+      }
+      return tr;
+    }));
+
+    rankTable("vDest", d.top_destinations, "No packing lists yet.");
+    rankTable("vPages", d.top_pages.map((p) => ({ ...p, label: pageName(p.label) })), "No page views yet.");
+    rankTable("vRefs", d.top_referrers, "No links from other sites yet.");
+    rankTable("vDevices", d.devices.map((p) => ({ ...p, label: label(p.label) })), "No visits yet.");
+    rankTable("vTrips", d.top_trip_types.map((p) => ({ ...p, label: label(p.label) })), "");
+    drawVisitorChart(d.daily);
+  }
+
+  function pageName(key) {
+    if (key === "home") return "Home page";
+    if (key === "gadgets") return "All gadgets";
+    return key.replace(/^gadget\//, "Gadget: ").replace(/-/g, " ");
+  }
+
+  function rankTable(id, rows, empty) {
+    const body = $(id);
+    if (!rows.length) {
+      body.innerHTML = empty ? `<tr><td class="muted">${esc(empty)}</td></tr>` : "";
+      return;
+    }
+    body.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement("tr");
+      const name = document.createElement("td");
+      name.textContent = r.label;
+      const n = document.createElement("td");
+      n.textContent = fmt(r.count);
+      tr.append(name, n);
+      return tr;
+    }));
+  }
+
+  function niceMax(max) {
+    // A clean top for the y axis: 1, 2 or 5 times a power of ten.
+    if (max <= 4) return 4;
+    const pow = 10 ** Math.floor(Math.log10(max));
+    for (const m of [1, 2, 5, 10]) if (m * pow >= max) return m * pow;
+    return 10 * pow;
+  }
+
+  // One series, so no legend: the title says what is plotted. Columns are
+  // capped at 24px with a 4px rounded top; each day has a full-height hover
+  // and focus target carrying a tooltip, and the table above has every value.
+  function drawVisitorChart(daily) {
+    const host = $("vChart");
+    host.replaceChildren();
+    const W = Math.max(host.clientWidth, 300), H = 220;
+    const left = 40, bottom = 26, top = 10;
+    const plotW = W - left, plotH = H - top - bottom;
+    const yMax = niceMax(Math.max(...daily.map((r) => r.visitors), 0));
+    const band = plotW / daily.length;
+    const barW = Math.max(2, Math.min(24, band - 2));
+    const NS = "http://www.w3.org/2000/svg";
+    const el = (tag, attrs) => {
+      const e = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      return e;
+    };
+
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img",
+      "aria-label": `Visitors per day; the table below lists every value.` });
+
+    for (let i = 0; i <= 4; i++) {
+      const v = (yMax / 4) * i;
+      const y = top + plotH - (v / yMax) * plotH;
+      svg.append(el("line", { class: "grid", x1: left, x2: W, y1: y, y2: y }));
+      const t = el("text", { class: "axis", x: left - 8, y: y + 4, "text-anchor": "end" });
+      t.textContent = fmt(Math.round(v));
+      svg.append(t);
+    }
+
+    const tip = document.createElement("div");
+    tip.className = "chart-tip";
+    tip.hidden = true;
+
+    const show = (r, cx) => {
+      tip.replaceChildren();
+      const strong = document.createElement("strong");
+      strong.textContent = fmt(r.visitors);
+      const line2 = document.createElement("div");
+      line2.className = "muted";
+      line2.textContent = `${fmt(r.page_views)} page views · ${fmt(r.lists)} lists`;
+      const when = document.createElement("div");
+      when.className = "muted";
+      when.textContent = dayLabel(r.day, { weekday: "long", day: "numeric", month: "long" });
+      tip.append(strong, document.createTextNode(` visitor${r.visitors === 1 ? "" : "s"}`), line2, when);
+      tip.hidden = false;
+      const x = Math.min(Math.max(cx - tip.offsetWidth / 2, 0), W - tip.offsetWidth);
+      tip.style.left = `${x}px`;
+      tip.style.top = `${top}px`;  // inside the plot, clear of the title
+    };
+
+    daily.forEach((r, i) => {
+      const cx = left + band * i + band / 2;
+      const h = r.visitors ? Math.max(2, (r.visitors / yMax) * plotH) : 0;
+      const x = cx - barW / 2, y = top + plotH - h, rad = Math.min(4, h, barW / 2);
+
+      const hit = el("rect", { class: "hit", x: left + band * i, y: top, width: band, height: plotH, tabindex: 0,
+        "aria-label": `${dayLabel(r.day, { day: "numeric", month: "long" })}: ${r.visitors} visitors` });
+      hit.addEventListener("pointerenter", () => show(r, cx));
+      hit.addEventListener("focus", () => show(r, cx));
+      hit.addEventListener("pointerleave", () => { tip.hidden = true; });
+      hit.addEventListener("blur", () => { tip.hidden = true; });
+      svg.append(hit);
+
+      // Square at the baseline, rounded at the data end.
+      svg.append(el("path", { class: "bar", d: h ? `M${x},${y + h} V${y + rad} Q${x},${y} ${x + rad},${y} H${x + barW - rad} Q${x + barW},${y} ${x + barW},${y + rad} V${y + h} Z` : "" }));
+    });
+
+    // Date labels only at the ends and the middle -- the tooltip and the
+    // table carry the rest.
+    for (const i of [...new Set([0, Math.floor(daily.length / 2), daily.length - 1])]) {
+      const t = el("text", { class: "axis", x: left + band * i + band / 2, y: H - 6, "text-anchor": "middle" });
+      t.textContent = dayLabel(daily[i].day, { day: "numeric", month: "short" });
+      svg.append(t);
+    }
+
+    host.append(svg, tip);
+  }
+
+  $("vDays").addEventListener("change", () => run(null, loadVisitors));
+  $("vRefresh").addEventListener("click", (e) => run(e.currentTarget, loadVisitors));
+  new ResizeObserver(() => { if (visitorData && !$("visitorsView").hidden) drawVisitorChart(visitorData.daily); })
+    .observe($("vChart"));
 
   (async () => {
     try {

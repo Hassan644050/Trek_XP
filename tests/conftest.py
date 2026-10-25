@@ -49,6 +49,15 @@ def fresh_read_caches():
 
 
 @pytest.fixture(autouse=True)
+def fresh_analytics_buffer(monkeypatch):
+    """Page views and packing lists are buffered in memory; start each test
+    with an empty buffer."""
+    from app.services import analytics
+
+    monkeypatch.setattr(analytics, "_buffer", analytics._Buffer())
+
+
+@pytest.fixture(autouse=True)
 def no_catalog_db(monkeypatch):
     """Keep offline route tests away from a real database.
 

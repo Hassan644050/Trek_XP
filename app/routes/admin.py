@@ -426,3 +426,22 @@ async def delete_hero_image(
     await db.commit()
 
     await discard_image_set(get_image_storage(), old_key, HERO_VARIANT_NAMES)
+
+
+# ---------- visitor analytics ----------
+
+from fastapi import Query
+
+from app.services import analytics
+
+
+@router.get("/analytics")
+async def visitor_analytics(
+    days: int = Query(default=30, ge=7, le=365),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    # Write what is buffered first, so the dashboard includes the last few
+    # minutes rather than lagging by up to a flush interval.
+    await analytics.flush_into(db)
+    return await analytics.summary(db, days)

@@ -17,6 +17,9 @@ from app.routes.gadget_pages import router as gadget_pages_router
 from app.routes.health import router as health_router
 from app.routes.recommend import router as recommend_router
 from app.services.media.storage import LocalImageStorage, get_image_storage
+from app.db.engine import get_sessionmaker
+from app.exceptions.exceptions import DatabaseNotConfiguredException
+from app.services import analytics
 from app.services.read_cache import clear_read_caches
 
 
@@ -25,8 +28,20 @@ async def lifespan(_: FastAPI):
     # In the background: startup never waits on the database, and a slow or
     # unreachable one costs nothing but a cold first request.
     warm = asyncio.create_task(warm_public_caches())
+
+    try:
+        sessionmaker = get_sessionmaker()
+    except DatabaseNotConfiguredException:
+        sessionmaker = None
+    counting = asyncio.create_task(analytics.flush_forever(get_sessionmaker)) if sessionmaker else None
+
     yield
+
     warm.cancel()
+    if counting:
+        counting.cancel()
+        # Write what is buffered, so a deploy or restart loses no counts.
+        await analytics.flush(sessionmaker)
 
 
 app = FastAPI(
@@ -59,6 +74,15 @@ async def drop_read_caches_after_catalog_writes(request: Request, call_next):
     ):
         clear_read_caches()
 
+    return response
+
+
+@app.middleware("http")
+async def count_page_views(request: Request, call_next):
+    """Anonymous visitor counting for the public pages; see analytics.py.
+    Touches only an in-memory buffer, so it adds nothing a visitor waits on."""
+    response = await call_next(request)
+    analytics.record_page_view(request, response.status_code)
     return response
 
 app.include_router(recommend_router)

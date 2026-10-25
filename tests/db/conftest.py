@@ -31,7 +31,7 @@ load_dotenv()
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 CSRF = {"X-Requested-With": "trekxp"}
 PASSWORD = "correct horse battery"
-TABLES = "hero_images, placements, gadgets, places, auth_sessions, users"
+TABLES = "analytics_counts, analytics_visitors, analytics_salts, hero_images, placements, gadgets, places, auth_sessions, users"
 
 
 def pytest_collection_modifyitems(config, items):

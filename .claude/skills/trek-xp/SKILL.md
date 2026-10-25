@@ -95,6 +95,13 @@ never return a status code or leak provider/SQL detail from a service.
   `/api/admin` or `/api/coordinator` write. A new public read the home page
   makes on every view should use a `ReadCache` too — each uncached Neon
   lookup costs seconds from a dev machine.
+- **Visitor analytics** (`services/analytics.py`, admin **Visitors** tab):
+  cookie-free; page views of `/`, `/gadgets`, `/gadget/<slug>` counted by
+  middleware, packing lists in `/recommend`. Visitors = daily-salted hash
+  of IP + browser, salts deleted after the day; IPs never stored. Buffered
+  in memory, flushed every 5 min, on shutdown, and before the admin
+  summary. Bots, prefetches and requests with a session cookie are skipped.
+  New public pages need a case in `page_label()` to be counted.
 - **Detail page "More {type}s"** = other active gadgets of the same head noun
   (`_type_key`), not the same category. No "Recommended for" section.
 

@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 from sqlalchemy import (
     ARRAY,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -303,3 +304,44 @@ class HeroImage(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+# ---------- visitor analytics ----------
+#
+# Aggregates only: no raw requests, no IP addresses, no cookies. See
+# app/services/analytics.py for how visits are counted.
+
+
+class AnalyticsCount(Base):
+    """A daily counter: page views per page, packing lists per destination,
+    referrers, devices. One row per (day, event, label)."""
+
+    __tablename__ = "analytics_counts"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    event: Mapped[str] = mapped_column(String(20), primary_key=True)
+    label: Mapped[str] = mapped_column(String(120), primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AnalyticsVisitor(Base):
+    """One row per anonymous visitor per day, for counting unique visitors.
+
+    The hash is of that day's random salt plus IP and browser. The salt is
+    deleted once the day is over, after which a hash can no longer be tied
+    back to anyone -- it only says "a distinct visitor on this day"."""
+
+    __tablename__ = "analytics_visitors"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    visitor_hash: Mapped[str] = mapped_column(String(32), primary_key=True)
+
+
+class AnalyticsSalt(Base):
+    """The random salt for one day's visitor hashes; kept only for today and
+    yesterday (late flushes), then deleted."""
+
+    __tablename__ = "analytics_salts"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    salt: Mapped[str] = mapped_column(String(64))

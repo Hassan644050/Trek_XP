@@ -14,6 +14,7 @@ from app.exceptions.exceptions import (
 from app.models.context import TripContext
 from app.models.recommendation import RecommendResponse
 from app.models.trip import TripRequest
+from app.services import analytics
 from app.services.destination.aggregator import build_trip_context
 from app.services.gadgets.catalog import CatalogMatch, load_catalog_safely
 from app.services.gadgets.factory import get_gadget_source
@@ -157,6 +158,8 @@ async def recommend(request: TripRequest) -> RecommendResponse:
 
     notes = _context_notes(context)
     notes += _provenance_notes(context, catalog, novel, live_unavailable)
+
+    analytics.record_list(context.resolved_place or context.trip.destination, context.trip.trip_type)
 
     return RecommendResponse(
         destination=context.trip.destination,
