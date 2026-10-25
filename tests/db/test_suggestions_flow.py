@@ -105,3 +105,37 @@ def test_only_model_suggestions_can_be_reviewed(coordinator):
     response = coordinator.post(f"/api/coordinator/gadgets/{mine['id']}/review",
                                 json={"action": "approve"}, headers=CSRF)
     assert response.status_code == 422
+
+
+# ---------- duplicates ----------
+
+
+def test_duplicates_merge_and_not_the_same(coordinator):
+    dry = coordinator.post("/api/coordinator/gadgets", json={"name": "Dry Bag"}, headers=CSRF).json()
+    wet = coordinator.post("/api/coordinator/gadgets", json={"name": "Waterproof dry Bag", "description": "Roll-top."},
+                           headers=CSRF).json()
+    hat = coordinator.post("/api/coordinator/gadgets", json={"name": "Sun Hat"}, headers=CSRF).json()
+    plain = coordinator.post("/api/coordinator/gadgets", json={"name": "Hat"}, headers=CSRF).json()
+
+    pairs = coordinator.get("/api/coordinator/duplicates").json()
+    assert [(p["a"]["name"], p["b"]["name"]) for p in pairs] == [("Dry Bag", "Waterproof dry Bag"), ("Hat", "Sun Hat")]
+
+    # "Not the same" is remembered.
+    assert coordinator.post("/api/coordinator/duplicates/distinct",
+                            json={"a_id": hat["id"], "b_id": plain["id"]}, headers=CSRF).status_code == 204
+    assert len(coordinator.get("/api/coordinator/duplicates").json()) == 1
+
+    kept = coordinator.post(f"/api/coordinator/gadgets/{wet['id']}/merge",
+                            json={"into_id": dry["id"]}, headers=CSRF).json()
+    assert kept["name"] == "Dry Bag" and kept["description"] == "Roll-top."
+    assert coordinator.get(f"/api/coordinator/gadgets/{wet['id']}").status_code == 404
+    assert coordinator.get("/api/coordinator/duplicates").json() == []
+
+
+def test_similar_lists_look_alikes_for_a_suggestion(coordinator):
+    coordinator.post("/api/coordinator/gadgets", json={"name": "Hat"}, headers=CSRF)
+    save(rec("Sun Hat"))
+    (g,) = pending(coordinator)
+
+    similar = coordinator.get(f"/api/coordinator/gadgets/{g['id']}/similar").json()
+    assert [(s["gadget"]["name"], s["score"] >= 0.5) for s in similar] == [("Hat", True)]

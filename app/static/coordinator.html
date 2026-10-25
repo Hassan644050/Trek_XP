@@ -199,6 +199,13 @@
   .gadget-row.is-off .thumb, .gadget-row.is-off .name { opacity: 0.55; }
   .pill-sugg { background: var(--signal-wash); border-radius: 999px; color: var(--signal-ink);
     font-size: 10px; font-weight: 700; letter-spacing: 0.04em; margin-left: 6px; padding: 1px 7px; text-transform: uppercase; }
+  .dup-pair { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+  .dup-pair .names { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+  .dup-pair .names button { background: none; border: 0; color: var(--ink); cursor: pointer; font-weight: 600; padding: 0; text-align: left; text-decoration: underline; text-decoration-color: var(--line); }
+  .dup-pair .score { color: var(--signal-ink); font-family: var(--mono); font-size: 11px; }
+  .similar-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .similar-list li { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
   .review-banner { background: var(--signal-wash); border: 1px solid var(--signal); border-radius: var(--r);
     display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
   .review-banner p { margin: 0; }
@@ -423,6 +430,7 @@
         <option value="">All gadgets</option>
         <option value="pending">Suggested by the model — to review</option>
         <option value="rejected">Rejected suggestions</option>
+        <option value="duplicates">Possible duplicates</option>
       </select>
       <div class="list-items" id="gadgetList"></div>
     </div>
@@ -438,6 +446,10 @@
         <div class="review-banner" id="reviewBanner" hidden>
           <p><strong>Suggested by the language model</strong> <span id="reviewWhy"></span></p>
           <p class="muted">Check the name and description, add a photo, and review the destinations below. Approving publishes it to travellers with the ✓ Verified badge; rejecting keeps it hidden and stops the model suggesting it again for these places.</p>
+          <div id="similarBox" hidden>
+            <p><strong>Looks like something already in the catalog:</strong></p>
+            <ul class="similar-list" id="similarList"></ul>
+          </div>
           <div class="row">
             <button type="button" class="btn primary small" id="approveSuggestion">Approve and publish</button>
             <button type="button" class="btn danger small" id="rejectSuggestion">Reject</button>
@@ -842,6 +854,7 @@
   $("gadgetFilter").addEventListener("change", () => run(null, loadGadgets));
 
   async function loadGadgets() {
+    if ($("gadgetFilter").value === "duplicates") return loadDuplicates();
     const params = new URLSearchParams();
     const q = $("gadgetSearch").value.trim();
     if (q) params.set("q", q);
@@ -858,6 +871,9 @@
   }
 
   function renderList() {
+    // The editor redraws the list to mark the open gadget; in duplicates
+    // mode that list is the pairs.
+    if ($("gadgetFilter").value === "duplicates") return renderPairs();
     const list = $("gadgetList");
 
     if (!gadgets.length) {
@@ -1000,7 +1016,94 @@
     if (!pending) return;
     const n = current.suggestion_count;
     $("reviewWhy").textContent = `— in ${n} traveller list${n === 1 ? "" : "s"} so far.`;
+    $("similarBox").hidden = true;
+    const id = current.id;
+    api("GET", `/api/coordinator/gadgets/${id}/similar`).then((matches) => {
+      if (current?.id !== id || !matches.length) return;
+      $("similarList").innerHTML = matches.map((m) => `
+        <li data-id="${m.gadget.id}">
+          <span><b>${esc(m.gadget.name)}</b> <span class="muted">${esc(statusWord(m.gadget))} · ${Math.round(m.score * 100)}% alike</span></span>
+          <button type="button" class="btn small" data-act="merge-into">Merge into it</button>
+          <button type="button" class="btn small" data-act="not-same">Not the same</button>
+        </li>`).join("");
+      $("similarBox").hidden = false;
+    }).catch(() => {});
   }
+
+  function statusWord(g) {
+    if (g.review_status === "pending") return "suggestion awaiting review";
+    if (g.is_active) return "live";
+    return "inactive";
+  }
+
+  async function mergeGadget(sourceId, sourceName, target) {
+    if (!confirm(`Merge "${sourceName}" into "${target.name}"?\n\n"${target.name}" is kept. Its missing details, destinations and buying options are filled from "${sourceName}", which is then deleted.`)) return false;
+    const kept = await api("POST", `/api/coordinator/gadgets/${sourceId}/merge`, { into_id: target.id });
+    toast(`Merged into "${target.name}".`);
+    openEditor(kept);
+    await loadGadgets();
+    return true;
+  }
+
+  async function markDistinct(aId, bId) {
+    await api("POST", "/api/coordinator/duplicates/distinct", { a_id: aId, b_id: bId });
+    toast("Noted — they won't be flagged again.");
+  }
+
+  $("similarList").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const li = btn.closest("li");
+    const target = { id: +li.dataset.id, name: li.querySelector("b").textContent };
+    if (btn.dataset.act === "merge-into") run(btn, () => mergeGadget(current.id, current.name, target));
+    else run(btn, async () => { await markDistinct(current.id, target.id); li.remove(); if (!$("similarList").children.length) $("similarBox").hidden = true; });
+  });
+
+  // ---------- possible duplicates ----------
+
+  let pairs = [];
+
+  async function loadDuplicates() {
+    pairs = await api("GET", "/api/coordinator/duplicates");
+    renderPairs();
+  }
+
+  function renderPairs() {
+    const list = $("gadgetList");
+    if (!pairs.length) {
+      list.innerHTML = `<div class="empty">No likely duplicates. Names are compared ignoring plurals, specs like "20,000mAh", and words like "portable" or "travel".</div>`;
+      return;
+    }
+    list.innerHTML = pairs.map((p, i) => `
+      <div class="dup-pair" data-i="${i}">
+        <div class="names">
+          <button type="button" data-open="${p.a.id}">${esc(p.a.name)}</button><span class="muted">${esc(statusWord(p.a))}</span>
+          <span class="muted">and</span>
+          <button type="button" data-open="${p.b.id}">${esc(p.b.name)}</button><span class="muted">${esc(statusWord(p.b))}</span>
+          <span class="score">${Math.round(p.score * 100)}% alike</span>
+        </div>
+        <div class="row" style="gap:6px">
+          <button type="button" class="btn small" data-keep="a">Keep “${esc(p.a.name)}”</button>
+          <button type="button" class="btn small" data-keep="b">Keep “${esc(p.b.name)}”</button>
+          <button type="button" class="btn small" data-act="distinct">Not the same</button>
+        </div>
+      </div>`).join("");
+  }
+
+  $("gadgetList").addEventListener("click", (e) => {
+    const card = e.target.closest(".dup-pair");
+    if (!card) return;
+    const p = pairs[+card.dataset.i];
+    const open = e.target.closest("[data-open]");
+    if (open) return run(null, () => openGadget(+open.dataset.open));
+    const keep = e.target.closest("[data-keep]");
+    if (keep) {
+      const [kept, gone] = keep.dataset.keep === "a" ? [p.a, p.b] : [p.b, p.a];
+      return run(keep, () => mergeGadget(gone.id, gone.name, kept));
+    }
+    const distinct = e.target.closest('[data-act="distinct"]');
+    if (distinct) run(distinct, async () => { await markDistinct(p.a.id, p.b.id); await loadDuplicates(); });
+  });
 
   function review(action, button) {
     run(button, async () => {

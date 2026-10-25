@@ -106,12 +106,19 @@ never return a status code or leak provider/SQL detail from a service.
   after `/recommend` responds, a background task saves the model's new items
   as inactive gadgets (`origin="model"`, `review_status="pending"`) with a
   placement holding the reason, and asks the model for a short description.
-  Only curated/catalog destinations and active trip types are saved; loose
-  name matches (`same_gadget`) add to `suggestion_count` instead of
-  duplicating; coordinator and rejected gadgets are never touched. Pending
+  Only curated/catalog destinations and active trip types are saved; names
+  that are the same item add to `suggestion_count` instead of duplicating; coordinator and rejected gadgets are never touched. Pending
   ones are left out of the model's exclusion list. **No images are fetched**
   — the coordinator adds the photo when approving (`POST
   /api/coordinator/gadgets/{id}/review`, or switching Active on).
+- **Gadget name similarity** (`services/gadgets/similarity.py`, vocabulary in
+  `app/data/gadget_terms.json`): 0–1 score; names reduced to canonical words
+  (specs/plug letters dropped, plurals singular, synonyms mapped, fillers
+  weighted 0.2), and the main noun must agree. `SAME` (≥0.8) is merged
+  automatically — in travellers' lists (`_novel`) and when saving
+  suggestions; `POSSIBLE` (0.5–0.8) is shown to coordinators. Coordinators:
+  "Possible duplicates" filter, merge (`POST /gadgets/{id}/merge`), "Not the
+  same" (`distinct_gadget_pairs`). Never compare gadget names with `==`.
 - **Detail page "More {type}s"** = other active gadgets of the same head noun
   (`_type_key`), not the same category. No "Recommended for" section.
 

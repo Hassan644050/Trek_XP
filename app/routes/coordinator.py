@@ -43,6 +43,11 @@ from app.models.catalog import (
     PlacementOut,
     PlacementUpdate,
     ReviewIn,
+    DistinctIn,
+    DuplicatePair,
+    GadgetBrief,
+    MergeIn,
+    SimilarGadget,
 )
 from app.models.recommendation import Priority
 from app.services.destination.countries import home_country
@@ -55,6 +60,7 @@ from app.services.destination.admin_areas import (
 )
 from app.services.destination.geocode import geocode
 from app.services.media.images import MAX_UPLOAD_BYTES, process_image
+from app.services.gadgets import duplicates
 from app.services.media.image_sets import discard_image_set, store_image_set
 from app.services.media.storage import get_image_storage, new_image_key, variant_key
 from app.services.media.variants import DETAIL, FULL, THUMB
@@ -427,6 +433,79 @@ async def review_suggestion(
     await db.commit()
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
+
+
+# ---------- duplicates ----------
+
+
+def _brief(gadget: Gadget) -> GadgetBrief:
+    return GadgetBrief(
+        id=gadget.id, name=gadget.name, category=gadget.category, is_active=gadget.is_active,
+        origin=gadget.origin, review_status=gadget.review_status,
+        placement_count=len(gadget.placements),
+        thumb_url=_rendition_urls(gadget.image_key)["thumb_url"],
+    )
+
+
+@router.get("/duplicates", response_model=list[DuplicatePair])
+async def list_duplicates(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_coordinator),
+) -> list[DuplicatePair]:
+    """Pairs of gadgets whose names suggest they are the same item, most
+    alike first -- for a coordinator to merge or mark as different."""
+    return [
+        DuplicatePair(a=_brief(p.a), b=_brief(p.b), score=p.score)
+        for p in await duplicates.possible_duplicates(db)
+    ]
+
+
+@router.post("/duplicates/distinct", status_code=204)
+async def mark_distinct(
+    payload: DistinctIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_coordinator),
+) -> None:
+    await _load_gadget(db, payload.a_id)
+    await _load_gadget(db, payload.b_id)
+    await duplicates.mark_distinct(db, payload.a_id, payload.b_id, user.id)
+    await db.commit()
+
+
+@router.get("/gadgets/{gadget_id}/similar", response_model=list[SimilarGadget])
+async def similar_gadgets(
+    gadget_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_coordinator),
+) -> list[SimilarGadget]:
+    gadget = await _load_gadget(db, gadget_id)
+    return [
+        SimilarGadget(gadget=_brief(other), score=score)
+        for other, score in await duplicates.similar_to(db, gadget)
+    ]
+
+
+@router.post("/gadgets/{gadget_id}/merge", response_model=GadgetDetail)
+async def merge_gadget(
+    gadget_id: int,
+    payload: MergeIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_coordinator),
+) -> GadgetDetail:
+    """Fold this gadget into another (see duplicates.merge_into) and delete
+    it. Returns the gadget that was kept."""
+    source = await _load_gadget(db, gadget_id)
+    target = await _load_gadget(db, payload.into_id)
+
+    leftover_image = duplicates.merge_into(source, target)
+    target.updated_by_id = user.id
+    await db.delete(source)
+    await db.commit()
+
+    if leftover_image:
+        await discard_image_set(get_image_storage(), leftover_image)
+
+    return _gadget_detail(await _load_gadget(db, payload.into_id))
 
 
 @router.delete("/gadgets/{gadget_id}", status_code=204)

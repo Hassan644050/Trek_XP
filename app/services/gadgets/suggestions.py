@@ -16,16 +16,16 @@ Guard rails, because the trigger is a public endpoint:
 - only destinations travellers can actually pick (the curated list or an
   existing catalog place) and active trip types are saved, so made-up
   requests cannot fill the review queue with junk places;
-- a suggestion that matches an existing gadget loosely ("Bluetooth Speaker"
-  vs "Portable Bluetooth Speaker") adds to that gadget's suggestion count
-  instead of creating a duplicate;
+- a suggestion that is the same item as an existing gadget by
+  similarity.py ("Bluetooth Speaker" vs "Portable Bluetooth Speaker",
+  "Portable Charger" vs "Power Bank") adds to that gadget's suggestion
+  count instead of creating a duplicate;
 - coordinator-entered and rejected gadgets are never touched.
 """
 
 import asyncio
 import json
 import logging
-import re
 from dataclasses import dataclass, field
 from functools import lru_cache
 
@@ -36,6 +36,7 @@ from sqlalchemy.orm import selectinload
 from app.db.models import Gadget, Place, Placement, TripTypeOption
 from app.models.recommendation import Priority, Recommendation
 from app.services.destination.countries import get_country
+from app.services.gadgets.similarity import SAME, is_same, similarity
 from app.services.slug import unique_gadget_slug
 from app.services.taxonomy import active_values
 
@@ -59,40 +60,22 @@ class SuggestionBatch:
     suggestions: list[Recommendation] = field(default_factory=list)
 
 
-# ---------- matching names loosely ----------
-
-_PAREN = re.compile(r"\(.*?\)")
-_WORD = re.compile(r"[a-z0-9]+")
-
-
-def _words(name: str) -> list[str]:
-    return _WORD.findall(_PAREN.sub(" ", name.lower()))
+# ---------- matching names ----------
 
 
 def same_gadget(a: str, b: str) -> bool:
-    """Whether two names are the same item for catalog purposes.
-
-    Equal ignoring case, punctuation and parentheticals; or one name's words
-    all appear in the other and both end in the same noun -- so "Bluetooth
-    Speaker" matches "Portable Bluetooth Speaker", but "Dry Bag" does not
-    match "Dry Shampoo".
-    """
-    wa, wb = _words(a), _words(b)
-    if not wa or not wb:
-        return False
-    if wa == wb:
-        return True
-    if wa[-1] != wb[-1]:
-        return False
-    sa, sb = set(wa), set(wb)
-    return sa <= sb or sb <= sa
+    """Whether two names are the same item -- see similarity.py."""
+    return is_same(a, b)
 
 
 def find_match(name: str, gadgets: list[Gadget]) -> Gadget | None:
+    """The existing gadget most like this name, if it is the same item."""
+    best, best_score = None, SAME
     for gadget in gadgets:
-        if same_gadget(name, gadget.name):
-            return gadget
-    return None
+        score = similarity(name, gadget.name)
+        if score >= best_score:
+            best, best_score = gadget, score
+    return best
 
 
 # ---------- known destinations ----------

@@ -56,14 +56,20 @@ def test_novel_drops_repeats_within_one_reply():
     assert [r.gadget for r in _novel(recs, context())] == ["Dry Bag", "Torch"]
 
 
+# Distinct items. (Numbered names like "Item 1" would count as one: numbers
+# are ignored as specs, as in "Power Bank 20,000mAh".)
+NINE_ITEMS = ["Headlamp", "Dry Bag", "Power Bank", "Sun Hat", "Water Shoes",
+              "Rain Poncho", "Binoculars", "Daypack", "Insect Repellent"]
+
+
 def test_novel_caps_to_the_requested_count():
-    recs = [Recommendation(gadget=f"Item {i}", why="x") for i in range(9)]
+    recs = [Recommendation(gadget=name, why="x") for name in NINE_ITEMS]
 
     assert len(_novel(recs, context(count=5))) == 5
 
 
 def test_novel_keeps_everything_when_no_count_is_set():
-    recs = [Recommendation(gadget=f"Item {i}", why="x") for i in range(9)]
+    recs = [Recommendation(gadget=name, why="x") for name in NINE_ITEMS]
 
     assert len(_novel(recs, context(count=None))) == 9
 

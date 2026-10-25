@@ -6,9 +6,9 @@ from app.models.recommendation import (
     Origin,
     Priority,
     Recommendation,
-    normalize_gadget_name,
 )
 from app.services.gadgets.base import GadgetSource
+from app.services.gadgets.similarity import is_same
 from app.services.gadgets.prompt import build_gadget_prompt
 from app.services.llm.base import LLMProvider
 from app.services.llm.factory import get_llm_provider
@@ -134,16 +134,16 @@ def _novel(
     so this enforces it rather than trusting the reply -- the guarantee that
     the new suggestions are new must not depend on the model obeying.
     """
-    seen = {normalize_gadget_name(name) for name in context.existing_gadgets}
+    # Compared by similarity, not spelling: "Bluetooth Speaker" duplicates
+    # a catalog "Portable Bluetooth Speaker" (see similarity.py).
+    seen = list(context.existing_gadgets)
     novel: list[Recommendation] = []
 
     for rec in recommendations:
-        key = normalize_gadget_name(rec.gadget)
-
-        if key in seen:
+        if any(is_same(rec.gadget, name) for name in seen):
             continue
 
-        seen.add(key)
+        seen.append(rec.gadget)
         novel.append(rec)
 
     if context.novel_item_count is not None:

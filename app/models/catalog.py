@@ -281,6 +281,40 @@ class ReviewIn(BaseModel):
     action: Literal["approve", "reject"]
 
 
+class GadgetBrief(BaseModel):
+    """Enough to recognise a gadget in a duplicates list."""
+
+    id: int
+    name: str
+    category: str | None
+    is_active: bool
+    origin: str
+    review_status: str | None
+    placement_count: int
+    thumb_url: str | None
+
+
+class DuplicatePair(BaseModel):
+    a: GadgetBrief
+    b: GadgetBrief
+    # 0-1; 0.8+ is treated as the same item automatically elsewhere.
+    score: float
+
+
+class SimilarGadget(BaseModel):
+    gadget: GadgetBrief
+    score: float
+
+
+class MergeIn(BaseModel):
+    into_id: int
+
+
+class DistinctIn(BaseModel):
+    a_id: int
+    b_id: int
+
+
 QUALITY_LEVELS = ("budget", "standard", "premium")
 
 
