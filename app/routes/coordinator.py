@@ -1,4 +1,5 @@
 import asyncio
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
@@ -41,6 +42,7 @@ from app.models.catalog import (
     PlacementIn,
     PlacementOut,
     PlacementUpdate,
+    ReviewIn,
 )
 from app.models.recommendation import Priority
 from app.services.destination.countries import home_country
@@ -103,6 +105,9 @@ def _gadget_out(gadget: Gadget) -> GadgetOut:
         **_rendition_urls(gadget.image_key),
         placement_count=len(gadget.placements),
         updated_at=gadget.updated_at,
+        origin=gadget.origin,
+        review_status=gadget.review_status,
+        suggestion_count=gadget.suggestion_count,
     )
 
 
@@ -313,10 +318,18 @@ async def manual_place(
 @router.get("/gadgets", response_model=list[GadgetOut])
 async def list_gadgets(
     q: str | None = Query(default=None, max_length=100),
+    # "pending" lists the model's suggestions awaiting review, most
+    # suggested first.
+    status: Literal["pending", "rejected"] | None = None,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_coordinator),
 ) -> list[GadgetOut]:
     query = select(Gadget).options(selectinload(Gadget.placements)).order_by(Gadget.name)
+
+    if status:
+        query = query.where(Gadget.review_status == status).order_by(None).order_by(
+            Gadget.suggestion_count.desc(), Gadget.name
+        )
 
     if q and q.strip():
         query = query.where(Gadget.name.ilike(f"%{_escape_like(q.strip())}%", escape="\\"))
@@ -379,12 +392,39 @@ async def update_gadget(
     for field, value in changes.items():
         setattr(gadget, field, value)
 
+    # Switching a pending model suggestion on is approving it.
+    if changes.get("is_active") and gadget.review_status == "pending":
+        gadget.review_status = "approved"
+
     if "name" in changes:
         # Keep the public URL in step with the name.
         gadget.slug = await unique_gadget_slug(db, changes["name"], except_id=gadget.id)
 
     gadget.updated_by_id = user.id
     await _commit_or_conflict(db, conflict)
+
+    return _gadget_detail(await _load_gadget(db, gadget_id))
+
+
+@router.post("/gadgets/{gadget_id}/review", response_model=GadgetDetail)
+async def review_suggestion(
+    gadget_id: int,
+    payload: ReviewIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_coordinator),
+) -> GadgetDetail:
+    """Approve a model suggestion (it goes live with the Verified badge) or
+    reject it (it stays retired, and the model is steered away from it)."""
+    gadget = await _load_gadget(db, gadget_id)
+
+    if gadget.origin != "model":
+        raise InvalidInputException("Only gadgets suggested by the model are reviewed.")
+
+    approve = payload.action == "approve"
+    gadget.review_status = "approved" if approve else "rejected"
+    gadget.is_active = approve
+    gadget.updated_by_id = user.id
+    await db.commit()
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
 

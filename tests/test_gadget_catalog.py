@@ -33,7 +33,10 @@ def placement(name, *, trip_types, activities=(), priority=Priority.RECOMMENDED,
     return SimpleNamespace(
         trip_types=list(trip_types), activities=list(activities), priority=priority,
         why=f"Why {name}.",
-        gadget=SimpleNamespace(name=name, category="Cat", is_active=active),
+        gadget=SimpleNamespace(
+            name=name, category="Cat", is_active=active,
+            image_key=None, slug=name.lower().replace(" ", "-"), review_status=None,
+        ),
     )
 
 

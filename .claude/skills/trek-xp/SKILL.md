@@ -102,6 +102,16 @@ never return a status code or leak provider/SQL detail from a service.
   in memory, flushed every 5 min, on shutdown, and before the admin
   summary. Bots, prefetches and requests with a session cookie are skipped.
   New public pages need a case in `page_label()` to be counted.
+- **Model suggestions go to a review queue** (`services/gadgets/suggestions.py`):
+  after `/recommend` responds, a background task saves the model's new items
+  as inactive gadgets (`origin="model"`, `review_status="pending"`) with a
+  placement holding the reason, and asks the model for a short description.
+  Only curated/catalog destinations and active trip types are saved; loose
+  name matches (`same_gadget`) add to `suggestion_count` instead of
+  duplicating; coordinator and rejected gadgets are never touched. Pending
+  ones are left out of the model's exclusion list. **No images are fetched**
+  — the coordinator adds the photo when approving (`POST
+  /api/coordinator/gadgets/{id}/review`, or switching Active on).
 - **Detail page "More {type}s"** = other active gadgets of the same head noun
   (`_type_key`), not the same category. No "Recommended for" section.
 

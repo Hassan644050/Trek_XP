@@ -1,6 +1,8 @@
 import re
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.db.models import Role
@@ -268,6 +270,15 @@ class GadgetOut(BaseModel):
     image_url: str | None
     placement_count: int
     updated_at: datetime
+    # "coordinator", or "model" for a suggestion saved from a traveller's
+    # list; review_status is pending / approved / rejected for those.
+    origin: str = "coordinator"
+    review_status: str | None = None
+    suggestion_count: int = 0
+
+
+class ReviewIn(BaseModel):
+    action: Literal["approve", "reject"]
 
 
 QUALITY_LEVELS = ("budget", "standard", "premium")

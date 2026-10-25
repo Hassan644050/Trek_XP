@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 
 from app.config import get_env_meta_info
 from app.db.engine import get_sessionmaker
@@ -18,6 +18,7 @@ from app.services import analytics
 from app.services.destination.aggregator import build_trip_context
 from app.services.gadgets.catalog import CatalogMatch, load_catalog_safely
 from app.services.gadgets.factory import get_gadget_source
+from app.services.gadgets.suggestions import SuggestionBatch, record_and_enrich
 
 
 logger = logging.getLogger(__name__)
@@ -109,8 +110,28 @@ async def _load_catalog(context: TripContext) -> CatalogMatch:
         return await load_catalog_safely(db, context)
 
 
+def _schedule_suggestions(background: BackgroundTasks, context: TripContext, novel: list) -> None:
+    """Save the model's new items for coordinator review, after the response
+    has gone out -- see services/gadgets/suggestions.py."""
+    if not novel:
+        return
+
+    try:
+        sessionmaker = get_sessionmaker()
+    except DatabaseNotConfiguredException:
+        return
+
+    batch = SuggestionBatch(
+        place_name=context.resolved_place or context.trip.destination,
+        country_code=(context.trip.country_code or context.country.country_code or "").upper(),
+        trip_type=context.trip.trip_type,
+        suggestions=list(novel),
+    )
+    background.add_task(record_and_enrich, sessionmaker, batch)
+
+
 @router.post("/recommend", response_model=RecommendResponse)
-async def recommend(request: TripRequest) -> RecommendResponse:
+async def recommend(request: TripRequest, background: BackgroundTasks) -> RecommendResponse:
     """Recommend travel gadgets for a trip.
 
     Coordinator-entered gadgets for the destination come first, marked
@@ -160,6 +181,7 @@ async def recommend(request: TripRequest) -> RecommendResponse:
     notes += _provenance_notes(context, catalog, novel, live_unavailable)
 
     analytics.record_list(context.resolved_place or context.trip.destination, context.trip.trip_type)
+    _schedule_suggestions(background, context, novel)
 
     return RecommendResponse(
         destination=context.trip.destination,

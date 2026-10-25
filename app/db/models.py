@@ -129,6 +129,17 @@ class Gadget(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default="true"
     )
+    # Who first put it in the catalog: a coordinator, or the language model
+    # (a suggestion saved from a traveller's list, see
+    # services/gadgets/suggestions.py). Model suggestions start inactive and
+    # "pending" and only go live once a coordinator approves them, so the
+    # Verified badge keeps meaning a person checked it.
+    origin: Mapped[str] = mapped_column(String(20), default="coordinator", server_default="coordinator")
+    # None for coordinator entries; pending / approved / rejected for model ones.
+    review_status: Mapped[str | None] = mapped_column(String(20))
+    # How many traveller lists the model suggested it in -- the review queue's
+    # signal for what is worth approving first.
+    suggestion_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(

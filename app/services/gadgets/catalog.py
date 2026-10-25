@@ -138,11 +138,20 @@ def _place_matches(place, name, lat, lon, country, division) -> bool:
 
 
 def _existing_names(placements) -> list[str]:
-    """Every distinct gadget name on file, retired ones included."""
+    """Every distinct gadget name on file, retired ones included.
+
+    Except model suggestions still awaiting review: they are not shown to
+    travellers yet, so the model must stay free to suggest them -- each
+    repeat adds to their suggestion count. Rejected ones stay listed, so the
+    model is steered away from them.
+    """
     names: list[str] = []
     seen: set[str] = set()
 
     for placement in placements:
+        if placement.gadget.review_status == "pending":
+            continue
+
         key = normalize_gadget_name(placement.gadget.name)
 
         if key not in seen:

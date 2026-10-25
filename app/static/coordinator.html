@@ -197,6 +197,11 @@
   }
 
   .gadget-row.is-off .thumb, .gadget-row.is-off .name { opacity: 0.55; }
+  .pill-sugg { background: var(--signal-wash); border-radius: 999px; color: var(--signal-ink);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em; margin-left: 6px; padding: 1px 7px; text-transform: uppercase; }
+  .review-banner { background: var(--signal-wash); border: 1px solid var(--signal); border-radius: var(--r);
+    display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
+  .review-banner p { margin: 0; }
   .pill-off { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--ink-faint); border: 1px solid var(--line); border-radius: var(--r); padding: 0 5px; }
   .gadget-row .meta { display: flex; flex-direction: column; min-width: 0; }
@@ -414,6 +419,11 @@
         <input type="search" id="gadgetSearch" placeholder="Search gadgets…" aria-label="Search gadgets" style="flex:1" />
         <button class="btn primary" id="newGadget">+ New</button>
       </div>
+      <select id="gadgetFilter" aria-label="Which gadgets to list">
+        <option value="">All gadgets</option>
+        <option value="pending">Suggested by the model — to review</option>
+        <option value="rejected">Rejected suggestions</option>
+      </select>
       <div class="list-items" id="gadgetList"></div>
     </div>
 
@@ -424,6 +434,14 @@
         <div class="row">
           <h2 id="editorTitle">New gadget</h2>
           <button type="button" class="btn danger small" id="deleteGadget" style="margin-left:auto" hidden>Delete gadget</button>
+        </div>
+        <div class="review-banner" id="reviewBanner" hidden>
+          <p><strong>Suggested by the language model</strong> <span id="reviewWhy"></span></p>
+          <p class="muted">Check the name and description, add a photo, and review the destinations below. Approving publishes it to travellers with the ✓ Verified badge; rejecting keeps it hidden and stops the model suggesting it again for these places.</p>
+          <div class="row">
+            <button type="button" class="btn primary small" id="approveSuggestion">Approve and publish</button>
+            <button type="button" class="btn danger small" id="rejectSuggestion">Reject</button>
+          </div>
         </div>
         <div class="grid2">
           <label>Name <input type="text" id="gName" maxlength="120" required placeholder="e.g. Waterproof dry bag" /></label>
@@ -821,9 +839,14 @@
     searchTimer = setTimeout(loadGadgets, 250);
   });
 
+  $("gadgetFilter").addEventListener("change", () => run(null, loadGadgets));
+
   async function loadGadgets() {
+    const params = new URLSearchParams();
     const q = $("gadgetSearch").value.trim();
-    gadgets = await api("GET", `/api/coordinator/gadgets${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+    if (q) params.set("q", q);
+    if ($("gadgetFilter").value) params.set("status", $("gadgetFilter").value);
+    gadgets = await api("GET", `/api/coordinator/gadgets${params.size ? `?${params}` : ""}`);
     renderList();
     const categories = [...new Set(gadgets.map((g) => g.category).filter(Boolean))].sort();
     $("categoryList").innerHTML = categories.map((c) => `<option value="${esc(c)}">`).join("");
@@ -846,13 +869,20 @@
       const make = [g.brand, g.model_name].filter(Boolean).join(" ");
       const bits = [make, g.category || "Uncategorised",
         `${g.placement_count} destination${g.placement_count === 1 ? "" : "s"}`].filter(Boolean);
-      const off = g.is_active ? "" : ` <span class="pill-off">Inactive</span>`;
+      // A suggestion's badge goes on the second line: long names are
+      // truncated, and the badge must stay readable.
+      const sugg = g.review_status === "pending"
+        ? `<span class="pill-sugg" style="margin:0 6px 0 0" title="Suggested by the model in ${g.suggestion_count} traveller list${g.suggestion_count === 1 ? "" : "s"}">Suggested ×${g.suggestion_count}</span>`
+        : "";
+      const off = g.review_status === "pending" ? ""
+        : g.review_status === "rejected" ? ` <span class="pill-off">Rejected</span>`
+        : g.is_active ? "" : ` <span class="pill-off">Inactive</span>`;
       return `
       <button class="gadget-row${g.is_active ? "" : " is-off"}" data-id="${g.id}" aria-current="${current?.id === g.id}">
         ${thumb(g.thumb_url)}
         <span class="meta">
           <span class="name">${esc(g.name)}${off}</span>
-          <span class="muted">${bits.map(esc).join(" · ")}</span>
+          <span class="muted">${sugg}${bits.map(esc).join(" · ")}</span>
         </span>
       </button>`;
     }).join("");
@@ -879,6 +909,7 @@
     $("gadgetForm").hidden = false;
     $("editorTitle").textContent = gadget ? gadget.name : "New gadget";
     $("deleteGadget").hidden = !gadget;
+    renderReview();
     $("gName").value = gadget?.name || "";
     $("gBrand").value = gadget?.brand || "";
     $("gModel").value = gadget?.model_name || "";
@@ -908,6 +939,8 @@
     // Keep the editor and the list row in step after any change.
     current = gadget;
     $("editorTitle").textContent = gadget.name;
+    $("gActive").checked = gadget.is_active;
+    renderReview();
     renderImage();
     renderPlacements();
     renderVariants();
@@ -960,6 +993,25 @@
   });
 
   // ---------- image ----------
+
+  function renderReview() {
+    const pending = current?.review_status === "pending";
+    $("reviewBanner").hidden = !pending;
+    if (!pending) return;
+    const n = current.suggestion_count;
+    $("reviewWhy").textContent = `— in ${n} traveller list${n === 1 ? "" : "s"} so far.`;
+  }
+
+  function review(action, button) {
+    run(button, async () => {
+      await refresh(await api("POST", `/api/coordinator/gadgets/${current.id}/review`, { action }));
+      toast(action === "approve" ? "Approved — now live for travellers." : "Rejected.");
+    });
+  }
+  $("approveSuggestion").addEventListener("click", (e) => review("approve", e.currentTarget));
+  $("rejectSuggestion").addEventListener("click", (e) => {
+    if (confirm(`Reject "${current.name}"? It stays hidden and the model will be steered away from it.`)) review("reject", e.currentTarget);
+  });
 
   function renderImage() {
     const url = current?.detail_url;

@@ -75,6 +75,11 @@ def no_catalog_db(monkeypatch):
         return []
 
     monkeypatch.setattr("app.routes.recommend._load_catalog", empty_catalog)
+    # Saving the model's suggestions would open a session too.
+    async def no_suggestion_saving(*args):
+        return None
+
+    monkeypatch.setattr("app.routes.recommend.record_and_enrich", no_suggestion_saving)
     monkeypatch.setattr("app.routes.destinations._catalog_places", no_catalog_places)
 
 
