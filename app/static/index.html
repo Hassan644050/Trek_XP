@@ -461,8 +461,6 @@
   .provenance { border-top: 2px solid var(--line-firm); display: flex; flex-direction: column; gap: 10px; padding-top: 18px; }
   .srcs { display: flex; flex-wrap: wrap; gap: 6px; }
   .src { background: var(--paper); border: 1.5px solid var(--line); color: var(--ink-soft); font: 500 11px var(--mono); padding: 4px 8px; text-decoration: none; }
-  .caveat { color: var(--ink-soft); font-size: 13px; font-weight: 700; margin: 0; }
-  .caveat b { color: var(--ink); font-weight: 900; }
 
   .toast {
     background: var(--green-deep);
@@ -624,13 +622,11 @@
           </div>
         </div>
 
-        <div class="provenance">
+        <!-- Only the OpenStreetMap credit, which its licence (ODbL) requires
+             when OSM located the destination; internal source names are not
+             shown to travellers. -->
+        <div class="provenance" id="provenance" hidden>
           <div class="srcs" id="srcs"></div>
-          <p class="caveat">
-            Items marked <b>✓ Verified</b> were entered by a Trek_XP coordinator for
-            this destination. The rest come from a language model, checked against
-            real weather and plug data.
-          </p>
         </div>
       </div>
     </main>
@@ -1070,9 +1066,11 @@
     $("rPlug").textContent = plugMatch ? `Type ${plugMatch[1]}` : "Not on file";
     $("rVolt").textContent = plugMatch ? `${plugMatch[2]} · ${plugMatch[3]}` : "";
 
-    $("srcs").innerHTML = (data.sources || []).map((s) => s === "openstreetmap"
+    const usedOsm = (data.sources || []).includes("openstreetmap");
+    $("srcs").innerHTML = usedOsm
       ? `<a class="src" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>`
-      : `<span class="src">${esc(s)}</span>`).join("");
+      : "";
+    $("provenance").hidden = !usedOsm;
 
     renderTabs();
     renderGroups();
