@@ -136,6 +136,12 @@ never return a status code or leak provider/SQL detail from a service.
 - **Design system:** oklch forest-green / amber palette as CSS tokens on
   `:root` with a dark-mode override, Nunito (+ JetBrains Mono for labels),
   **square corners**, full-width layout, images `object-fit: contain`.
+- **The traveller's bag** is shared by every public page (`bag.js` +
+  `bag.css`, loaded next to the header assets): `window.TrekBag`, saved in
+  localStorage, a "Bag" button injected into the header, one "Your bag"
+  panel, and any `<button data-bag-add='{json}'>` becomes a toggle. Pages
+  must not keep their own bag state; the panel's classes are `bag-`
+  prefixed so page styles cannot leak in.
 - **Master header:** every public page links `/site-header.css` and
   `/site-header.js` and carries the same `<header class="site-header">`
   markup (brand → `/`, Register, Login → `/coordinator`). Never restyle it

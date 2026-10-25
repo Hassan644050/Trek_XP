@@ -24,7 +24,7 @@ from app.db.engine import get_sessionmaker
 from app.db.models import Gadget, Placement
 from app.exceptions.exceptions import DatabaseNotConfiguredException
 from app.services.media.storage import get_image_storage, variant_key
-from app.services.media.variants import DETAIL
+from app.services.media.variants import DETAIL, THUMB
 
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,12 @@ def _json_ld(obj) -> str:
         .replace(">", "\\u003e")
         .replace("&", "\\u0026")
     )
+
+
+def _thumb_url(image_key: str | None) -> str | None:
+    if not image_key:
+        return None
+    return get_image_storage().url(variant_key(image_key, THUMB.name))
 
 
 def _image_url(image_key: str | None) -> str | None:
@@ -113,7 +119,8 @@ _STYLE = """
   .tag { padding: 8px 14px; font-size: 14px; font-weight: 800; background: var(--paper); border: 1.5px solid var(--line); }
   a.tag { color: var(--ink); text-decoration: none; }
   a.tag:hover { border-color: var(--green); color: var(--green); text-decoration: none; }
-  .cta { margin-top: auto; align-self: flex-start; padding: 16px 28px; font: 900 16px var(--sans);
+  .actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .cta { align-self: flex-start; padding: 16px 28px; font: 900 16px var(--sans);
     cursor: pointer; border: 2px solid var(--green); background: var(--green); color: #fff; }
   .cta:hover { text-decoration: none; }
 
@@ -184,7 +191,10 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 {head_extra}
 <style>{_STYLE}</style>
 <link rel="stylesheet" href="/site-header.css" />
+<link rel="stylesheet" href="/bag.css" />
 <script src="/site-header.js" defer></script>
+<script src="/bag.js" defer></script>
+<noscript><style>.bag-add {{ display: none; }}</style></noscript>
 </head>
 <body>
 <header class="site-header">
@@ -324,6 +334,23 @@ def _option_card(gadget: Gadget) -> str:
     )
 
 
+def _bag_button(gadget, description: str) -> str:
+    """The add-to-bag toggle; bag.js wires it up and keeps it in step with
+    the bag shared with the home page. Without JavaScript it could do
+    nothing, so a <noscript> rule in the page head hides it."""
+    item = {
+        "name": gadget.name,
+        "category": gadget.category,
+        "why": (gadget.description or "").strip()[:300] or None,
+        "page_url": f"/gadget/{gadget.slug}",
+        "image_url": _thumb_url(gadget.image_key),
+    }
+    return (
+        f'<button type="button" class="bag-add" data-bag-add="{_e(json.dumps(item))}">'
+        "Add to bag</button>"
+    )
+
+
 def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | None = None) -> str:
     similar = similar or []
     canonical = _abs(request, f"/gadget/{gadget.slug}")
@@ -390,7 +417,10 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
         <p>{_e(description)}</p>
       </div>
       {best_for}
-      <a class="cta" href="/">Build your packing list →</a>
+      <div class="actions">
+        {_bag_button(gadget, description)}
+        <a class="cta" href="/">Build your packing list →</a>
+      </div>
     </div>
   </section>{variants_section}{similar_section}
   <section class="panel">

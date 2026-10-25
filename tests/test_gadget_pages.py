@@ -1,5 +1,6 @@
 """The server-rendered gadget detail page: HTML, SEO tags, escaping."""
 
+import html
 import json
 import re
 from types import SimpleNamespace
@@ -148,3 +149,14 @@ def test_a_variant_with_a_url_links_out_safely():
 
 def test_no_variants_means_no_buying_options_section():
     assert "Buying options" not in _render_detail(REQUEST, gadget(variants=[]))
+
+
+def test_detail_has_an_add_to_bag_button_with_the_gadget_details():
+    html_out = _render_detail(REQUEST, gadget(name='Dry "Bag" <x>'))
+
+    match = re.search(r'<button type="button" class="bag-add" data-bag-add="([^"]*)">Add to bag</button>', html_out)
+    assert match, "add-to-bag button missing or its attribute not safely quoted"
+    item = json.loads(html.unescape(match.group(1)))
+    assert item["name"] == 'Dry "Bag" <x>'
+    assert item["page_url"] == "/gadget/waterproof-dry-bag"
+    assert '<script src="/bag.js" defer></script>' in html_out
