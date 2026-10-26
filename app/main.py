@@ -77,6 +77,30 @@ async def drop_read_caches_after_catalog_writes(request: Request, call_next):
     return response
 
 
+_REVALIDATE = (".js", ".css", ".html")
+
+
+@app.middleware("http")
+async def revalidate_page_assets(request: Request, call_next):
+    """The pages, scripts and styles we serve change with every release, and
+    their URLs do not. Without a caching rule browsers reuse old copies for
+    a while -- new markup running against an old bag.js, say. "no-cache"
+    makes them check each time; an unchanged file is a cheap 304 via its
+    ETag. Responses that set their own rule (gadget pages, the API) keep it,
+    and uploaded images are untouched (their keys change on every upload)."""
+    response = await call_next(request)
+
+    path = request.url.path
+    if (
+        request.method == "GET"
+        and "cache-control" not in response.headers
+        and (path in ("/", "/coordinator") or path.endswith(_REVALIDATE))
+    ):
+        response.headers["Cache-Control"] = "no-cache"
+
+    return response
+
+
 @app.middleware("http")
 async def count_page_views(request: Request, call_next):
     """Anonymous visitor counting for the public pages; see analytics.py.

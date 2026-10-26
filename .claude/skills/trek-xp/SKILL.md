@@ -141,7 +141,9 @@ never return a status code or leak provider/SQL detail from a service.
   localStorage, a "Bag" button injected into the header, one "Your bag"
   panel (a right-hand sidebar; items link to `/compare/<slug>` -- every
   buying option for that kind of gadget, grouped by `is_same`, with
-  quality/brand/colour filters and sorting in `compare.js`),
+  quality/brand/colour filters and sorting in `compare.js`; the compare
+  page also docks the bag beside the options via `<aside data-bag-dock>`,
+  with a bottom bar on phones),
   any `<button data-bag-add='{json}'>` becomes a toggle, and
   `<button data-bag-variant='{"gadget":…,"variant":…}'>` chooses a buying
   option (shown in the bag with an estimated total). Pages
@@ -189,6 +191,12 @@ run `python -m scripts.seed_catalog --dry-run`, then for real. Seeded prices
 are illustrative until real vendor data replaces them.
 
 ## Pitfalls already paid for
+
+- Page, script and style URLs never change between releases, so `main.py`
+  sends `Cache-Control: no-cache` for them (ETag keeps it cheap). Without
+  it browsers ran new markup against an old `bag.js`. When testing in the
+  browser after a change, still bypass caches for SSR pages (they allow 5
+  minutes) with a `?fresh=N` query.
 
 - **Neon pooler (`-pooler` host) = PgBouncer transaction mode.**
   `app/db/engine.py` uses `NullPool`, `statement_cache_size=0` and unique

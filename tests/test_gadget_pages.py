@@ -221,3 +221,12 @@ def test_compare_escapes_variant_details():
     out = _render_compare(REQUEST, g, [g])
     assert '<b>"Brand"</b>' not in out and "&lt;b&gt;" in out
     assert "<i>red</i>" not in out
+
+
+def test_compare_keeps_the_bag_in_view():
+    from app.routes.gadget_pages import _render_compare
+
+    g = gadget(variants=[variant("Anker", "standard", 2900)])
+    out = _render_compare(REQUEST, g, [g])
+    assert "<aside data-bag-dock></aside>" in out
+    assert '<script src="/bag.js" defer></script>' in out

@@ -18,11 +18,13 @@
 
 /* ---------- the sidebar ---------- */
 
-.bag-dialog {
+.bag-dialog, .bag-dock {
   --bag-green: oklch(0.32 0.07 155);
   --bag-ink: oklch(0.22 0.02 155);
   --bag-soft: oklch(0.45 0.04 155);
   --bag-line: oklch(0.86 0.015 140);
+}
+.bag-dialog {
   background: #fff; border: 0; border-radius: 0;
   box-shadow: -18px 0 50px oklch(0.25 0.05 155 / 0.3);
   color: var(--bag-ink); font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -86,14 +88,16 @@
 }
 .bag-item .bag-remove:hover { border-color: oklch(0.5 0.17 25); color: oklch(0.5 0.17 25); }
 .bag-empty { color: var(--bag-soft); font-weight: 700; margin: 8px 0; text-align: center; }
+.bag-item.bag-current { background: oklch(0.95 0.04 150); box-shadow: inset 3px 0 0 var(--bag-green); padding-left: 8px; }
+.bag-item.bag-current .bag-hint { color: var(--bag-soft); }
 .bag-dialog footer { border-top: 1px solid var(--bag-line); flex: none; padding: 14px 22px; }
-.bag-dialog .bag-total {
+.bag-dialog .bag-total, .bag-dock .bag-total {
   align-items: baseline; display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: space-between; margin: 0 0 12px;
 }
-.bag-dialog .bag-total span { color: var(--bag-soft); font-size: 14px; font-weight: 700; }
-.bag-dialog .bag-total strong { font-size: 22px; font-weight: 900; }
-.bag-dialog .bag-total .bag-total-note { flex-basis: 100%; font-size: 12.5px; }
-.bag-dialog .bag-total[hidden] { display: none; }
+.bag-dialog .bag-total span, .bag-dock .bag-total span { color: var(--bag-soft); font-size: 14px; font-weight: 700; }
+.bag-dialog .bag-total strong, .bag-dock .bag-total strong { font-size: 22px; font-weight: 900; }
+.bag-dialog .bag-total .bag-total-note, .bag-dock .bag-total .bag-total-note { flex-basis: 100%; font-size: 12.5px; }
+.bag-dialog .bag-total[hidden], .bag-dock .bag-total[hidden] { display: none; }
 .bag-dialog .bag-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
 .bag-dialog .bag-spacer { flex: 1; }
 .bag-dialog footer button { cursor: pointer; font: 800 15px 'Nunito', system-ui, sans-serif; padding: 12px 18px; }
@@ -120,3 +124,37 @@
 }
 .var-choose:hover { background: oklch(0.92 0.05 150); }
 .var-choose.on { background: oklch(0.32 0.07 155); color: #fff; }
+
+/* ---------- docked bag (compare page) ---------- */
+
+.bag-dock {
+  align-self: start; background: #fff; border: 1px solid var(--bag-line); color: var(--bag-ink);
+  display: flex; flex-direction: column; font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  max-height: calc(100vh - 32px); position: sticky; top: 16px;
+}
+.bag-dock * { border-radius: 0; box-sizing: border-box; }
+.bag-dock-head { background: oklch(0.32 0.07 155); color: #fff; padding: 14px 18px; }
+.bag-dock-head h2 { font-size: 19px; font-weight: 900; margin: 0; }
+.bag-dock-head p { color: oklch(0.85 0.04 150); font-size: 13px; font-weight: 700; margin: 2px 0 0; }
+.bag-dock .bag-body { gap: 14px; padding: 14px 18px; }
+.bag-dock .bag-total { border-top: 1px solid var(--bag-line); margin: 0; padding: 12px 18px; }
+.bag-dock .bag-total strong { font-size: 19px; }
+.bag-dock-open {
+  background: transparent; border: 0; border-top: 1px solid var(--bag-line); color: oklch(0.32 0.07 155);
+  cursor: pointer; font: 800 14px 'Nunito', system-ui, sans-serif; padding: 12px 18px; text-align: left;
+}
+.bag-dock-open:hover { background: oklch(0.97 0.02 150); }
+
+/* On narrow screens the dock gives way to a slim bar that opens the sidebar. */
+.bag-mini {
+  align-items: center; background: oklch(0.32 0.07 155); border: 0; bottom: 0; box-shadow: 0 -8px 24px oklch(0.25 0.05 155 / 0.25);
+  color: #fff; cursor: pointer; display: none; font: 700 15px 'Nunito', system-ui, sans-serif; gap: 10px;
+  left: 0; padding: 14px 16px; position: fixed; right: 0; text-align: left; z-index: 20;
+}
+.bag-mini .bag-mini-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bag-mini .bag-mini-cta { background: oklch(0.85 0.13 85); color: #1d3b2b; font-weight: 900; padding: 6px 12px; }
+@media (max-width: 1000px) {
+  .bag-dock { display: none; }
+  .bag-mini { display: flex; }
+  body:has(.bag-mini) { padding-bottom: 64px; }
+}

@@ -14,6 +14,8 @@
 // - <button data-bag-add='{"name": ...}'> becomes an add/remove toggle
 // - <button data-bag-variant='{"gadget": {...}, "variant": {...}}'> chooses
 //   that buying option for the bag (adding the gadget if needed)
+// - <aside data-bag-dock> shows the bag in the page itself (the compare
+//   page), with a slim "Your bag" bar on narrow screens
 (() => {
   "use strict";
 
@@ -198,28 +200,33 @@
     return `${what}${extra ? ` · ${extra}` : ""} — ${money(v.price, v.currency)}${v.vendor ? ` at ${v.vendor}` : ""}`;
   }
 
-  function renderPanel() {
-    if (!dialog) return;
-    const n = items.length;
-    dialog.querySelector(".bag-summary").textContent = n
-      ? `${n} item${n === 1 ? "" : "s"} packed`
-      : "Nothing packed yet";
-    dialog.querySelector(".bag-copy").disabled = !n;
-    dialog.querySelector(".bag-clear").disabled = !n;
+  // ---------- rendering shared by the sidebar and docked panels ----------
 
-    // An estimate from the buying options chosen so far, per currency.
+  const summaryText = (n) => (n ? `${n} item${n === 1 ? "" : "s"} packed` : "Nothing packed yet");
+
+  // An estimate from the buying options chosen so far, per currency.
+  function totalHtml() {
+    const n = items.length;
     const priced = items.filter((i) => i.variant);
+    if (!priced.length) return "";
     const totals = {};
     for (const i of priced) totals[i.variant.currency] = (totals[i.variant.currency] || 0) + i.variant.price;
-    const total = dialog.querySelector(".bag-total");
-    total.hidden = !priced.length;
-    total.innerHTML = priced.length
-      ? `<span>Estimated cost</span><strong>${Object.entries(totals).map(([c, p]) => esc(money(p, c))).join(" + ")}</strong>` +
-        `<span class="bag-total-note">${priced.length} of ${n} item${n === 1 ? "" : "s"} with a buying option chosen</span>`
-      : "";
+    return `<span>Estimated cost</span><strong>${Object.entries(totals).map(([c, p]) => esc(money(p, c))).join(" + ")}</strong>` +
+      `<span class="bag-total-note">${priced.length} of ${n} item${n === 1 ? "" : "s"} with a buying option chosen</span>`;
+  }
 
-    const body = dialog.querySelector(".bag-body");
-    if (!n) {
+  function shortTotal() {
+    const priced = items.filter((i) => i.variant);
+    if (!priced.length) return "";
+    const totals = {};
+    for (const i of priced) totals[i.variant.currency] = (totals[i.variant.currency] || 0) + i.variant.price;
+    return Object.entries(totals).map(([c, p]) => money(p, c)).join(" + ");
+  }
+
+  // The item list, grouped by priority. The item whose comparison page is
+  // open is marked as current.
+  function renderList(body) {
+    if (!items.length) {
       body.innerHTML = `<p class="bag-empty">Your bag is empty. Tap “Add to bag” on a packing list or on any gadget page.</p>`;
       return;
     }
@@ -234,14 +241,16 @@
 
       for (const item of group) {
         const row = document.createElement("div");
-        row.className = "bag-item";
+        const href = item.page_url ? compareUrl(item.page_url) : null;
+        const current = href && href === location.pathname;
+        row.className = "bag-item" + (current ? " bag-current" : "");
         const why = item.why || (item.destination ? `For ${item.destination}` : item.category) || "";
         const detail = item.variant
           ? `<div class="bag-variant">${esc(variantLine(item.variant))}</div>`
           : (why ? `<div class="bag-why">${esc(why)}</div>` : "");
-        const hint = item.page_url
-          ? `<div class="bag-hint">${item.variant ? "Change buying option" : "Compare brands and prices"} →</div>`
-          : "";
+        const hint = current
+          ? `<div class="bag-hint">Comparing now</div>`
+          : href ? `<div class="bag-hint">${item.variant ? "Change buying option" : "Compare brands and prices"} →</div>` : "";
         const inner = `
             <span class="bag-thumb">${item.image_url ? `<img src="${esc(item.image_url)}" alt="" loading="lazy" />` : "🎒"}</span>
             <span class="bag-text">
@@ -249,8 +258,8 @@
               ${detail}${hint}
             </span>`;
         // The whole item opens the comparison page for that kind of gadget.
-        row.innerHTML = (item.page_url
-          ? `<a class="bag-link" href="${esc(compareUrl(item.page_url))}">${inner}</a>`
+        row.innerHTML = (href
+          ? `<a class="bag-link" href="${esc(href)}"${current ? ' aria-current="page"' : ""}>${inner}</a>`
           : `<div class="bag-link">${inner}</div>`) +
           `<button type="button" class="bag-remove" aria-label="Remove ${esc(item.name)} from your bag">Remove</button>`;
         row.querySelector(".bag-remove").addEventListener("click", () => TrekBag.remove(item.name));
@@ -258,6 +267,64 @@
       }
       return [section];
     }));
+  }
+
+  function renderPanel() {
+    if (!dialog) return;
+    const n = items.length;
+    dialog.querySelector(".bag-summary").textContent = summaryText(n);
+    dialog.querySelector(".bag-copy").disabled = !n;
+    dialog.querySelector(".bag-clear").disabled = !n;
+    const total = dialog.querySelector(".bag-total");
+    total.innerHTML = totalHtml();
+    total.hidden = !total.innerHTML;
+    renderList(dialog.querySelector(".bag-body"));
+  }
+
+  // ---------- docked bag (pages with <aside data-bag-dock>) ----------
+  //
+  // The compare page keeps the bag in view beside the options on wide
+  // screens; on narrow ones a slim bar at the bottom opens the sidebar.
+
+  function buildDocks() {
+    for (const dock of document.querySelectorAll("[data-bag-dock]")) {
+      dock.classList.add("bag-dock");
+      dock.setAttribute("aria-label", "Your bag");
+      dock.innerHTML = `
+        <div class="bag-dock-head">
+          <h2>Your bag</h2>
+          <p class="bag-summary"></p>
+        </div>
+        <div class="bag-body"></div>
+        <p class="bag-total" hidden></p>
+        <button type="button" class="bag-dock-open">Open full bag</button>`;
+      dock.querySelector(".bag-dock-open").addEventListener("click", openPanel);
+    }
+    if (document.querySelector("[data-bag-dock]") && !document.querySelector(".bag-mini")) {
+      const bar = document.createElement("button");
+      bar.type = "button";
+      bar.className = "bag-mini";
+      bar.setAttribute("aria-haspopup", "dialog");
+      bar.addEventListener("click", openPanel);
+      document.body.append(bar);
+    }
+  }
+
+  function renderDocks() {
+    const n = items.length;
+    for (const dock of document.querySelectorAll(".bag-dock")) {
+      dock.querySelector(".bag-summary").textContent = summaryText(n);
+      const total = dock.querySelector(".bag-total");
+      total.innerHTML = totalHtml();
+      total.hidden = !total.innerHTML;
+      renderList(dock.querySelector(".bag-body"));
+    }
+    const bar = document.querySelector(".bag-mini");
+    if (bar) {
+      const total = shortTotal();
+      bar.innerHTML = `<span aria-hidden="true">🎒</span><span class="bag-mini-text"><strong>Your bag</strong>` +
+        ` · ${n ? `${n} item${n === 1 ? "" : "s"}` : "empty"}${total ? ` · ${esc(total)}` : ""}</span><span class="bag-mini-cta">View</span>`;
+    }
   }
 
   async function copyList() {
@@ -358,10 +425,17 @@
 
   TrekBag.onChange(() => {
     renderHeaderButton();
+    renderDocks();
     if (dialog?.open) renderPanel();
   });
 
-  const start = () => { addHeaderButton(); wireAddButtons(); wireVariantButtons(); };
+  const start = () => {
+    addHeaderButton();
+    buildDocks();
+    renderDocks();
+    wireAddButtons();
+    wireVariantButtons();
+  };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 })();

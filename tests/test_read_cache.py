@@ -153,3 +153,15 @@ def test_only_successful_catalog_writes_clear_the_caches(monkeypatch, method, pa
     asyncio.run(middleware(request, call_next))
 
     assert bool(cleared) is clears
+
+
+@pytest.mark.parametrize("path,expected", [
+    ("/", "no-cache"), ("/bag.js", "no-cache"), ("/site-header.css", "no-cache"),
+    ("/coordinator", "no-cache"), ("/health", None),
+])
+def test_pages_scripts_and_styles_are_revalidated(path, expected):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    assert TestClient(app).get(path).headers.get("cache-control") == expected

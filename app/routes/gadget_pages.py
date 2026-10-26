@@ -145,6 +145,8 @@ _STYLE = """
   .var-link { font-size: 14px; font-weight: 800; }
   #buying-options { scroll-margin-top: 16px; }
   .eye { color: var(--green); font: 700 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+  .cmp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  @media (max-width: 1000px) { .cmp-layout { grid-template-columns: minmax(0, 1fr); } }
   .cmp-title { margin: -8px 0 0; font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
   .cmp-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px;
     padding: 16px 18px; background: var(--paper); border: 1px solid var(--line-soft); }
@@ -775,6 +777,7 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
     <a href="/gadget/{_e(gadget.slug)}">{_e(name)}</a><span class="sep">/</span>
     <span class="here">Compare options</span>
   </nav>
+  <div class="cmp-layout">
   <section class="panel">
     <span class="eye">Compare buying options</span>
     <h1 class="cmp-title">{_e(name)}</h1>
@@ -783,6 +786,9 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
     {listing}
     <a class="var-link" href="/gadget/{_e(gadget.slug)}">About {_e(name)} — why you need it →</a>
   </section>
+  <!-- The traveller's bag, kept in view while comparing (bag.js). -->
+  <aside data-bag-dock></aside>
+  </div>
 """
     return _shell(
         title=f"Compare {name} prices and options — Trek_XP",
