@@ -326,8 +326,6 @@
 
   .card-title { align-items: flex-start; display: flex; gap: 10px; justify-content: space-between; }
   .card-title .name { font-size: 18px; font-weight: 900; line-height: 1.2; }
-  a.card-title, .card-title a.name { color: inherit; text-decoration: none; }
-  .card-title a.name:hover { text-decoration: underline; text-decoration-color: var(--green-mid); }
 
   .info-wrap { flex: none; position: relative; }
 
@@ -1111,9 +1109,7 @@
       </div>
       <div class="card-body">
         <div class="card-title">
-          ${item.page_url
-            ? `<a class="name" href="${esc(item.page_url)}">${esc(item.gadget)}</a>`
-            : `<span class="name">${esc(item.gadget)}</span>`}
+          <span class="name">${esc(item.gadget)}</span>
           <span class="info-wrap">
             <span class="info" tabindex="0" role="button" aria-label="Why you need this">i</span>
             <span class="tip">
