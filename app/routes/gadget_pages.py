@@ -23,6 +23,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from app.db.engine import get_sessionmaker
 from app.db.models import Gadget, Placement
 from app.exceptions.exceptions import DatabaseNotConfiguredException
+from app.services.gadgets.similarity import is_same
 from app.services.media.storage import get_image_storage, variant_key
 from app.services.media.variants import DETAIL, THUMB
 
@@ -143,6 +144,33 @@ _STYLE = """
   .var-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: auto; }
   .var-link { font-size: 14px; font-weight: 800; }
   #buying-options { scroll-margin-top: 16px; }
+  .eye { color: var(--green); font: 700 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+  .cmp-title { margin: -8px 0 0; font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
+  .cmp-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px;
+    padding: 16px 18px; background: var(--paper); border: 1px solid var(--line-soft); }
+  .cmp-filters fieldset { border: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+  .cmp-filters legend, .cmp-filters > label { color: var(--ink-soft); font-size: 13px; font-weight: 800; }
+  .cmp-filters legend { margin-bottom: 6px; padding: 0; width: 100%; }
+  .cmp-filters > label { display: flex; flex-direction: column; gap: 6px; }
+  .cmp-quality label { cursor: pointer; }
+  .cmp-quality input { position: absolute; opacity: 0; pointer-events: none; }
+  .cmp-quality label { border: 1.5px solid var(--line); color: var(--ink); font-size: 14px; font-weight: 800;
+    padding: 8px 14px; }
+  .cmp-quality label:has(input:checked) { background: var(--green); border-color: var(--green); color: var(--paper); }
+  .cmp-quality label:has(input:focus-visible) { outline: 2px solid var(--green-mid); outline-offset: 2px; }
+  .cmp-filters select { background: var(--paper); border: 1.5px solid var(--line); color: var(--ink);
+    font: 700 14px var(--sans); min-width: 170px; padding: 8px 10px; }
+  .cmp-count { margin: 0; color: var(--ink-soft); font-size: 15px; font-weight: 800; }
+  .cmp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .cmp-card[hidden] { display: none; }
+  .cmp-ph { aspect-ratio: 4 / 3; background: var(--paper); display: flex; align-items: center;
+    justify-content: center; margin: -20px -20px 0; border-bottom: 1px solid var(--line-soft); }
+  .cmp-ph img { width: 100%; height: 100%; object-fit: contain; padding: 14px; }
+  .cmp-card h3.brand { margin: 0; }
+  .cmp-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 14px; }
+  .cmp-facts div { display: contents; }
+  .cmp-facts dt { color: var(--ink-faint); font-weight: 700; }
+  .cmp-facts dd { margin: 0; color: var(--ink); font-weight: 700; }
   .var-tier { font-size: 12px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 10px; }
   .var-tier.budget { background: var(--line-soft); color: var(--ink); }
   .var-tier.standard { background: var(--green); color: #fff; }
@@ -172,6 +200,9 @@ _STYLE = """
     .hero h1 { font-size: 34px; }
     .panel { padding: 22px; }
     .panel h2 { font-size: 23px; }
+    .cmp-title { font-size: 30px; }
+    .cmp-filters select { min-width: 0; width: 100%; }
+    .cmp-filters > label { flex: 1 1 140px; }
   }
 """
 
@@ -196,7 +227,7 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 <link rel="stylesheet" href="/bag.css" />
 <script src="/site-header.js" defer></script>
 <script src="/bag.js" defer></script>
-<noscript><style>.bag-add, .var-choose {{ display: none; }}</style></noscript>
+<noscript><style>.bag-add, .var-choose, .cmp-filters {{ display: none; }}</style></noscript>
 </head>
 <body>
 <header class="site-header">
@@ -333,6 +364,7 @@ def _variants_section(gadget: Gadget) -> str:
     <span class="sub">The same gadget from different brands and vendors — compare price, quality and
       colour, and choose one for your bag.</span>
     <div class="var-grid">{cards}</div>
+    <a class="var-link" href="/compare/{_e(gadget.slug)}">Compare all options side by side, with filters →</a>
   </section>"""
 
 
@@ -608,3 +640,165 @@ async def _load_active_gadgets() -> list[Gadget]:
     except SQLAlchemyError:
         logger.warning("Gadget index lookup failed", exc_info=True)
         return []
+
+
+# ---------- compare buying options for one type of gadget ----------
+#
+# Where an item in the traveller's bag leads: every buying option on file
+# for that kind of gadget, side by side. "That kind" is the gadget plus any
+# other active gadget that is the same item by name similarity
+# (services/gadgets/similarity.py) -- so options entered under "Power Bank"
+# and "Portable Charger" are compared together. Filters and sorting run in
+# the browser (compare.js); without JavaScript the full list still shows,
+# cheapest first.
+
+
+async def _load_compare(slug: str) -> tuple[Gadget | None, list[Gadget]]:
+    """The gadget, and every active gadget that is the same item (itself
+    included). Best effort: a database problem yields nothing."""
+    try:
+        sessionmaker = get_sessionmaker()
+    except DatabaseNotConfiguredException:
+        return None, []
+
+    try:
+        async with sessionmaker() as db:
+            active = (
+                await db.scalars(
+                    select(Gadget)
+                    .where(Gadget.is_active.is_(True), Gadget.slug.is_not(None))
+                    .options(selectinload(Gadget.variants))
+                )
+            ).all()
+    except SQLAlchemyError:
+        logger.warning("Compare page lookup failed for %s", slug, exc_info=True)
+        return None, []
+
+    gadget = next((g for g in active if g.slug == slug), None)
+    if gadget is None:
+        return None, []
+
+    same = [g for g in active if g.id == gadget.id or is_same(g.name, gadget.name)]
+    return gadget, sorted(same, key=lambda g: (g.id != gadget.id, g.name))
+
+
+def _compare_card(variant, owner: Gadget, bag_item: dict) -> str:
+    quality = (variant.quality or "standard").lower()
+    tier_class = quality if quality in _QUALITY_ORDER else "standard"
+    model = f" {variant.model_name}" if variant.model_name else ""
+    chosen = {
+        "gadget": bag_item,
+        "variant": {
+            "brand": variant.brand, "model_name": variant.model_name, "color": variant.color,
+            "quality": quality, "price": variant.price, "currency": variant.currency,
+            "vendor": variant.vendor,
+        },
+    }
+    image = _image_url(owner.image_key)
+    link = (
+        f'<a class="var-link" href="{_e(variant.url)}" target="_blank" rel="noopener nofollow">'
+        f'View at {_e(variant.vendor or "seller")} ↗</a>'
+        if variant.url else ""
+    )
+    facts = "".join(
+        f'<div><dt>{label}</dt><dd>{_e(value)}</dd></div>'
+        for label, value in (("Brand", variant.brand), ("Colour", variant.color),
+                             ("Seller", variant.vendor), ("Listed as", owner.name))
+        if value
+    )
+    return (
+        f'<article class="cmp-card var-card" data-variant-card data-price="{variant.price}" '
+        f'data-quality="{_e(tier_class)}" data-brand="{_e(variant.brand)}" data-color="{_e(variant.color or "")}">'
+        + (f'<div class="cmp-ph"><img src="{_e(image)}" alt="" loading="lazy" /></div>' if image else "")
+        + f'<div class="top"><span class="var-tier {tier_class}">{_e(quality.title())}</span>'
+        f'<span class="price">{_e(_price(variant))}</span></div>'
+        f'<h3 class="brand">{_e(variant.brand)}{_e(model)}</h3>'
+        f'<dl class="cmp-facts">{facts}</dl>'
+        f'<div class="var-actions"><button type="button" class="var-choose" data-bag-variant="{_e(json.dumps(chosen))}">'
+        f'Choose for my bag</button>{link}</div>'
+        "</article>"
+    )
+
+
+def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> str:
+    bag_item = _bag_item(gadget)
+    rows = sorted(
+        ((v, g) for g in group for v in g.variants),
+        key=lambda vg: (vg[0].price, _QUALITY_ORDER.get((vg[0].quality or "").lower(), 1)),
+    )
+    canonical = _abs(request, f"/compare/{gadget.slug}")
+    name = gadget.name
+
+    if rows:
+        prices = [v.price for v, _ in rows]
+        brands = sorted({v.brand for v, _ in rows}, key=str.lower)
+        colours = sorted({v.color for v, _ in rows if v.color}, key=str.lower)
+        qualities = [q for q in _QUALITY_ORDER if any((v.quality or "").lower() == q for v, _ in rows)]
+        low, high = min(rows, key=lambda r: r[0].price)[0], max(rows, key=lambda r: r[0].price)[0]
+        span = _price(low) if low.price == high.price else f"{_price(low)} – {_price(high)}"
+        summary = (f"{len(rows)} option{'s' if len(rows) != 1 else ''} from {len(brands)} "
+                   f"brand{'s' if len(brands) != 1 else ''} · {span}")
+
+        def options(values, label):
+            return "".join(f'<option value="{_e(v)}">{_e(label(v))}</option>' for v in values)
+
+        filters = f"""
+    <form class="cmp-filters" id="cmpFilters" aria-label="Filter and sort the options">
+      <fieldset class="cmp-quality">
+        <legend>Quality</legend>
+        <label><input type="radio" name="quality" value="" checked /> All</label>
+        {"".join(f'<label><input type="radio" name="quality" value="{q}" /> {q.title()}</label>' for q in qualities)}
+      </fieldset>
+      <label>Brand <select name="brand"><option value="">All brands</option>{options(brands, str)}</select></label>
+      {f'<label>Colour <select name="color"><option value="">All colours</option>{options(colours, str)}</select></label>' if colours else ""}
+      <label>Sort <select name="sort">
+        <option value="price-asc">Price: low to high</option>
+        <option value="price-desc">Price: high to low</option>
+        <option value="quality">Quality: premium first</option>
+      </select></label>
+    </form>
+    <p class="cmp-count" id="cmpCount" aria-live="polite">{_e(summary)}</p>"""
+        cards = "".join(_compare_card(v, g, bag_item) for v, g in rows)
+        listing = f"""{filters}
+    <div class="cmp-grid" id="cmpGrid">{cards}</div>
+    <p class="empty" id="cmpNone" hidden>No option matches these filters.</p>"""
+        description = f"Compare {len(rows)} {name} options in Bangladesh by price, brand, colour and quality."
+    else:
+        listing = """
+    <p class="empty">No buying options are listed for this gadget yet. A coordinator adds brands,
+       prices and sellers as they are checked.</p>"""
+        description = f"Buying options for {name} in Bangladesh, compared by price, brand and quality."
+
+    body = f"""
+  <nav class="crumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/gadget/{_e(gadget.slug)}">{_e(name)}</a><span class="sep">/</span>
+    <span class="here">Compare options</span>
+  </nav>
+  <section class="panel">
+    <span class="eye">Compare buying options</span>
+    <h1 class="cmp-title">{_e(name)}</h1>
+    <p class="sub">Every option we list for this kind of gadget{" — including ones listed as " + ", ".join(_e(g.name) for g in group[1:]) if len(group) > 1 else ""}.
+       Choose one for your bag, or open the seller.</p>
+    {listing}
+    <a class="var-link" href="/gadget/{_e(gadget.slug)}">About {_e(name)} — why you need it →</a>
+  </section>
+"""
+    return _shell(
+        title=f"Compare {name} prices and options — Trek_XP",
+        description=description,
+        canonical=canonical,
+        head_extra=f'<meta property="og:title" content="Compare {_e(name)} options" />'
+                   '<script src="/compare.js" defer></script>',
+        body=body,
+    )
+
+
+@router.get("/compare/{slug}", response_class=HTMLResponse, include_in_schema=False)
+async def compare_options(slug: str, request: Request) -> HTMLResponse:
+    gadget, group = await _load_compare(slug)
+
+    if gadget is None:
+        return _not_found(request)
+
+    return HTMLResponse(_render_compare(request, gadget, group), headers={"Cache-Control": CACHE})

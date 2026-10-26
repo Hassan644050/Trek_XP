@@ -2,7 +2,7 @@
 
 What is counted, per day (in the home country's time zone):
 - unique visitors and page views of the public pages (home, gadget index,
-  gadget detail pages), with the page, the external referrer and the
+  gadget detail pages, compare pages), with the page, the external referrer and the
   device type;
 - packing lists generated, by destination and trip type.
 
@@ -86,8 +86,9 @@ def page_label(path: str) -> str | None:
         return "home"
     if path == "/gadgets":
         return "gadgets"
-    if path.startswith("/gadget/") and path.count("/") == 2 and len(path) > len("/gadget/"):
-        return path.removeprefix("/")
+    for prefix in ("/gadget/", "/compare/"):
+        if path.startswith(prefix) and path.count("/") == 2 and len(path) > len(prefix):
+            return path.removeprefix("/")
     return None
 
 

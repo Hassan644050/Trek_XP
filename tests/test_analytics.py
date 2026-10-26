@@ -32,6 +32,7 @@ def counts():
 @pytest.mark.parametrize("path,label", [
     ("/", "home"), ("/index.html", "home"), ("/gadgets", "gadgets"),
     ("/gadget/power-bank", "gadget/power-bank"),
+    ("/compare/power-bank", "compare/power-bank"),
     ("/gadget/", None), ("/gadget/a/b", None), ("/coordinator", None),
     ("/api/auth/me", None), ("/site-header.css", None), ("/media/x.webp", None),
 ])

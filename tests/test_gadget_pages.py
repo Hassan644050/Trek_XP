@@ -175,3 +175,49 @@ def test_each_buying_option_can_be_chosen_for_the_bag():
                                  "quality": "standard", "price": 2900, "currency": "BDT", "vendor": "Daraz"}
     # The seller link is separate from the choose button, never wrapped around it.
     assert '<a class="var-link" href="https://daraz.com.bd/x" target="_blank" rel="noopener nofollow">View at Daraz ↗</a>' in html_out
+
+
+# ---------- compare page ----------
+
+
+def test_compare_lists_every_option_for_the_type_cheapest_first():
+    from app.routes.gadget_pages import _render_compare
+
+    main = gadget(name="Power Bank", slug="power-bank", variants=[
+        variant("Anker Prime", "premium", 6500, color="Graphite", vendor="Pickaboo"),
+        variant("Generic", "budget", 1200, color="Black"),
+    ])
+    alias = gadget(name="Portable Charger", slug="portable-charger", variants=[
+        variant("Xiaomi", "standard", 2400, color="White", vendor="Daraz"),
+    ])
+    out = _render_compare(REQUEST, main, [main, alias])
+
+    assert '<link rel="canonical" href="https://trekxp.example/compare/power-bank" />' in out
+    grid = out[out.index('id="cmpGrid"'):]
+    assert grid.index("Generic") < grid.index("Xiaomi") < grid.index("Anker Prime")   # by price
+    assert "3 options from 3 brands · ৳1,200 – ৳6,500" in out
+    assert "including ones listed as Portable Charger" in out
+    assert '<option value="Graphite">Graphite</option>' in out                     # colour filter
+    assert out.count('class="var-choose"') == 3
+
+    # Every option is chosen for the bag item the traveller came from.
+    bags = [json.loads(html.unescape(m)) for m in re.findall(r'data-bag-variant="([^"]*)"', out)]
+    assert {b["gadget"]["name"] for b in bags} == {"Power Bank"}
+    assert {b["variant"]["brand"] for b in bags} == {"Generic", "Xiaomi", "Anker Prime"}
+
+
+def test_compare_without_options_says_so():
+    from app.routes.gadget_pages import _render_compare
+
+    out = _render_compare(REQUEST, gadget(variants=[]), [gadget(variants=[])])
+    assert "No buying options are listed for this gadget yet." in out
+    assert 'id="cmpFilters"' not in out
+
+
+def test_compare_escapes_variant_details():
+    from app.routes.gadget_pages import _render_compare
+
+    g = gadget(variants=[variant('Evil <b>"Brand"</b>', "standard", 100, color="<i>red</i>")])
+    out = _render_compare(REQUEST, g, [g])
+    assert '<b>"Brand"</b>' not in out and "&lt;b&gt;" in out
+    assert "<i>red</i>" not in out

@@ -9,7 +9,8 @@
 //   open / chooseVariant / variantOf
 // - a "Bag" button in the site header, on every page, opens the bag as a
 //   sidebar that slides in from the right
-// - clicking an item in the bag opens its gadget page at its buying options
+// - clicking an item in the bag opens /compare/<gadget>: every buying option
+//   for that kind of gadget, to compare price, brand, colour and quality
 // - <button data-bag-add='{"name": ...}'> becomes an add/remove toggle
 // - <button data-bag-variant='{"gadget": {...}, "variant": {...}}'> chooses
 //   that buying option for the bag (adding the gadget if needed)
@@ -25,6 +26,9 @@
   ];
   const SYMBOLS = { BDT: "৳", USD: "$", EUR: "€", GBP: "£", INR: "₹" };
 
+  // A bag item opens the comparison of every buying option for its kind of
+  // gadget (/compare/<slug>), not its detail page.
+  const compareUrl = (pageUrl) => pageUrl.replace(/^\/gadget\//, "/compare/");
   const keyOf = (name) => String(name || "").toLowerCase().split(/\s+/).filter(Boolean).join(" ");
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -236,8 +240,7 @@
           ? `<div class="bag-variant">${esc(variantLine(item.variant))}</div>`
           : (why ? `<div class="bag-why">${esc(why)}</div>` : "");
         const hint = item.page_url
-          // Not every gadget has buying options yet, so promise only the page.
-          ? `<div class="bag-hint">${item.variant ? "Change buying option" : "View gadget and buying options"} →</div>`
+          ? `<div class="bag-hint">${item.variant ? "Change buying option" : "Compare brands and prices"} →</div>`
           : "";
         const inner = `
             <span class="bag-thumb">${item.image_url ? `<img src="${esc(item.image_url)}" alt="" loading="lazy" />` : "🎒"}</span>
@@ -245,9 +248,9 @@
               <span class="bag-name">${esc(item.name)}</span>
               ${detail}${hint}
             </span>`;
-        // The whole item opens the gadget's page, at its buying options.
+        // The whole item opens the comparison page for that kind of gadget.
         row.innerHTML = (item.page_url
-          ? `<a class="bag-link" href="${esc(item.page_url)}#buying-options">${inner}</a>`
+          ? `<a class="bag-link" href="${esc(compareUrl(item.page_url))}">${inner}</a>`
           : `<div class="bag-link">${inner}</div>`) +
           `<button type="button" class="bag-remove" aria-label="Remove ${esc(item.name)} from your bag">Remove</button>`;
         row.querySelector(".bag-remove").addEventListener("click", () => TrekBag.remove(item.name));

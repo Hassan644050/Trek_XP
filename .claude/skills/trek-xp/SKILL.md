@@ -139,7 +139,9 @@ never return a status code or leak provider/SQL detail from a service.
 - **The traveller's bag** is shared by every public page (`bag.js` +
   `bag.css`, loaded next to the header assets): `window.TrekBag`, saved in
   localStorage, a "Bag" button injected into the header, one "Your bag"
-  panel (a right-hand sidebar; items link to `page_url#buying-options`),
+  panel (a right-hand sidebar; items link to `/compare/<slug>` -- every
+  buying option for that kind of gadget, grouped by `is_same`, with
+  quality/brand/colour filters and sorting in `compare.js`),
   any `<button data-bag-add='{json}'>` becomes a toggle, and
   `<button data-bag-variant='{"gadget":…,"variant":…}'>` chooses a buying
   option (shown in the bag with an estimated total). Pages

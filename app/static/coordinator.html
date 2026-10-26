@@ -1792,7 +1792,7 @@
   function pageName(key) {
     if (key === "home") return "Home page";
     if (key === "gadgets") return "All gadgets";
-    return key.replace(/^gadget\//, "Gadget: ").replace(/-/g, " ");
+    return key.replace(/^gadget\//, "Gadget: ").replace(/^compare\//, "Compare: ").replace(/-/g, " ");
   }
 
   function rankTable(id, rows, empty) {
