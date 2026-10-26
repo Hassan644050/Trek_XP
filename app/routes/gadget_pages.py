@@ -138,8 +138,11 @@ _STYLE = """
   .var-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
   .var-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; text-align: left;
     background: var(--paper); border: 2px solid var(--line-soft); }
-  a.var-card:hover { border-color: var(--green); text-decoration: none; }
+  .var-card.chosen { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
   .var-card .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .var-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: auto; }
+  .var-link { font-size: 14px; font-weight: 800; }
+  #buying-options { scroll-margin-top: 16px; }
   .var-tier { font-size: 12px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 10px; }
   .var-tier.budget { background: var(--line-soft); color: var(--ink); }
   .var-tier.standard { background: var(--green); color: #fff; }
@@ -147,7 +150,6 @@ _STYLE = """
   .var-card .brand { font-size: 19px; font-weight: 900; color: var(--ink); }
   .var-card .note { font-size: 14px; color: var(--ink-soft); }
   .var-card .price { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; color: var(--ink); }
-  .var-card .vendor { font-size: 13px; font-weight: 800; color: var(--green); }
 
   .idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   .idx-card { display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--line-soft); }
@@ -194,7 +196,7 @@ def _shell(*, title: str, description: str, canonical: str, head_extra: str, bod
 <link rel="stylesheet" href="/bag.css" />
 <script src="/site-header.js" defer></script>
 <script src="/bag.js" defer></script>
-<noscript><style>.bag-add {{ display: none; }}</style></noscript>
+<noscript><style>.bag-add, .var-choose {{ display: none; }}</style></noscript>
 </head>
 <body>
 <header class="site-header">
@@ -277,29 +279,42 @@ def _price(variant) -> str:
     return f"{symbol}{variant.price:,}"
 
 
-def _variant_card(variant) -> str:
+def _variant_card(variant, bag_item: dict | None = None) -> str:
     quality = (variant.quality or "standard").lower()
     tier_class = quality if quality in _QUALITY_ORDER else "standard"
     note_bits = [b for b in (variant.color, variant.vendor and f"from {variant.vendor}") if b]
     note = " · ".join(note_bits)
     model = f" {variant.model_name}" if variant.model_name else ""
 
-    inner = (
-        f'<div class="top"><span class="var-tier {tier_class}">{_e(quality.title())}</span>'
-        + (f'<span class="vendor">View ↗</span>' if variant.url else "")
-        + "</div>"
+    choose = ""
+    if bag_item is not None:
+        chosen = {
+            "gadget": bag_item,
+            "variant": {
+                "brand": variant.brand, "model_name": variant.model_name, "color": variant.color,
+                "quality": quality, "price": variant.price, "currency": variant.currency,
+                "vendor": variant.vendor,
+            },
+        }
+        choose = (f'<button type="button" class="var-choose" data-bag-variant="{_e(json.dumps(chosen))}">'
+                  "Choose for my bag</button>")
+    link = (
+        f'<a class="var-link" href="{_e(variant.url)}" target="_blank" rel="noopener nofollow">'
+        f'View at {_e(variant.vendor or "seller")} ↗</a>'
+        if variant.url else ""
+    )
+
+    return (
+        '<div class="var-card" data-variant-card>'
+        f'<div class="top"><span class="var-tier {tier_class}">{_e(quality.title())}</span></div>'
         f'<div style="display:flex;flex-direction:column;gap:4px">'
         f'<span class="brand">{_e(variant.brand)}{_e(model)}</span>'
         + (f'<span class="note">{_e(note)}</span>' if note else "")
         + "</div>"
         f'<span class="price">{_e(_price(variant))}</span>'
+        + (f'<div class="var-actions">{choose}{link}</div>' if choose or link else "")
+        + "</div>"
     )
-
-    if variant.url:
-        return (
-            f'<a class="var-card" href="{_e(variant.url)}" target="_blank" rel="noopener nofollow">{inner}</a>'
-        )
-    return f'<div class="var-card">{inner}</div>'
 
 
 def _variants_section(gadget: Gadget) -> str:
@@ -310,11 +325,13 @@ def _variants_section(gadget: Gadget) -> str:
     if not variants:
         return ""
 
-    cards = "".join(_variant_card(v) for v in variants)
+    item = _bag_item(gadget)
+    cards = "".join(_variant_card(v, item) for v in variants)
     return f"""
-  <section class="panel">
+  <section class="panel" id="buying-options">
     <h2>Buying options</h2>
-    <span class="sub">The same gadget from different brands and vendors — compare price, quality and colour.</span>
+    <span class="sub">The same gadget from different brands and vendors — compare price, quality and
+      colour, and choose one for your bag.</span>
     <div class="var-grid">{cards}</div>
   </section>"""
 
@@ -334,19 +351,23 @@ def _option_card(gadget: Gadget) -> str:
     )
 
 
-def _bag_button(gadget, description: str) -> str:
-    """The add-to-bag toggle; bag.js wires it up and keeps it in step with
-    the bag shared with the home page. Without JavaScript it could do
-    nothing, so a <noscript> rule in the page head hides it."""
-    item = {
+def _bag_item(gadget) -> dict:
+    """What the shared bag (bag.js) stores for this gadget."""
+    return {
         "name": gadget.name,
         "category": gadget.category,
         "why": (gadget.description or "").strip()[:300] or None,
         "page_url": f"/gadget/{gadget.slug}",
         "image_url": _thumb_url(gadget.image_key),
     }
+
+
+def _bag_button(gadget, description: str) -> str:
+    """The add-to-bag toggle; bag.js wires it up and keeps it in step with
+    the bag shared with the home page. Without JavaScript it could do
+    nothing, so a <noscript> rule in the page head hides it."""
     return (
-        f'<button type="button" class="bag-add" data-bag-add="{_e(json.dumps(item))}">'
+        f'<button type="button" class="bag-add" data-bag-add="{_e(json.dumps(_bag_item(gadget)))}">'
         "Add to bag</button>"
     )
 

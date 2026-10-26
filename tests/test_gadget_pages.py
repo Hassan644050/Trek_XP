@@ -160,3 +160,18 @@ def test_detail_has_an_add_to_bag_button_with_the_gadget_details():
     assert item["name"] == 'Dry "Bag" <x>'
     assert item["page_url"] == "/gadget/waterproof-dry-bag"
     assert '<script src="/bag.js" defer></script>' in html_out
+
+
+def test_each_buying_option_can_be_chosen_for_the_bag():
+    v = variant("Anker PowerCore", "standard", 2900, color="Black", vendor="Daraz", url="https://daraz.com.bd/x")
+    html_out = _render_detail(REQUEST, gadget(variants=[v]))
+
+    assert 'id="buying-options"' in html_out
+    match = re.search(r'<button type="button" class="var-choose" data-bag-variant="([^"]*)">Choose for my bag</button>', html_out)
+    assert match
+    chosen = json.loads(html.unescape(match.group(1)))
+    assert chosen["gadget"]["name"] == "Waterproof Dry Bag"
+    assert chosen["variant"] == {"brand": "Anker PowerCore", "model_name": None, "color": "Black",
+                                 "quality": "standard", "price": 2900, "currency": "BDT", "vendor": "Daraz"}
+    # The seller link is separate from the choose button, never wrapped around it.
+    assert '<a class="var-link" href="https://daraz.com.bd/x" target="_blank" rel="noopener nofollow">View at Daraz ↗</a>' in html_out

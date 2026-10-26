@@ -139,7 +139,10 @@ never return a status code or leak provider/SQL detail from a service.
 - **The traveller's bag** is shared by every public page (`bag.js` +
   `bag.css`, loaded next to the header assets): `window.TrekBag`, saved in
   localStorage, a "Bag" button injected into the header, one "Your bag"
-  panel, and any `<button data-bag-add='{json}'>` becomes a toggle. Pages
+  panel (a right-hand sidebar; items link to `page_url#buying-options`),
+  any `<button data-bag-add='{json}'>` becomes a toggle, and
+  `<button data-bag-variant='{"gadget":…,"variant":…}'>` chooses a buying
+  option (shown in the bag with an estimated total). Pages
   must not keep their own bag state; the panel's classes are `bag-`
   prefixed so page styles cannot leak in.
 - **Master header:** every public page links `/site-header.css` and
