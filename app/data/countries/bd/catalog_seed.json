@@ -2197,7 +2197,7 @@
     }
   ],
   "variants": {
-    "_about": "Buying options per gadget (brand, quality tier, price in BDT, colour, vendor). Loaded by scripts/seed_catalog.py; matched by gadget name + brand + quality.",
+    "_about": "Buying options per gadget (brand, quality tier, price in BDT, colour, vendor). Loaded by scripts/seed_catalog.py; matched by gadget name + brand + quality. Optional \"stock\" (units on hand, default 0 = out of stock until a coordinator enters the real count).",
     "Power Bank": [
       {
         "brand": "Generic 10,000mAh",

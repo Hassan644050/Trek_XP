@@ -19,7 +19,7 @@
     const quality = f.get("quality") || "";
     const brand = f.get("brand") || "";
     const color = f.get("color") || "";
-    // "In stock" covers low stock too; untracked and sold-out are hidden.
+    // "In stock" covers low stock too; sold-out options are hidden.
     const inStockOnly = f.get("instock") === "1";
     const sort = f.get("sort") || "price-asc";
 

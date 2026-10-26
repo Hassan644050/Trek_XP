@@ -8,7 +8,7 @@ from app.services.gadgets.stock import can_buy, stock_status, updated_ago
 
 
 @pytest.mark.parametrize("qty,status,label", [
-    (None, "unknown", "Check with seller"),
+    (None, "out", "Out of stock"),        # a missing count is never "available"
     (0, "out", "Out of stock"),
     (1, "low", "Only 1 left"),
     (3, "low", "Only 3 left"),
@@ -19,8 +19,8 @@ def test_stock_status(qty, status, label):
     assert stock_status(qty) == (status, label)
 
 
-def test_only_sold_out_rules_an_option_out():
-    assert can_buy(None) and can_buy(1) and not can_buy(0)
+def test_only_a_positive_count_can_be_bought():
+    assert can_buy(1) and not can_buy(0) and not can_buy(None)
 
 
 def test_updated_ago():

@@ -682,7 +682,7 @@ async def add_variant(
         color=payload.color, quality=payload.quality, price=payload.price,
         currency=payload.currency, vendor=payload.vendor, url=payload.url,
         stock_quantity=payload.stock_quantity,
-        stock_updated_at=func.now() if payload.stock_quantity is not None else None,
+        stock_updated_at=func.now(),
         created_by_id=user.id,
     ))
     await db.commit()
@@ -697,8 +697,8 @@ async def set_variant_stock(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_coordinator),
 ) -> GadgetDetail:
-    """Record how many units of a buying option are on hand (null = not
-    tracked). Stamps the time, which the public pages show."""
+    """Record how many units of a buying option are on hand. Stamps the
+    time, which the public pages show."""
     variant = await db.get(GadgetVariant, variant_id)
 
     if variant is None:

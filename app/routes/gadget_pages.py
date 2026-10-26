@@ -148,7 +148,6 @@ _STYLE = """
   .stock.in { background: oklch(0.92 0.06 150); color: oklch(0.32 0.09 150); }
   .stock.low { background: oklch(0.94 0.07 80); color: oklch(0.42 0.11 65); }
   .stock.out { background: oklch(0.94 0.03 25); color: oklch(0.45 0.15 25); }
-  .stock.unknown { background: var(--line-soft); color: var(--ink-soft); }
   .stock-when { color: var(--ink-faint); font-size: 12.5px; font-weight: 700; }
   .var-card:has(.stock.out) { opacity: 0.7; }
   .var-choose:disabled { border-color: var(--line); color: var(--ink-faint); cursor: not-allowed; background: transparent; }
@@ -329,7 +328,7 @@ def _stock_badge(variant) -> str:
     """'In stock' / 'Only 2 left' / 'Out of stock' / 'Check with seller',
     with how fresh a tracked count is."""
     status, label = stock_status(getattr(variant, "stock_quantity", None))
-    fresh = updated_ago(getattr(variant, "stock_updated_at", None)) if status != "unknown" else None
+    fresh = updated_ago(getattr(variant, "stock_updated_at", None))
     return (f'<span class="stock {status}">{_e(label)}</span>'
             + (f'<span class="stock-when">{_e(fresh)}</span>' if fresh else ""))
 
@@ -542,11 +541,11 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
             "highPrice": max(prices),
             "offerCount": len(prices),
         }
-        tracked = [v.stock_quantity for v in gadget.variants if v.stock_quantity is not None]
-        if any(q > 0 for q in tracked):
-            offers["availability"] = "https://schema.org/InStock"
-        elif tracked and len(tracked) == len(prices):
-            offers["availability"] = "https://schema.org/OutOfStock"
+        offers["availability"] = (
+            "https://schema.org/InStock"
+            if any(can_buy(v.stock_quantity) for v in gadget.variants)
+            else "https://schema.org/OutOfStock"
+        )
         product["offers"] = offers
 
     og_image = (

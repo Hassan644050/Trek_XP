@@ -283,9 +283,9 @@ class GadgetVariant(Base):
     currency: Mapped[str] = mapped_column(String(3), default="BDT", server_default="BDT")
     vendor: Mapped[str | None] = mapped_column(String(80))
     url: Mapped[str | None] = mapped_column(String(300))
-    # Units on hand, kept by coordinators. None = not tracked (a seller's
-    # listing whose stock we do not hold), shown as "check with seller".
-    stock_quantity: Mapped[int | None] = mapped_column(Integer)
+    # Units on hand, kept by coordinators. Required: a buying option is
+    # never shown as available without a confirmed count.
+    stock_quantity: Mapped[int] = mapped_column(Integer)
     # When the quantity was last set, so travellers can judge how fresh it is.
     stock_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

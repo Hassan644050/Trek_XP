@@ -1,7 +1,8 @@
 """How a buying option's stock is described to travellers.
 
-stock_quantity is kept by coordinators per buying option; None means it is
-not tracked (a seller's listing whose stock we do not hold).
+stock_quantity is kept by coordinators per buying option and is required:
+nothing is shown as available without a confirmed count. Options added
+before it was required were set to 0 until a coordinator enters theirs.
 """
 
 from datetime import datetime, timezone
@@ -9,14 +10,13 @@ from datetime import datetime, timezone
 # At or below this many units, say how many are left.
 LOW_STOCK = 3
 
-IN, LOW, OUT, UNKNOWN = "in", "low", "out", "unknown"
+IN, LOW, OUT = "in", "low", "out"
 
 
 def stock_status(quantity: int | None) -> tuple[str, str]:
-    """(status key, label) -- the key drives styling and filtering."""
-    if quantity is None:
-        return UNKNOWN, "Check with seller"
-    if quantity <= 0:
+    """(status key, label) -- the key drives styling and filtering. A
+    missing count is treated as none on hand, never as available."""
+    if not quantity or quantity <= 0:
         return OUT, "Out of stock"
     if quantity <= LOW_STOCK:
         return LOW, f"Only {quantity} left"
@@ -24,8 +24,7 @@ def stock_status(quantity: int | None) -> tuple[str, str]:
 
 
 def can_buy(quantity: int | None) -> bool:
-    """Out of stock is the only state that rules a buying option out."""
-    return quantity is None or quantity > 0
+    return bool(quantity) and quantity > 0
 
 
 def updated_ago(when: datetime | None, now: datetime | None = None) -> str | None:

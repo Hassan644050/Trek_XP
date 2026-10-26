@@ -144,7 +144,7 @@ def test_similar_lists_look_alikes_for_a_suggestion(coordinator):
 # ---------- stock ----------
 
 
-def test_stock_can_be_set_cleared_and_never_negative(coordinator):
+def test_stock_is_required_and_never_negative(coordinator):
     g = coordinator.post("/api/coordinator/gadgets", json={"name": "Power Bank"}, headers=CSRF).json()
     detail = coordinator.post(f"/api/coordinator/gadgets/{g['id']}/variants",
                               json={"brand": "Anker", "price": 2900, "stock_quantity": 5}, headers=CSRF).json()
@@ -153,5 +153,9 @@ def test_stock_can_be_set_cleared_and_never_negative(coordinator):
 
     url = f"/api/coordinator/variants/{v['id']}/stock"
     assert coordinator.patch(url, json={"stock_quantity": 0}, headers=CSRF).json()["variants"][0]["stock_quantity"] == 0
-    assert coordinator.patch(url, json={"stock_quantity": None}, headers=CSRF).json()["variants"][0]["stock_quantity"] is None
+    assert coordinator.patch(url, json={"stock_quantity": None}, headers=CSRF).status_code == 422
     assert coordinator.patch(url, json={"stock_quantity": -1}, headers=CSRF).status_code == 422
+    # Adding a buying option without a count is refused.
+    missing = coordinator.post(f"/api/coordinator/gadgets/{g['id']}/variants",
+                               json={"brand": "Xiaomi", "price": 2400}, headers=CSRF)
+    assert missing.status_code == 422

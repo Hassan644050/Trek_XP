@@ -174,6 +174,9 @@ async def main() -> int:
                     gadget_id=gid, brand=v["brand"], quality=v["quality"],
                     price=v["price"], color=v.get("color"), vendor=v.get("vendor"),
                     url=v.get("url"), currency=v.get("currency", "BDT"),
+                    # Required. Seed data has no real counts, so options
+                    # start out of stock until a coordinator enters theirs.
+                    stock_quantity=int(v.get("stock", 0)),
                     created_by_id=author,
                 ))
                 new_variants += 1
