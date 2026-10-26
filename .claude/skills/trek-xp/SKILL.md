@@ -83,7 +83,11 @@ never return a status code or leak provider/SQL detail from a service.
 - **Gadgets** have `slug` (unique, set via `unique_gadget_slug` on create and
   rename), brand, model_name, category, color, `is_active`, image renditions
   (thumb / detail / full), and **variants** ("Buying options": brand, colour,
-  quality `budget|standard|premium`, price in BDT, vendor, url).
+  quality `budget|standard|premium`, price in BDT, vendor, url, and
+  `stock_quantity` -- units on hand, `None` = not tracked; set via `PATCH
+  /api/coordinator/variants/{id}/stock`, which stamps `stock_updated_at`).
+  Wording lives in `services/gadgets/stock.py` (≤3 = "Only N left"); sold-out
+  options sort last and cannot be chosen for the bag.
 - **Home page hero photos** (`hero_images`): admins upload in Catalog
   settings; keyed by destination slug (same as `?to=`), `""` = the country
   default. The page shows the picked place's photo, else the default, else

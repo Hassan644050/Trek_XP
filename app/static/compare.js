@@ -19,23 +19,28 @@
     const quality = f.get("quality") || "";
     const brand = f.get("brand") || "";
     const color = f.get("color") || "";
+    // "In stock" covers low stock too; untracked and sold-out are hidden.
+    const inStockOnly = f.get("instock") === "1";
     const sort = f.get("sort") || "price-asc";
 
     const shown = cards.filter((card) => {
       const ok = (!quality || card.dataset.quality === quality)
         && (!brand || card.dataset.brand === brand)
-        && (!color || card.dataset.color === color);
+        && (!color || card.dataset.color === color)
+        && (!inStockOnly || ["in", "low"].includes(card.dataset.stock));
       card.hidden = !ok;
       return ok;
     });
 
     const price = (c) => Number(c.dataset.price);
+    // Sold-out options always sort last, whatever the chosen order.
+    const out = (c) => (c.dataset.stock === "out" ? 1 : 0);
     const order = {
       "price-asc": (a, b) => price(a) - price(b),
       "price-desc": (a, b) => price(b) - price(a),
       quality: (a, b) => (RANK[a.dataset.quality] - RANK[b.dataset.quality]) || price(a) - price(b),
     }[sort];
-    grid.append(...[...cards].sort(order));
+    grid.append(...[...cards].sort((a, b) => out(a) - out(b) || order(a, b)));
 
     none.hidden = shown.length > 0;
     if (shown.length) {

@@ -22,7 +22,8 @@ def placement(place_name, division, trip_types):
 
 def variant(brand, quality, price, **over):
     base = dict(brand=brand, model_name=None, color=None, quality=quality,
-                price=price, currency="BDT", vendor=None, url=None)
+                price=price, currency="BDT", vendor=None, url=None,
+                stock_quantity=None, stock_updated_at=None)
     base.update(over)
     return SimpleNamespace(**base)
 
@@ -230,3 +231,35 @@ def test_compare_keeps_the_bag_in_view():
     out = _render_compare(REQUEST, g, [g])
     assert "<aside data-bag-dock></aside>" in out
     assert '<script src="/bag.js" defer></script>' in out
+
+
+def test_stock_is_shown_and_sold_out_options_cannot_be_chosen():
+    from app.routes.gadget_pages import _render_compare
+
+    g = gadget(variants=[
+        variant("Sold Out Co", "budget", 900, stock_quantity=0),
+        variant("Plenty Co", "standard", 2000, stock_quantity=40),
+        variant("Last Two Co", "premium", 5000, stock_quantity=2),
+        variant("Seller Co", "standard", 1500),
+    ])
+    out = _render_compare(REQUEST, g, [g])
+    grid = out[out.index('id="cmpGrid"'):]
+
+    assert '<span class="stock out">Out of stock</span>' in grid
+    assert '<span class="stock low">Only 2 left</span>' in grid
+    assert '<span class="stock unknown">Check with seller</span>' in grid
+    assert '<button type="button" class="var-choose" disabled>Out of stock</button>' in grid
+    assert grid.index("Sold Out Co") > grid.index("Last Two Co")       # sold out sorts last
+    assert "· 2 in stock" in out
+    assert 'name="instock"' in out
+
+
+def test_product_data_has_price_range_and_availability():
+    page = _render_detail(REQUEST, gadget(variants=[
+        variant("A", "budget", 1200, stock_quantity=0), variant("B", "premium", 6500, stock_quantity=5),
+    ]))
+    data = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S).group(1))
+    assert data["offers"] == {
+        "@type": "AggregateOffer", "priceCurrency": "BDT", "lowPrice": 1200, "highPrice": 6500,
+        "offerCount": 2, "availability": "https://schema.org/InStock",
+    }

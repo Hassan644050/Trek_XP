@@ -43,6 +43,7 @@ from app.models.catalog import (
     PlacementOut,
     PlacementUpdate,
     ReviewIn,
+    StockIn,
     DistinctIn,
     DuplicatePair,
     GadgetBrief,
@@ -680,11 +681,34 @@ async def add_variant(
         gadget_id=gadget_id, brand=payload.brand, model_name=payload.model_name,
         color=payload.color, quality=payload.quality, price=payload.price,
         currency=payload.currency, vendor=payload.vendor, url=payload.url,
+        stock_quantity=payload.stock_quantity,
+        stock_updated_at=func.now() if payload.stock_quantity is not None else None,
         created_by_id=user.id,
     ))
     await db.commit()
 
     return _gadget_detail(await _load_gadget(db, gadget_id))
+
+
+@router.patch("/variants/{variant_id}/stock", response_model=GadgetDetail)
+async def set_variant_stock(
+    variant_id: int,
+    payload: StockIn,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_coordinator),
+) -> GadgetDetail:
+    """Record how many units of a buying option are on hand (null = not
+    tracked). Stamps the time, which the public pages show."""
+    variant = await db.get(GadgetVariant, variant_id)
+
+    if variant is None:
+        raise ResourceNotFoundException("That buying option no longer exists.")
+
+    variant.stock_quantity = payload.stock_quantity
+    variant.stock_updated_at = func.now()
+    await db.commit()
+
+    return _gadget_detail(await _load_gadget(db, variant.gadget_id))
 
 
 @router.delete("/variants/{variant_id}", response_model=GadgetDetail)

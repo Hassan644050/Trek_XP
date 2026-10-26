@@ -139,3 +139,19 @@ def test_similar_lists_look_alikes_for_a_suggestion(coordinator):
 
     similar = coordinator.get(f"/api/coordinator/gadgets/{g['id']}/similar").json()
     assert [(s["gadget"]["name"], s["score"] >= 0.5) for s in similar] == [("Hat", True)]
+
+
+# ---------- stock ----------
+
+
+def test_stock_can_be_set_cleared_and_never_negative(coordinator):
+    g = coordinator.post("/api/coordinator/gadgets", json={"name": "Power Bank"}, headers=CSRF).json()
+    detail = coordinator.post(f"/api/coordinator/gadgets/{g['id']}/variants",
+                              json={"brand": "Anker", "price": 2900, "stock_quantity": 5}, headers=CSRF).json()
+    (v,) = detail["variants"]
+    assert v["stock_quantity"] == 5 and v["stock_updated_at"]
+
+    url = f"/api/coordinator/variants/{v['id']}/stock"
+    assert coordinator.patch(url, json={"stock_quantity": 0}, headers=CSRF).json()["variants"][0]["stock_quantity"] == 0
+    assert coordinator.patch(url, json={"stock_quantity": None}, headers=CSRF).json()["variants"][0]["stock_quantity"] is None
+    assert coordinator.patch(url, json={"stock_quantity": -1}, headers=CSRF).status_code == 422

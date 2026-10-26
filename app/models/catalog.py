@@ -327,6 +327,8 @@ class VariantIn(BaseModel):
     currency: str = Field(default="BDT", min_length=3, max_length=3)
     vendor: str | None = Field(default=None, max_length=80)
     url: str | None = Field(default=None, max_length=300)
+    # Units on hand; None = not tracked ("check with seller").
+    stock_quantity: int | None = Field(default=None, ge=0, le=100_000)
 
     @field_validator("brand", "model_name", "color", "vendor")
     @classmethod
@@ -369,6 +371,14 @@ class VariantOut(BaseModel):
     currency: str
     vendor: str | None
     url: str | None
+    stock_quantity: int | None = None
+    stock_updated_at: datetime | None = None
+
+
+class StockIn(BaseModel):
+    """Set the units on hand for a buying option; null stops tracking it."""
+
+    stock_quantity: int | None = Field(ge=0, le=100_000)
 
 
 class GadgetDetail(GadgetOut):

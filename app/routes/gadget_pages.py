@@ -24,6 +24,7 @@ from app.db.engine import get_sessionmaker
 from app.db.models import Gadget, Placement
 from app.exceptions.exceptions import DatabaseNotConfiguredException
 from app.services.gadgets.similarity import is_same
+from app.services.gadgets.stock import IN, LOW, OUT, can_buy, stock_status, updated_ago
 from app.services.media.storage import get_image_storage, variant_key
 from app.services.media.variants import DETAIL, THUMB
 
@@ -142,6 +143,18 @@ _STYLE = """
   .var-card.chosen { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
   .var-card .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .var-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: auto; }
+  .stock-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .stock { font-size: 13px; font-weight: 900; padding: 3px 9px; }
+  .stock.in { background: oklch(0.92 0.06 150); color: oklch(0.32 0.09 150); }
+  .stock.low { background: oklch(0.94 0.07 80); color: oklch(0.42 0.11 65); }
+  .stock.out { background: oklch(0.94 0.03 25); color: oklch(0.45 0.15 25); }
+  .stock.unknown { background: var(--line-soft); color: var(--ink-soft); }
+  .stock-when { color: var(--ink-faint); font-size: 12.5px; font-weight: 700; }
+  .var-card:has(.stock.out) { opacity: 0.7; }
+  .var-choose:disabled { border-color: var(--line); color: var(--ink-faint); cursor: not-allowed; background: transparent; }
+  .cmp-instock { align-self: center; }
+  .cmp-instock span { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 800; cursor: pointer; }
+  .cmp-instock input { accent-color: var(--green); height: 18px; width: 18px; }
   .var-link { font-size: 14px; font-weight: 800; }
   #buying-options { scroll-margin-top: 16px; }
   .eye { color: var(--green); font: 700 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
@@ -312,6 +325,23 @@ def _price(variant) -> str:
     return f"{symbol}{variant.price:,}"
 
 
+def _stock_badge(variant) -> str:
+    """'In stock' / 'Only 2 left' / 'Out of stock' / 'Check with seller',
+    with how fresh a tracked count is."""
+    status, label = stock_status(getattr(variant, "stock_quantity", None))
+    fresh = updated_ago(getattr(variant, "stock_updated_at", None)) if status != "unknown" else None
+    return (f'<span class="stock {status}">{_e(label)}</span>'
+            + (f'<span class="stock-when">{_e(fresh)}</span>' if fresh else ""))
+
+
+def _choose_button(variant, chosen: dict) -> str:
+    """The bag button -- or a plain notice when the option is sold out."""
+    if not can_buy(getattr(variant, "stock_quantity", None)):
+        return '<button type="button" class="var-choose" disabled>Out of stock</button>'
+    return (f'<button type="button" class="var-choose" data-bag-variant="{_e(json.dumps(chosen))}">'
+            "Choose for my bag</button>")
+
+
 def _variant_card(variant, bag_item: dict | None = None) -> str:
     quality = (variant.quality or "standard").lower()
     tier_class = quality if quality in _QUALITY_ORDER else "standard"
@@ -329,8 +359,7 @@ def _variant_card(variant, bag_item: dict | None = None) -> str:
                 "vendor": variant.vendor,
             },
         }
-        choose = (f'<button type="button" class="var-choose" data-bag-variant="{_e(json.dumps(chosen))}">'
-                  "Choose for my bag</button>")
+        choose = _choose_button(variant, chosen)
     link = (
         f'<a class="var-link" href="{_e(variant.url)}" target="_blank" rel="noopener nofollow">'
         f'View at {_e(variant.vendor or "seller")} ↗</a>'
@@ -345,6 +374,7 @@ def _variant_card(variant, bag_item: dict | None = None) -> str:
         + (f'<span class="note">{_e(note)}</span>' if note else "")
         + "</div>"
         f'<span class="price">{_e(_price(variant))}</span>'
+        f'<div class="stock-line">{_stock_badge(variant)}</div>'
         + (f'<div class="var-actions">{choose}{link}</div>' if choose or link else "")
         + "</div>"
     )
@@ -353,7 +383,8 @@ def _variant_card(variant, bag_item: dict | None = None) -> str:
 def _variants_section(gadget: Gadget) -> str:
     variants = sorted(
         gadget.variants,
-        key=lambda v: (_QUALITY_ORDER.get((v.quality or "").lower(), 1), v.price),
+        key=lambda v: (not can_buy(v.stock_quantity),
+                       _QUALITY_ORDER.get((v.quality or "").lower(), 1), v.price),
     )
     if not variants:
         return ""
@@ -500,6 +531,23 @@ def _render_detail(request: Request, gadget: Gadget, similar: list[Gadget] | Non
         product["brand"] = {"@type": "Brand", "name": gadget.brand}
     if gadget.color:
         product["color"] = gadget.color
+    if gadget.variants:
+        # Price range and availability across the buying options, so search
+        # results can show "from 1,200 taka, in stock".
+        prices = [v.price for v in gadget.variants]
+        offers = {
+            "@type": "AggregateOffer",
+            "priceCurrency": gadget.variants[0].currency,
+            "lowPrice": min(prices),
+            "highPrice": max(prices),
+            "offerCount": len(prices),
+        }
+        tracked = [v.stock_quantity for v in gadget.variants if v.stock_quantity is not None]
+        if any(q > 0 for q in tracked):
+            offers["availability"] = "https://schema.org/InStock"
+        elif tracked and len(tracked) == len(prices):
+            offers["availability"] = "https://schema.org/OutOfStock"
+        product["offers"] = offers
 
     og_image = (
         f'<meta property="og:image" content="{_e(image_abs)}" />'
@@ -710,14 +758,15 @@ def _compare_card(variant, owner: Gadget, bag_item: dict) -> str:
     )
     return (
         f'<article class="cmp-card var-card" data-variant-card data-price="{variant.price}" '
-        f'data-quality="{_e(tier_class)}" data-brand="{_e(variant.brand)}" data-color="{_e(variant.color or "")}">'
+        f'data-quality="{_e(tier_class)}" data-brand="{_e(variant.brand)}" data-color="{_e(variant.color or "")}" '
+        f'data-stock="{stock_status(variant.stock_quantity)[0]}">'
         + (f'<div class="cmp-ph"><img src="{_e(image)}" alt="" loading="lazy" /></div>' if image else "")
         + f'<div class="top"><span class="var-tier {tier_class}">{_e(quality.title())}</span>'
         f'<span class="price">{_e(_price(variant))}</span></div>'
         f'<h3 class="brand">{_e(variant.brand)}{_e(model)}</h3>'
         f'<dl class="cmp-facts">{facts}</dl>'
-        f'<div class="var-actions"><button type="button" class="var-choose" data-bag-variant="{_e(json.dumps(chosen))}">'
-        f'Choose for my bag</button>{link}</div>'
+        f'<div class="stock-line">{_stock_badge(variant)}</div>'
+        f'<div class="var-actions">{_choose_button(variant, chosen)}{link}</div>'
         "</article>"
     )
 
@@ -726,7 +775,8 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
     bag_item = _bag_item(gadget)
     rows = sorted(
         ((v, g) for g in group for v in g.variants),
-        key=lambda vg: (vg[0].price, _QUALITY_ORDER.get((vg[0].quality or "").lower(), 1)),
+        key=lambda vg: (not can_buy(vg[0].stock_quantity), vg[0].price,
+                        _QUALITY_ORDER.get((vg[0].quality or "").lower(), 1)),
     )
     canonical = _abs(request, f"/compare/{gadget.slug}")
     name = gadget.name
@@ -738,8 +788,10 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
         qualities = [q for q in _QUALITY_ORDER if any((v.quality or "").lower() == q for v, _ in rows)]
         low, high = min(rows, key=lambda r: r[0].price)[0], max(rows, key=lambda r: r[0].price)[0]
         span = _price(low) if low.price == high.price else f"{_price(low)} – {_price(high)}"
+        in_stock = sum(stock_status(v.stock_quantity)[0] in (IN, LOW) for v, _ in rows)
         summary = (f"{len(rows)} option{'s' if len(rows) != 1 else ''} from {len(brands)} "
-                   f"brand{'s' if len(brands) != 1 else ''} · {span}")
+                   f"brand{'s' if len(brands) != 1 else ''} · {span}"
+                   + (f" · {in_stock} in stock" if in_stock else ""))
 
         def options(values, label):
             return "".join(f'<option value="{_e(v)}">{_e(label(v))}</option>' for v in values)
@@ -753,6 +805,7 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
       </fieldset>
       <label>Brand <select name="brand"><option value="">All brands</option>{options(brands, str)}</select></label>
       {f'<label>Colour <select name="color"><option value="">All colours</option>{options(colours, str)}</select></label>' if colours else ""}
+      <label class="cmp-instock"><span><input type="checkbox" name="instock" value="1" /> In stock only</span></label>
       <label>Sort <select name="sort">
         <option value="price-asc">Price: low to high</option>
         <option value="price-desc">Price: high to low</option>

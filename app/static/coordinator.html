@@ -197,6 +197,14 @@
   }
 
   .gadget-row.is-off .thumb, .gadget-row.is-off .name { opacity: 0.55; }
+  .stock-row { gap: 8px; margin-top: 6px; }
+  .stock-row input { padding: 4px 8px; }
+  .stock-pill { border-radius: 999px; font-size: 11px; font-weight: 700; padding: 2px 8px; }
+  .stock-pill.in { background: #e3f1e4; color: #24602a; }
+  .stock-pill.low { background: var(--signal-wash); color: var(--signal-ink); }
+  .stock-pill.out { background: var(--danger-wash); color: var(--danger); }
+  .stock-pill.unknown { background: var(--surface-sunk); color: var(--ink-soft); }
+  .sr-only { clip: rect(0 0 0 0); height: 1px; overflow: hidden; position: absolute; width: 1px; }
   .pill-sugg { background: var(--signal-wash); border-radius: 999px; color: var(--signal-ink);
     font-size: 10px; font-weight: 700; letter-spacing: 0.04em; margin-left: 6px; padding: 1px 7px; text-transform: uppercase; }
   .dup-pair { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
@@ -511,6 +519,7 @@
             </label>
             <label>Price (৳) <input type="number" id="vPrice" min="0" step="1" required placeholder="2900" /></label>
             <label>Vendor <input type="text" id="vVendor" maxlength="80" placeholder="e.g. Daraz" /></label>
+            <label>In stock (units) <input type="number" id="vStock" min="0" max="100000" step="1" placeholder="Blank = not tracked" /></label>
           </div>
           <label>Link <input type="url" id="vUrl" maxlength="300" placeholder="https://… (optional)" /></label>
           <div class="row">
@@ -1547,6 +1556,8 @@
     }
     list.innerHTML = vs.map((v) => {
       const bits = [v.quality, v.color, v.vendor].filter(Boolean).map(esc).join(" · ");
+      const [cls, word] = stockWord(v.stock_quantity);
+      const stamp = v.stock_updated_at ? `updated ${esc(when(v.stock_updated_at))}` : "";
       return `
       <div class="placement" data-id="${v.id}">
         <div class="placement-head">
@@ -1555,9 +1566,37 @@
           <span class="place" style="margin-left:auto;font-weight:700">৳${Number(v.price).toLocaleString()}</span>
           <span class="actions"><button class="btn small danger" data-act="del-variant">Remove</button></span>
         </div>
+        <form class="row stock-row" data-act="stock" novalidate>
+          <span class="stock-pill ${cls}">${esc(word)}</span><span class="muted">${stamp}</span>
+          <label class="sr-only" for="stock-${v.id}">Units in stock</label>
+          <input type="number" id="stock-${v.id}" min="0" max="100000" step="1" value="${v.stock_quantity ?? ""}"
+                 placeholder="Not tracked" style="width:120px;margin-left:auto" />
+          <button class="btn small" type="submit">Update stock</button>
+        </form>
       </div>`;
     }).join("");
   }
+
+  // Same wording as the public pages (services/gadgets/stock.py).
+  function stockWord(q) {
+    if (q === null || q === undefined) return ["unknown", "Not tracked"];
+    if (q <= 0) return ["out", "Out of stock"];
+    if (q <= 3) return ["low", `Only ${q} left`];
+    return ["in", `${q} in stock`];
+  }
+
+  $("variantList").addEventListener("submit", (e) => {
+    const form = e.target.closest('form[data-act="stock"]');
+    if (!form) return;
+    e.preventDefault();
+    const id = form.closest("[data-id]").dataset.id;
+    const raw = form.querySelector("input").value;
+    run(e.submitter, async () => {
+      const g = await api("PATCH", `/api/coordinator/variants/${id}/stock`,
+        { stock_quantity: raw === "" ? null : parseInt(raw, 10) });
+      await refresh(g); toast("Stock updated.");
+    });
+  });
 
   $("addVariant").addEventListener("click", () => { $("variantForm").hidden = false; $("vBrand").focus(); });
   $("cancelVariant").addEventListener("click", () => { $("variantForm").reset(); $("variantForm").hidden = true; });
@@ -1569,6 +1608,7 @@
         brand: $("vBrand").value, model_name: $("vModel").value || null, color: $("vColor").value || null,
         quality: $("vQuality").value, price: parseInt($("vPrice").value || "0", 10),
         vendor: $("vVendor").value || null, url: $("vUrl").value || null,
+        stock_quantity: $("vStock").value === "" ? null : parseInt($("vStock").value, 10),
       });
       $("variantForm").reset(); $("variantForm").hidden = true;
       await refresh(g); toast("Buying option added.");
