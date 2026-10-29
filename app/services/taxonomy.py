@@ -26,6 +26,14 @@ SEED_TRIP_TYPES = [
 SEED_ACTIVITIES = [
     ("photography", "Photography"), ("diving", "Diving"), ("camping", "Camping"),
     ("cycling", "Cycling"), ("climbing", "Climbing"), ("remote_work", "Remote work"),
+    # Added by migration 0013.
+    ("swimming", "Swimming"), ("snorkelling", "Snorkelling"), ("surfing", "Surfing"),
+    ("kayaking", "Kayaking"), ("boat_trips", "Boat trips"), ("fishing", "Fishing"),
+    ("paragliding", "Paragliding"), ("wildlife_watching", "Wildlife watching"),
+    ("birdwatching", "Birdwatching"), ("stargazing", "Stargazing"),
+    ("tea_garden_tours", "Tea garden tours"), ("heritage_sites", "Heritage sites"),
+    ("motorbike_touring", "Motorbike touring"), ("drone_flying", "Drone flying"),
+    ("vlogging", "Vlogging"), ("running", "Running"),
 ]
 
 

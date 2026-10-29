@@ -228,7 +228,7 @@
   .route .rn { font-weight: 900; }
   .route .rt { color: var(--ink-soft); font-size: 14px; }
   .for-stops { color: var(--ink-soft); font-size: 13px; font-weight: 800; }
-  #places.scroll { align-content: flex-start; background: var(--paper); border: 1.5px solid var(--line);
+  #places.scroll, #activities.scroll { align-content: flex-start; background: var(--paper); border: 1.5px solid var(--line);
     max-height: 228px; overflow-y: auto; padding: 10px; }
 
 
@@ -711,6 +711,7 @@
   let tripTypeSet = new Set([DEFAULT_TRIP_TYPE]);  // a trip can be several kinds at once
   const MAX_TRIP_TYPES = 4;
   let activities = new Set();
+  const MANY_ACTIVITIES = 12;
   let travellers = 2;
   let data = null;           // last /recommend response
   let tab = "all";
@@ -786,6 +787,9 @@
 
   function render() {
     fillChips($("tripType"), tripTypes, (v) => tripTypeSet.has(v), toggleTripType);
+    // A long list scrolls inside a box, as the places do, so the form
+    // keeps its height.
+    $("activities").classList.toggle("scroll", activityOpts.length > MANY_ACTIVITIES);
     fillChips($("activities"), activityOpts,
       (v) => activities.has(v),
       (v) => activities.has(v) ? activities.delete(v) : activities.add(v));
