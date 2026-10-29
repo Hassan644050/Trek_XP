@@ -3,7 +3,7 @@
   "code": "BD",
   "name": "Bangladesh"
  },
- "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored. Dhaka division spots added 2026-10-30 from OpenStreetMap, each checked to fall in Dhaka division and its district (Hajiganj and Sonakanda forts sit on the Narayanganj border; OSM's own address confirms Narayanganj). Chattogram division spots added 2026-10-30 the same way: OpenStreetMap, each checked against OSM's own district and division (Muhuri Project's sluice gate sits on the Feni-Chattogram border; Nijhum Dwip is Hatiya, Noakhali, though its nearest district centre is in Barishal division).",
+ "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored. Dhaka division spots added 2026-10-30 from OpenStreetMap, each checked to fall in Dhaka division and its district (Hajiganj and Sonakanda forts sit on the Narayanganj border; OSM's own address confirms Narayanganj). Chattogram division spots added 2026-10-30 the same way: OpenStreetMap, each checked against OSM's own district and division (Muhuri Project's sluice gate sits on the Feni-Chattogram border; Nijhum Dwip is Hatiya, Noakhali, though its nearest district centre is in Barishal division). Sylhet, Khulna, Barishal, Rajshahi, Rangpur and Mymensingh spots added 2026-10-30 the same way. A few sit nearer another division's district centre than their own (Tanguar Haor, the Bagerhat mosques, Shilaidaha, Hardinge Bridge); their district and division are as OSM gives them.",
  "_default": "The place the home page starts on. Exactly one, enforced by tests.",
  "_anchored": {
   "Nilgiri": "geocoders returned the Nilgiri Hills in India, 1588km away; anchored to Chimbuk peak on the range it sits on",
@@ -19,7 +19,19 @@
   "Maheshkhali Island": "anchored to Adinath Temple, the island's main sight",
   "Inani Beach": "anchored to the mapped beach at Inani (Sea Pearl), Ukhia",
   "Shuvolong Waterfall": "anchored to Shuvolong hill, Barkal, beside the falls",
-  "Chandpur Boro Station": "anchored to Chandpur launch terminal at Boro Station, by the river confluence"
+  "Chandpur Boro Station": "anchored to Chandpur launch terminal at Boro Station, by the river confluence",
+  "Niladri Lake": "not mapped by name; anchored to Tekerghat, Tahirpur, where the lake is",
+  "Bhimruli Floating Market": "anchored to the Kirtipasha-Bhimruli road at Bhimruli, Jhalokati",
+  "Jamuna Bridge": "anchored to Saidabad station at the bridge's west end, Sirajganj",
+  "Rabindra Kachharibari": "not mapped by name; anchored to Shahzadpur town, Sirajganj, which it stands in",
+  "Choto Sona Mosque": "not mapped by name; anchored to Sonamasjid, Shibganj, the village named after it",
+  "Uttara Ganabhaban": "anchored to the bird sanctuary in the palace grounds, Dighapatia",
+  "Tajhat Palace": "not mapped by name; anchored to Tajhat, Rangpur",
+  "Tin Bigha Corridor": "anchored to Dahagram union, Patgram, which the corridor serves",
+  "Balia Mosque": "not mapped by name; anchored to Bhulli bazar, Thakurgaon, beside it",
+  "Shashi Lodge": "mapped as the Government Teachers' Training College (Women) it now houses",
+  "Muktagachha Zamindar Bari": "anchored to Muktagachha town, which it stands in",
+  "Birishiri": "anchored to Birishiri village, Durgapur"
  },
  "divisions": [
   {
@@ -59,6 +71,51 @@
      "name": "Lawachara National Park",
      "lat": 24.3292,
      "lon": 91.7879
+    },
+    {
+     "name": "Shah Paran Shrine",
+     "lat": 24.9068,
+     "lon": 91.9347
+    },
+    {
+     "name": "Tanguar Haor",
+     "lat": 25.1484,
+     "lon": 91.0549
+    },
+    {
+     "name": "Niladri Lake",
+     "lat": 25.1902,
+     "lon": 91.1657
+    },
+    {
+     "name": "Shimul Bagan",
+     "lat": 25.1779,
+     "lon": 91.2476
+    },
+    {
+     "name": "Baikka Beel",
+     "lat": 24.3502,
+     "lon": 91.6993
+    },
+    {
+     "name": "Hakaluki Haor",
+     "lat": 24.6602,
+     "lon": 92.068
+    },
+    {
+     "name": "Madhabpur Lake",
+     "lat": 24.281,
+     "lon": 91.8173
+    },
+    {
+     "name": "Hum Hum Waterfall",
+     "lat": 24.1677,
+     "lon": 91.912
+    },
+    {
+     "name": "Satchari National Park",
+     "lat": 24.1341,
+     "lon": 91.4428
     }
    ]
   },
@@ -305,6 +362,41 @@
      "name": "Sundarbans",
      "lat": 22.024,
      "lon": 89.3136
+    },
+    {
+     "name": "Sixty Dome Mosque",
+     "lat": 22.6745,
+     "lon": 89.7418
+    },
+    {
+     "name": "Khan Jahan Ali Shrine",
+     "lat": 22.6609,
+     "lon": 89.7584
+    },
+    {
+     "name": "Mongla",
+     "lat": 22.4679,
+     "lon": 89.604
+    },
+    {
+     "name": "Lalon Shah Shrine",
+     "lat": 23.8958,
+     "lon": 89.1521
+    },
+    {
+     "name": "Shilaidaha Kuthibari",
+     "lat": 23.9198,
+     "lon": 89.22
+    },
+    {
+     "name": "Sagardari",
+     "lat": 22.8385,
+     "lon": 89.1671
+    },
+    {
+     "name": "Mujibnagar Memorial",
+     "lat": 23.6475,
+     "lon": 88.5948
     }
    ]
   },
@@ -315,6 +407,31 @@
      "name": "Kuakata",
      "lat": 21.8212,
      "lon": 90.1197
+    },
+    {
+     "name": "Durga Sagar",
+     "lat": 22.761,
+     "lon": 90.2903
+    },
+    {
+     "name": "Bhimruli Floating Market",
+     "lat": 22.7009,
+     "lon": 90.1636
+    },
+    {
+     "name": "Sonar Char",
+     "lat": 21.8387,
+     "lon": 90.5032
+    },
+    {
+     "name": "Char Kukri Mukri",
+     "lat": 21.935,
+     "lon": 90.6522
+    },
+    {
+     "name": "Monpura Island",
+     "lat": 22.2007,
+     "lon": 90.9575
     }
    ]
   },
@@ -510,6 +627,161 @@
      "name": "Rajshahi",
      "lat": 24.374,
      "lon": 88.6011
+    },
+    {
+     "name": "Mahasthangarh",
+     "lat": 24.96,
+     "lon": 89.346
+    },
+    {
+     "name": "Behula Lakhindar Basor Ghar",
+     "lat": 24.9358,
+     "lon": 89.3364
+    },
+    {
+     "name": "Varendra Research Museum",
+     "lat": 24.3671,
+     "lon": 88.5925
+    },
+    {
+     "name": "Puthia Temple Complex",
+     "lat": 24.3617,
+     "lon": 88.8365
+    },
+    {
+     "name": "Natore Rajbari",
+     "lat": 24.42,
+     "lon": 88.9915
+    },
+    {
+     "name": "Uttara Ganabhaban",
+     "lat": 24.44,
+     "lon": 89.0119
+    },
+    {
+     "name": "Chalan Beel",
+     "lat": 24.3395,
+     "lon": 89.2886
+    },
+    {
+     "name": "Choto Sona Mosque",
+     "lat": 24.8349,
+     "lon": 88.144
+    },
+    {
+     "name": "Kusumba Mosque",
+     "lat": 24.7557,
+     "lon": 88.6867
+    },
+    {
+     "name": "Dibar Dighi",
+     "lat": 25.1225,
+     "lon": 88.6208
+    },
+    {
+     "name": "Hardinge Bridge",
+     "lat": 24.0704,
+     "lon": 89.0388
+    },
+    {
+     "name": "Jamuna Bridge",
+     "lat": 24.3961,
+     "lon": 89.7335
+    },
+    {
+     "name": "Rabindra Kachharibari",
+     "lat": 24.1764,
+     "lon": 89.596
+    }
+   ]
+  },
+  {
+   "name": "Rangpur",
+   "places": [
+    {
+     "name": "Tajhat Palace",
+     "lat": 25.7212,
+     "lon": 89.2712
+    },
+    {
+     "name": "Vinnya Jagat",
+     "lat": 25.8285,
+     "lon": 89.1108
+    },
+    {
+     "name": "Kantajew Temple",
+     "lat": 25.7904,
+     "lon": 88.6667
+    },
+    {
+     "name": "Ramsagar National Park",
+     "lat": 25.5546,
+     "lon": 88.6256
+    },
+    {
+     "name": "Tetulia",
+     "lat": 26.4921,
+     "lon": 88.3433
+    },
+    {
+     "name": "Banglabandha",
+     "lat": 26.6331,
+     "lon": 88.4143
+    },
+    {
+     "name": "Teesta Barrage",
+     "lat": 26.1787,
+     "lon": 89.0517
+    },
+    {
+     "name": "Tin Bigha Corridor",
+     "lat": 26.3041,
+     "lon": 88.9455
+    },
+    {
+     "name": "Balia Mosque",
+     "lat": 26.1258,
+     "lon": 88.5339
+    }
+   ]
+  },
+  {
+   "name": "Mymensingh",
+   "places": [
+    {
+     "name": "Shashi Lodge",
+     "lat": 24.762,
+     "lon": 90.4037
+    },
+    {
+     "name": "Muktagachha Zamindar Bari",
+     "lat": 24.7652,
+     "lon": 90.2584
+    },
+    {
+     "name": "Birishiri",
+     "lat": 25.107,
+     "lon": 90.6733
+    },
+    {
+     "name": "Someshwari River",
+     "lat": 25.0936,
+     "lon": 90.6884
+    },
+    {
+     "name": "Gajni Abakash",
+     "lat": 25.2424,
+     "lon": 90.0455
+    },
+    {
+     "name": "Madhutila Eco Park",
+     "lat": 25.2051,
+     "lon": 90.153
+    },
+    {
+     "name": "Lauchapra",
+     "lat": 25.2846,
+     "lon": 89.9221
     }
    ]
   }
