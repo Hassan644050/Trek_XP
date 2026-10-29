@@ -214,6 +214,21 @@
   /* ---------- chips ---------- */
 
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stops { display: flex; flex-direction: column; gap: 8px; }
+  .stops-hint { color: var(--ink-faint); font-weight: 700; letter-spacing: 0; text-transform: none; }
+  .stop-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stop-tag { align-items: center; background: var(--green); border: 0; color: #fff; cursor: pointer; display: inline-flex;
+    font: 800 13px var(--sans); gap: 8px; min-height: 36px; padding: 0 10px 0 12px; }
+  .stop-tag .n { background: rgba(255,255,255,0.2); font-size: 11px; padding: 1px 6px; }
+  .stop-tag .x { font-size: 15px; line-height: 1; opacity: 0.85; }
+  .stop-tag:hover .x { opacity: 1; }
+  .route { border: 2px solid var(--line-firm); display: grid; gap: 0; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    list-style: none; margin: -8px 0 0; padding: 0; }
+  .route li { border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; }
+  .route .rn { font-weight: 900; }
+  .route .rt { color: var(--ink-soft); font-size: 14px; }
+  .optional { color: var(--ink-faint); font-weight: 700; letter-spacing: 0; text-transform: none; }
+  .for-stops { color: var(--ink-soft); font-size: 13px; font-weight: 800; }
   #places.scroll { align-content: flex-start; background: var(--paper); border: 1.5px solid var(--line);
     max-height: 228px; overflow-y: auto; padding: 10px; }
 
@@ -543,8 +558,12 @@
             <select id="divisionSelect" aria-label="Division"></select>
           </div>
           <!-- Large divisions (Dhaka has 36 places) scroll inside a box, so
-               the form keeps its height. -->
+               the form keeps its height. Several places can be chosen. -->
           <div class="chips" id="places"></div>
+          <div class="stops" id="stopsBox" hidden>
+            <span class="label">Your stops <span class="stops-hint" id="stopsHint"></span></span>
+            <div class="stop-tags" id="stopTags"></div>
+          </div>
         </section>
 
         <section class="step">
@@ -563,6 +582,11 @@
           <div class="field">
             <span class="label">Travellers</span>
             <div class="chips" id="pax"></div>
+          </div>
+
+          <div class="field">
+            <span class="label">Who's travelling <span class="optional">optional</span></span>
+            <div class="chips" id="gender"></div>
           </div>
         </section>
 
@@ -613,6 +637,8 @@
             <span class="cell-note" id="rVolt">—</span>
           </div>
         </div>
+        <!-- A multi-stop trip: each stop's weather. -->
+        <ul class="route" id="rRoute" hidden></ul>
 
         <div id="groups" style="display:flex;flex-direction:column;gap:28px"></div>
 
@@ -676,7 +702,13 @@
     { key: "optional",    name: "Optional",    note: "Nice to have",              colour: "var(--optional)" },
   ];
 
-  let place = null;          // chosen destination, or null until one is picked
+  let chosen = [];           // chosen destinations, in the order picked (a route)
+  const MAX_STOPS = 5;
+  let gender = null;         // null = not specified, else "female" | "male" | "mixed"
+  const GENDERS = [
+    { value: null, label: "Not specified" }, { value: "female", label: "Women" },
+    { value: "male", label: "Men" }, { value: "mixed", label: "Mixed group" },
+  ];
   let tripType = DEFAULT_TRIP_TYPE;
   let activities = new Set();
   let travellers = 2;
@@ -747,6 +779,7 @@
       (v) => activities.has(v) ? activities.delete(v) : activities.add(v));
     fillChips($("pax"), [1, 2, 3, 4, 5],
       (v) => v === travellers, (v) => (travellers = v));
+    fillChips($("gender"), GENDERS, (v) => v === gender, (v) => (gender = v));
     renderPlaces();
   }
 
@@ -772,7 +805,7 @@
 
     // Open on a finished list rather than an empty panel. Costs one model
     // call per visit -- see the caching note in docs/ARCHITECTURE.md.
-    if (place) runSearch({ auto: true });
+    if (chosen.length) runSearch({ auto: true });
   }
 
   function toPlace(p) {
@@ -815,32 +848,43 @@
     const wanted = destinationParam();
     if (!wanted) return false;
 
-    const hit = findDestination(wanted);
-    if (!hit) return false;
+    // ?to=coxs-bazar,saint-martins-island is a route, in that order.
+    const hits = wanted.split(",").map(findDestination).filter(Boolean).slice(0, MAX_STOPS);
+    if (!hits.length) return false;
 
-    divisionName = hit.division;
-    setPlace(toPlace(hit.place));
-    personalizeHero(hit.place.name);
-    updateUrl();  // canonicalise ?destination=/?d= to ?to=<slug>
+    divisionName = hits[0].division;
+    setChosen(hits.map((h) => toPlace(h.place)));
+    personalizeHero();
+    updateUrl();  // canonicalise ?destination=/?d= to ?to=<slugs>
     return true;
   }
 
-  function personalizeHero(name) {
+  function routeName(list = chosen) {
+    if (list.length <= 2) return list.map((p) => p.name).join(" + ");
+    return `${list[0].name} + ${list.length - 1} more`;
+  }
+
+  function personalizeHero() {
+    if (!chosen.length) return;
+    const name = routeName();
     $("heroTitle").textContent = `Packing for ${name}`;
-    $("heroLead").textContent =
-      `Your gear list for ${name}, checked against the local weather, plug ` +
-      `type and voltage. Adjust the dates or trip details below.`;
+    $("heroLead").textContent = chosen.length > 1
+      ? `Your gear list for ${chosen.length} destinations, checked against each one's weather, ` +
+        `plug type and voltage. Adjust the dates or trip details below.`
+      : `Your gear list for ${name}, checked against the local weather, plug ` +
+        `type and voltage. Adjust the dates or trip details below.`;
   }
 
   function updateUrl() {
     // Keep the address bar in step with the chosen place, so the current
     // selection is a link the traveller can copy and share.
     const url = new URL(location.href);
-    if (place) url.searchParams.set("to", slugify(place.name));
+    if (chosen.length) url.searchParams.set("to", chosen.map((p) => slugify(p.name)).join(","));
     else url.searchParams.delete("to");
     url.searchParams.delete("destination");
     url.searchParams.delete("d");
-    history.replaceState(null, "", url);
+    // Slugs never contain commas, so the route separator can stay readable.
+    history.replaceState(null, "", url.toString().replace(/%2C/gi, ","));
   }
 
   function startOnDefault() {
@@ -853,7 +897,7 @@
 
       if (preset) {
         divisionName = division.name;
-        if (!place) setPlace(toPlace(preset));
+        if (!chosen.length) setChosen([toPlace(preset)]);
         return;
       }
     }
@@ -868,10 +912,32 @@
       Math.abs(a.latitude - b.latitude) < 0.001 && Math.abs(a.longitude - b.longitude) < 0.001;
   }
 
-  function setPlace(p) {
-    place = p;
-    $("placeSub").textContent = place ? place.name : "Pick a destination to start";
+  function isChosen(p) {
+    return chosen.some((c) => samePlace(c, p));
+  }
+
+  function setChosen(list) {
+    chosen = list.slice(0, MAX_STOPS);
+    $("placeSub").textContent = chosen.length ? routeName() : "Pick a destination to start";
+    renderStops();
     showHero();
+  }
+
+  // The chosen places as removable tags, numbered in route order.
+  function renderStops() {
+    $("stopsBox").hidden = !chosen.length;
+    $("stopsHint").textContent = chosen.length >= MAX_STOPS
+      ? `— up to ${MAX_STOPS}`
+      : chosen.length === 1 ? "— tap more places to add stops" : `— ${chosen.length} of up to ${MAX_STOPS}`;
+    $("stopTags").replaceChildren(...chosen.map((p, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "stop-tag";
+      b.setAttribute("aria-label", `Remove ${p.name}`);
+      b.innerHTML = `${chosen.length > 1 ? `<span class="n">${i + 1}</span>` : ""}${esc(p.name)}<span class="x" aria-hidden="true">×</span>`;
+      b.addEventListener("click", () => pick(p));
+      return b;
+    }));
   }
 
   // ---------- hero photo ----------
@@ -895,7 +961,7 @@
   }
 
   function showHero() {
-    const h = (place && heroes.bySlug[slugify(place.name)]) || heroes.fallback;
+    const h = (chosen[0] && heroes.bySlug[slugify(chosen[0].name)]) || heroes.fallback;
     if (h === heroShown) return;
     heroShown = h;
 
@@ -925,8 +991,15 @@
   }
 
   function pick(p) {
-    // Tapping the chosen place again clears it, so a mis-tap is undoable.
-    setPlace(samePlace(place, p) ? null : p);
+    // Tapping a place adds it as a stop; tapping a chosen one removes it.
+    if (isChosen(p)) {
+      setChosen(chosen.filter((c) => !samePlace(c, p)));
+    } else if (chosen.length >= MAX_STOPS) {
+      return toast(`Up to ${MAX_STOPS} destinations per trip. Remove one to add another.`);
+    } else {
+      setChosen([...chosen, p]);
+    }
+    personalizeHero();
     updateUrl();  // make the new selection a shareable link
     render();
   }
@@ -958,7 +1031,7 @@
     host.classList.toggle("scroll", many);
 
     host.replaceChildren(...division.places.map((p) => {
-      const sel = samePlace(place, p);
+      const sel = isChosen(p);
       return chip(p.name, sel, () => pick(toPlace(p)), "tick");
     }));
 
@@ -990,13 +1063,13 @@
   async function runSearch({ auto = false } = {}) {
     $("formError").hidden = true;
 
-    if (!place) return fail("Pick a destination first.");
+    if (!chosen.length) return fail("Pick a destination first.");
     if ($("end").value < $("start").value) return fail("The end date is before the start date.");
 
     $("idle").hidden = true;
     $("results").hidden = true;
     $("loading").hidden = false;
-    $("statusText").textContent = `Checking conditions in ${place.name}…`;
+    $("statusText").textContent = `Checking conditions in ${routeName()}…`;
     $("submitBtn").disabled = true;
 
     // Say something before the server's own deadline, so a slow answer
@@ -1016,16 +1089,25 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          destination: place.name,
           start_date: $("start").value,
           end_date: $("end").value,
           trip_type: tripType,
           activities: [...activities],
           travelers: travellers,
-          latitude: place.latitude,
-          longitude: place.longitude,
-          country_code: place.country_code || null,
-          country_name: place.country || null,
+          gender,
+          // One place keeps the single-destination shape; several are a route.
+          ...(chosen.length === 1 ? {
+            destination: chosen[0].name,
+            latitude: chosen[0].latitude,
+            longitude: chosen[0].longitude,
+            country_code: chosen[0].country_code || null,
+            country_name: chosen[0].country || null,
+          } : {
+            stops: chosen.map((p) => ({
+              name: p.name, latitude: p.latitude, longitude: p.longitude,
+              country_code: p.country_code || null, country_name: p.country || null,
+            })),
+          }),
         }),
       });
 
@@ -1086,6 +1168,8 @@
     $("rPlug").textContent = plugMatch ? `Type ${plugMatch[1]}` : "Not on file";
     $("rVolt").textContent = plugMatch ? `${plugMatch[2]} · ${plugMatch[3]}` : "";
 
+    renderRoute();
+
     const usedOsm = (data.sources || []).includes("openstreetmap");
     $("srcs").innerHTML = usedOsm
       ? `<a class="src" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>`
@@ -1094,6 +1178,41 @@
 
     renderTabs();
     renderGroups();
+  }
+
+  // A multi-stop trip: the Conditions and Power cells summarise every stop,
+  // and a row underneath gives each stop's own weather.
+  function renderRoute() {
+    const stops = data.stops || [];
+    $("rRoute").hidden = stops.length < 2;
+    if (stops.length < 2) return;
+
+    const known = stops.filter((s) => s.climate_available && s.min_temp_c != null);
+    if (known.length) {
+      const lo = Math.round(Math.min(...known.map((s) => s.min_temp_c)));
+      const hi = Math.round(Math.max(...known.map((s) => s.max_temp_c)));
+      $("rTemp").textContent = `${lo}°C – ${hi}°C`;
+      $("rWeather").textContent = `Across ${stops.length} stops${known.length < stops.length ? " (some unavailable)" : ""}`;
+    } else {
+      $("rTemp").textContent = "Not available";
+      $("rWeather").textContent = `${stops.length} stops`;
+    }
+
+    const plugs = [...new Set(stops.map((s) => s.plug_types.join("/")).filter(Boolean))];
+    if (plugs.length === 1) {
+      $("rPlug").textContent = `Type ${plugs[0]}`;
+      $("rVolt").textContent = `${stops[0].voltage} · ${stops[0].frequency}`;
+    } else if (plugs.length > 1) {
+      $("rPlug").textContent = "Varies";
+      $("rVolt").textContent = "Plugs differ between countries";
+    }
+
+    $("rRoute").innerHTML = stops.map((s, i) => {
+      const t = s.climate_available && s.min_temp_c != null
+        ? `${Math.round(s.min_temp_c)}°C – ${Math.round(s.max_temp_c)}°C`
+        : "Weather not available";
+      return `<li><span class="rn">${i + 1}. ${esc(s.name)}</span><span class="rt">${esc(t)}</span></li>`;
+    }).join("");
   }
 
   function counts() {
@@ -1140,6 +1259,7 @@
             </span>
           </span>
         </div>
+        ${(item.stops || []).length ? `<span class="for-stops">For: ${item.stops.map(esc).join(", ")}</span>` : ""}
         ${(item.warnings || []).map((w) => `<span class="warn">⚠ ${esc(w)}</span>`).join("")}
         <button type="button" class="add${inBag ? " on" : ""}">
           ${inBag ? "✓ Packed" : "Add to bag"}
@@ -1186,7 +1306,8 @@
   function bagItem(r) {
     return {
       name: r.gadget, why: r.why, category: r.category, priority: r.priority,
-      page_url: r.page_url, image_url: r.image_url, destination: data?.destination,
+      page_url: r.page_url, image_url: r.image_url,
+      destination: (r.stops || []).length ? r.stops.join(", ") : data?.destination,
     };
   }
 

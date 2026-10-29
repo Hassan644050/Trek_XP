@@ -58,6 +58,9 @@ class SuggestionBatch:
     country_code: str
     trip_type: str
     suggestions: list[Recommendation] = field(default_factory=list)
+    # Every stop of a multi-stop trip; empty means just place_name. An
+    # item with `stops` is saved for those stops only, else for all.
+    place_names: list[str] = field(default_factory=list)
 
 
 # ---------- matching names ----------
@@ -145,8 +148,12 @@ async def save_suggestions(sessionmaker, batch: SuggestionBatch) -> list[int]:
             if batch.trip_type not in await active_values(db, TripTypeOption):
                 return []
 
-            place = await _place_for(db, batch.place_name, batch.country_code)
-            if place is None:
+            places = []
+            for name in batch.place_names or [batch.place_name]:
+                found = await _place_for(db, name, batch.country_code)
+                if found is not None and found not in places:
+                    places.append(found)
+            if not places:
                 return []
 
             gadgets = list(
@@ -180,7 +187,12 @@ async def save_suggestions(sessionmaker, batch: SuggestionBatch) -> list[int]:
 
                 gadget.suggestion_count += 1
 
-                if not any(p.place_id == place.id for p in gadget.placements):
+                wanted = {s.lower() for s in rec.stops}
+                for place in places:
+                    if wanted and place.name.lower() not in wanted:
+                        continue  # the model said this item is for other stops
+                    if any(p.place_id == place.id for p in gadget.placements):
+                        continue
                     gadget.placements.append(Placement(
                         place_id=place.id,
                         trip_types=[batch.trip_type],

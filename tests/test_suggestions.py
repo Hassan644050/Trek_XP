@@ -70,6 +70,7 @@ def test_recommend_schedules_suggestions_with_a_copy_of_the_trip(monkeypatch):
         resolved_place="Cox's Bazar",
         trip=SimpleNamespace(destination="Cox's Bazar", country_code="bd", trip_type="beach"),
         country=SimpleNamespace(country_code="BD"),
+        stops=[SimpleNamespace(name="Cox's Bazar")],
     )
     novel = [Recommendation(gadget="Portable Bluetooth Speaker", why="Music on the beach.", priority=Priority.OPTIONAL)]
 

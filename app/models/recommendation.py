@@ -39,6 +39,23 @@ class Recommendation(BaseModel):
     # Link to the gadget's public detail page, for catalog items only.
     page_url: str | None = None
     warnings: list[str] = Field(default_factory=list)
+    # On a multi-stop trip, the stops this item is for. Empty means the
+    # whole trip (and always, for a single-destination trip).
+    stops: list[str] = Field(default_factory=list)
+
+
+class StopSummary(BaseModel):
+    """One destination's conditions, for the page to show per stop."""
+
+    name: str
+    climate_available: bool
+    climate_summary: str | None = None
+    min_temp_c: float | None = None
+    max_temp_c: float | None = None
+    country_name: str | None = None
+    plug_types: list[str] = Field(default_factory=list)
+    voltage: str | None = None
+    frequency: str | None = None
 
 
 class RecommendResponse(BaseModel):
@@ -47,3 +64,4 @@ class RecommendResponse(BaseModel):
     recommendations: list[Recommendation] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list)
+    stops: list[StopSummary] = Field(default_factory=list)

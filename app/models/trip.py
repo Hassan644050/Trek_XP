@@ -2,6 +2,8 @@ import re
 from datetime import date
 from enum import Enum
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -24,6 +26,24 @@ class Baggage(str, Enum):
     CHECKED = "checked"
 
 
+MAX_STOPS = 5
+
+
+class StopIn(BaseModel):
+    """One destination of a multi-stop trip, as the picker supplies it."""
+
+    name: str = Field(min_length=2, max_length=100)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    country_name: str | None = Field(default=None, max_length=100)
+
+
+# Who is travelling. Optional: it only steers the model towards
+# gender-specific items where they genuinely matter, and is never stored.
+Gender = Literal["female", "male", "mixed"]
+
+
 class TripRequest(BaseModel):
     """The structured form a customer fills in.
 
@@ -32,11 +52,17 @@ class TripRequest(BaseModel):
     of two, and validation happens before any money is spent.
     """
 
-    destination: str = Field(min_length=2, max_length=100)
+    # One place, or -- with `stops` -- a label for the whole route, filled in
+    # from the stops when left out.
+    destination: str | None = Field(default=None, min_length=2, max_length=300)
+    # Several destinations visited on one trip, in order. Empty for a
+    # single-destination trip, which uses `destination` and the coordinates.
+    stops: list[StopIn] = Field(default_factory=list, max_length=MAX_STOPS)
+    gender: Gender | None = None
     start_date: date
     end_date: date
     trip_type: str = Field(min_length=2, max_length=30)
-    activities: list[str] = Field(default_factory=list)
+    activities: list[str] = Field(default_factory=list, max_length=12)
     baggage: Baggage | None = None
     travelers: int = Field(default=1, ge=1, le=50)
 
@@ -63,6 +89,14 @@ class TripRequest(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("end_date must not be before start_date")
 
+        return self
+
+    @model_validator(mode="after")
+    def name_the_trip(self) -> "TripRequest":
+        if self.stops and not self.destination:
+            self.destination = " + ".join(s.name for s in self.stops)[:300]
+        if not self.destination:
+            raise ValueError("give a destination, or one or more stops")
         return self
 
     @property

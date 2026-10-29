@@ -25,6 +25,16 @@ class CountryInfo(BaseModel):
     available: bool = True
 
 
+class StopContext(BaseModel):
+    """One resolved destination of the trip, with its own conditions."""
+
+    name: str
+    latitude: float
+    longitude: float
+    climate: ClimateInfo = Field(default_factory=ClimateInfo)
+    country: CountryInfo = Field(default_factory=CountryInfo)
+
+
 class TripContext(BaseModel):
     """Everything known about a trip, assembled before any gadget source runs.
 
@@ -53,3 +63,7 @@ class TripContext(BaseModel):
     # default; the recommend route sets it when it wants exactly N new ones
     # on top of the catalog.
     novel_item_count: int | None = None
+    # Every destination of the trip, in order -- one entry for a
+    # single-destination trip. The fields above describe the first stop
+    # (resolved_place names the whole route when there are several).
+    stops: list[StopContext] = Field(default_factory=list)
