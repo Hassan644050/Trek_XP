@@ -26,6 +26,7 @@ Guard rails, because the trigger is a public endpoint:
 import asyncio
 import json
 import logging
+import time
 from dataclasses import dataclass, field
 from functools import lru_cache
 
@@ -34,6 +35,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.db.models import Gadget, Place, Placement, TripTypeOption
+from app.exceptions.exceptions import LLMRateLimitException, LLMTimeoutException
 from app.models.recommendation import Priority, Recommendation
 from app.services.destination.countries import get_country
 from app.services.gadgets.similarity import SAME, is_same, similarity
@@ -246,8 +248,24 @@ def _parse_description(raw: str) -> tuple[str | None, str | None]:
     return _tidy(str(data.get("description") or ""), 600), _tidy(str(data.get("category") or ""), 60)
 
 
+# The free model tier allows only a few requests a minute and ~20 a day,
+# and describing is the least important use of them. Once the model says the
+# quota is used up, describing pauses for a while instead of spending more
+# requests (each failing the same way) that travellers' lists need.
+RATE_LIMIT_PAUSE_SECONDS = 15 * 60
+_paused_until = 0.0
+
+
+def describing_paused() -> bool:
+    return time.monotonic() < _paused_until
+
+
 async def _describe(name: str, category: str | None) -> tuple[str | None, str | None]:
+    global _paused_until
     from app.services.llm.factory import get_llm_provider
+
+    if describing_paused():
+        return None, None
 
     try:
         provider = get_llm_provider()
@@ -255,6 +273,17 @@ async def _describe(name: str, category: str | None) -> tuple[str | None, str | 
             asyncio.to_thread(provider.generate, _describe_prompt(name, category)),
             timeout=DESCRIBE_TIMEOUT_SECONDS,
         )
+    except LLMRateLimitException:
+        # Expected on the free tier, not a fault: one line, no traceback.
+        _paused_until = time.monotonic() + RATE_LIMIT_PAUSE_SECONDS
+        logger.info(
+            "Model quota used up; gadget descriptions paused for %d minutes",
+            RATE_LIMIT_PAUSE_SECONDS // 60,
+        )
+        return None, None
+    except (LLMTimeoutException, TimeoutError):
+        logger.info("Describing suggested gadget %r timed out; left for the coordinator", name)
+        return None, None
     except Exception:
         logger.warning("Describing suggested gadget %r failed", name, exc_info=True)
         return None, None
@@ -293,4 +322,6 @@ async def enrich(sessionmaker, gadget_id: int) -> None:
 async def record_and_enrich(sessionmaker, batch: SuggestionBatch) -> None:
     """The background task the /recommend route schedules."""
     for gadget_id in await save_suggestions(sessionmaker, batch):
+        if describing_paused():
+            break  # the rest stay undescribed; a coordinator writes them on review
         await enrich(sessionmaker, gadget_id)

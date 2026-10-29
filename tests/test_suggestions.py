@@ -103,3 +103,48 @@ def test_a_travellers_list_drops_reworded_duplicates_of_catalog_items():
     ]
 
     assert [r.gadget for r in _novel(model_items, context)] == ["Headlamp", "Dry Bag"]
+
+
+# ---------- describing when the model is out of quota ----------
+
+import asyncio  # noqa: E402
+import logging  # noqa: E402
+
+import pytest  # noqa: E402
+
+from app.exceptions.exceptions import LLMRateLimitException  # noqa: E402
+from app.services.gadgets import suggestions  # noqa: E402
+
+
+@pytest.fixture
+def provider(monkeypatch):
+    """A fake model whose generate() runs `reply` and counts calls."""
+    monkeypatch.setattr(suggestions, "_paused_until", 0.0)
+    fake = SimpleNamespace(calls=0, reply=lambda: '{"description": "A torch.", "category": "Light"}')
+
+    def generate(prompt):
+        fake.calls += 1
+        return fake.reply()
+
+    monkeypatch.setattr("app.services.llm.factory.get_llm_provider", lambda: SimpleNamespace(generate=generate))
+    return fake
+
+
+def test_a_rate_limit_pauses_describing_without_a_traceback(provider, caplog):
+    def limited():
+        raise LLMRateLimitException("LLM rate limit exceeded.")
+    provider.reply = limited
+
+    with caplog.at_level(logging.INFO, logger=suggestions.__name__):
+        assert asyncio.run(suggestions._describe("Headlamp", None)) == (None, None)
+        assert asyncio.run(suggestions._describe("Dry Bag", None)) == (None, None)  # paused: not sent
+
+    assert provider.calls == 1
+    assert suggestions.describing_paused()
+    assert all(r.exc_info is None for r in caplog.records)
+    assert "paused" in caplog.text
+
+
+def test_describing_works_when_not_paused(provider):
+    assert asyncio.run(suggestions._describe("Headlamp", None)) == ("A torch.", "Light")
+    assert provider.calls == 1
