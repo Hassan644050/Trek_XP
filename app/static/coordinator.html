@@ -975,7 +975,7 @@
   $("gadgetSearch").addEventListener("input", () => { page = 1; renderList(); });
   $("pageSize").addEventListener("change", () => { page = 1; renderList(); });
 
-  document.querySelectorAll(".stat-card").forEach((card) => card.addEventListener("click", () => {
+  document.querySelectorAll("#gadgetIndex .stat-card").forEach((card) => card.addEventListener("click", () => {
     view = card.dataset.view;
     mode = "list";
     page = 1;
@@ -1015,7 +1015,7 @@
     $("cSuggestedSub").textContent = top ? `Awaiting review · most: ${top.name} ×${top.suggestion_count}` : "Nothing to review";
     $("cInactive").textContent = n("inactive");
     $("cInactiveSub").textContent = "Hidden from travellers, including rejected";
-    document.querySelectorAll(".stat-card").forEach((card) =>
+    document.querySelectorAll("#gadgetIndex .stat-card").forEach((card) =>
       card.setAttribute("aria-pressed", String(mode === "list" && card.dataset.view === view)));
     $("showDuplicates").setAttribute("aria-pressed", String(mode === "duplicates"));
     $("showDuplicates").textContent = mode === "duplicates" ? "← Back to the list" : "Possible duplicates";

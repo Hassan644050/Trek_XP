@@ -216,10 +216,7 @@
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   #places.scroll { align-content: flex-start; background: var(--paper); border: 1.5px solid var(--line);
     max-height: 228px; overflow-y: auto; padding: 10px; }
-  .place-search { display: flex; flex-direction: column; gap: 6px; }
-  .place-search input { border: 1.5px solid var(--line-firm); background: var(--paper); color: var(--ink);
-    font: 700 15px var(--sans); min-height: 44px; padding: 0 12px; width: 100%; }
-  .place-count { color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+
 
   .chip {
     background: var(--paper);
@@ -545,12 +542,8 @@
             <span class="label">Division</span>
             <select id="divisionSelect" aria-label="Division"></select>
           </div>
-          <!-- Large divisions (Dhaka has 36 places) get a search box and a
-               scrolling box, so the form keeps its height. -->
-          <div class="place-search" id="placeSearchWrap" hidden>
-            <input type="search" id="placeSearch" placeholder="Search places in this division" aria-label="Search places" autocomplete="off" />
-            <span class="place-count" id="placeCount" aria-live="polite"></span>
-          </div>
+          <!-- Large divisions (Dhaka has 36 places) scroll inside a box, so
+               the form keeps its height. -->
           <div class="chips" id="places"></div>
         </section>
 
@@ -948,8 +941,8 @@
     if (divisionName) select.value = divisionName;
   }
 
-  // Above this many places a division gets a search box and a scrolling
-  // list; at or below it the chips show as they always have.
+  // Above this many places a division's chips scroll inside a box; at or
+  // below it they show as they always have.
   const MANY_PLACES = 10;
 
   function renderPlaces() {
@@ -958,28 +951,16 @@
 
     if (!division) {
       host.replaceChildren();
-      $("placeSearchWrap").hidden = true;
       return;
     }
 
     const many = division.places.length > MANY_PLACES;
-    $("placeSearchWrap").hidden = !many;
     host.classList.toggle("scroll", many);
 
-    const q = many ? $("placeSearch").value.trim().toLowerCase() : "";
-    const shown = division.places.filter((p) => !q || p.name.toLowerCase().includes(q));
-
-    if (many) {
-      $("placeCount").textContent = q
-        ? `${shown.length} of ${division.places.length} places`
-        : `${division.places.length} places — search or scroll`;
-    }
-
-    host.replaceChildren(...shown.map((p) => {
+    host.replaceChildren(...division.places.map((p) => {
       const sel = samePlace(place, p);
       return chip(p.name, sel, () => pick(toPlace(p)), "tick");
     }));
-    if (many && !shown.length) host.innerHTML = `<p class="placeholder" style="margin:0">No place matches “${esc($("placeSearch").value.trim())}”.</p>`;
 
     // When a division opens, bring the chosen place into view. Not after a
     // tap: the tapped chip is already in view and the list must not jump.
@@ -992,13 +973,10 @@
 
   let renderedDivision = null;
 
-  $("placeSearch").addEventListener("input", renderPlaces);
-
   $("divisionSelect").addEventListener("change", (e) => {
     // Changing division only swaps which places are shown; the chosen
     // destination stands until a place in the new list is tapped.
     divisionName = e.target.value;
-    $("placeSearch").value = "";
     renderPlaces();
   });
 
