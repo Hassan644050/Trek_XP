@@ -643,7 +643,7 @@
         <span class="k">Home page photos</span><span class="v" id="kHero">—</span><span class="s" id="kHeroSub"></span>
       </button>
       <button type="button" class="stat-card" data-section="divisions" aria-pressed="false">
-        <span class="k">Divisions</span><span class="v" id="kDiv">—</span><span class="s" id="kDivSub"></span>
+        <span class="k">States</span><span class="v" id="kDiv">—</span><span class="s" id="kDivSub"></span>
       </button>
       <button type="button" class="stat-card" data-section="trip-types" aria-pressed="false">
         <span class="k">Trip types</span><span class="v" id="kTT">—</span><span class="s" id="kTTSub"></span>
@@ -658,17 +658,33 @@
       <form class="stack" id="destForm" novalidate>
         <div class="grid2">
           <label>Name <input type="text" id="dName" maxlength="200" required placeholder="e.g. Nikli Haor" /></label>
-          <label>Division <select id="dDivision"></select></label>
+          <label>State <select id="dDivision"></select></label>
           <label>Latitude <input type="number" id="dLat" step="any" min="-90" max="90" required placeholder="24.31" /></label>
           <label>Longitude <input type="number" id="dLon" step="any" min="-180" max="180" required placeholder="90.95" /></label>
         </div>
         <div class="row"><button class="btn primary" type="submit">Add destination</button></div>
       </form>
-      <div class="card" style="padding:0">
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <label class="row" style="flex-direction:row;gap:8px;align-items:center">State
+            <select id="destState" style="width:auto"><option value="">All states</option></select>
+          </label>
+          <span class="muted" id="destCount"></span>
+        </div>
+        <div class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Division</th><th>Coordinates</th><th>Gadgets</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>State</th><th>Coordinates</th><th>Gadgets</th><th></th></tr></thead>
           <tbody id="destRows"></tbody>
         </table>
+        </div>
+        <div class="table-foot">
+          <label class="row" style="flex-direction:row;gap:8px;align-items:center">Show
+            <select id="destPageSize" style="width:auto"><option>10</option><option>20</option><option>50</option></select>
+            per page</label>
+          <span class="muted" id="destPageInfo"></span>
+          <span class="spacer"></span>
+          <nav class="pager" id="destPager" aria-label="Destination pages"></nav>
+        </div>
       </div>
     </div>
 
@@ -697,9 +713,9 @@
 
     <div class="stack">
       <div class="card stack" data-catalog-section="divisions" hidden>
-        <h2>Divisions</h2>
+        <h2>States</h2>
         <form class="row" id="divForm" novalidate>
-          <input type="text" id="divName" maxlength="60" required placeholder="Add a division" style="flex:1" />
+          <input type="text" id="divName" maxlength="60" required placeholder="Add a state" aria-label="New state" style="flex:1" />
           <button class="btn primary small" type="submit">Add</button>
         </form>
         <div id="divList" class="stack" style="gap:6px"></div>
@@ -1074,11 +1090,15 @@
 
     const from = list.length ? (page - 1) * size + 1 : 0;
     $("pageInfo").textContent = `${from}–${Math.min(page * size, list.length)} of ${list.length}`;
+    $("pager").innerHTML = pagerHtml(page, pages);
+  }
+
+  // Previous / page numbers / next, shared by every paged table.
+  function pagerHtml(current, pages) {
     const nums = [...Array(pages).keys()].map((i) => i + 1);
-    $("pager").innerHTML =
-      `<button type="button" data-page="${page - 1}" ${page === 1 ? "disabled" : ""} aria-label="Previous page">‹</button>` +
-      nums.map((n) => `<button type="button" data-page="${n}"${n === page ? ' aria-current="page"' : ""}>${n}</button>`).join("") +
-      `<button type="button" data-page="${page + 1}" ${page === pages ? "disabled" : ""} aria-label="Next page">›</button>`;
+    return `<button type="button" data-page="${current - 1}" ${current === 1 ? "disabled" : ""} aria-label="Previous page">‹</button>` +
+      nums.map((n) => `<button type="button" data-page="${n}"${n === current ? ' aria-current="page"' : ""}>${n}</button>`).join("") +
+      `<button type="button" data-page="${current + 1}" ${current === pages ? "disabled" : ""} aria-label="Next page">›</button>`;
   }
 
   $("pager").addEventListener("click", (e) => {
@@ -1869,10 +1889,35 @@
 
   let catalogDivisions = [];
 
+  // Destinations: filtered by state and paged in the browser, like the
+  // gadget table.
+  let catalogDests = [];
+  let destPage = 1;
+
   function renderDestinations(rows) {
+    catalogDests = rows;
     $("dDivision").innerHTML = catalogDivisions.map((d) =>
       `<option value="${esc(d.name)}">${esc(d.name)}</option>`).join("");
-    $("destRows").innerHTML = rows.length ? rows.map((r) => `
+
+    // Keep the chosen state across reloads, if it still exists.
+    const chosen = $("destState").value;
+    const states = catalogDivisions.map((d) => d.name);
+    $("destState").innerHTML = `<option value="">All states</option>` +
+      states.map((n) => `<option value="${esc(n)}">${esc(n)} (${rows.filter((r) => r.division === n).length})</option>`).join("") +
+      (rows.some((r) => !r.division) ? `<option value="__none">No state</option>` : "");
+    $("destState").value = states.includes(chosen) || chosen === "__none" ? chosen : "";
+    renderDestinationRows();
+  }
+
+  function renderDestinationRows() {
+    const state = $("destState").value;
+    const list = catalogDests.filter((r) => !state || (state === "__none" ? !r.division : r.division === state));
+    const size = +$("destPageSize").value;
+    const pages = Math.max(1, Math.ceil(list.length / size));
+    destPage = Math.min(destPage, pages);
+    const slice = list.slice((destPage - 1) * size, destPage * size);
+
+    $("destRows").innerHTML = slice.length ? slice.map((r) => `
       <tr data-id="${r.id}">
         <td>${esc(r.name)}</td>
         <td>${esc(r.division || "—")}</td>
@@ -1881,8 +1926,22 @@
         <td><div class="row" style="justify-content:flex-end">
           <button class="btn small danger" data-act="del-dest" ${r.placement_count ? "disabled title='Remove its gadgets first'" : ""}>Delete</button>
         </div></td>
-      </tr>`).join("") : `<tr><td colspan="5" class="muted">No destinations yet.</td></tr>`;
+      </tr>`).join("") : `<tr><td colspan="5" class="muted">${catalogDests.length ? "No destinations in this state." : "No destinations yet."}</td></tr>`;
+
+    const from = list.length ? (destPage - 1) * size + 1 : 0;
+    $("destCount").textContent = state ? `${list.length} of ${catalogDests.length} destinations` : `${catalogDests.length} destinations`;
+    $("destPageInfo").textContent = `${from}–${Math.min(destPage * size, list.length)} of ${list.length}`;
+    $("destPager").innerHTML = pagerHtml(destPage, pages);
   }
+
+  $("destState").addEventListener("change", () => { destPage = 1; renderDestinationRows(); });
+  $("destPageSize").addEventListener("change", () => { destPage = 1; renderDestinationRows(); });
+  $("destPager").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+    destPage = +btn.dataset.page;
+    renderDestinationRows();
+  });
 
   function renderHeroes(rows) {
     $("heroRows").innerHTML = rows.length ? rows.map((h) => `
@@ -1965,7 +2024,7 @@
       await api("POST", "/api/admin/divisions", { name: $("divName").value });
       $("divName").value = "";
       await loadCatalog();
-      toast("Division added.");
+      toast("State added.");
     });
   });
 
@@ -1999,7 +2058,7 @@
       await api("DELETE", `/api/admin/destinations/${id}`); await loadCatalog(); toast("Destination removed.");
     });
     else if (act === "del-div") run(btn, async () => {
-      await api("DELETE", `/api/admin/divisions/${id}`); await loadCatalog(); toast("Division removed.");
+      await api("DELETE", `/api/admin/divisions/${id}`); await loadCatalog(); toast("State removed.");
     });
     else if (act === "toggle-opt") run(btn, async () => {
       const kind = btn.closest("[data-kind]").dataset.kind;
