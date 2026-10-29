@@ -876,8 +876,15 @@
     return `${list[0].name} + ${list.length - 1} more`;
   }
 
+  // The page's own heading, put back when no place is chosen.
+  const HERO_DEFAULT = { title: $("heroTitle").textContent, lead: $("heroLead").textContent };
+
   function personalizeHero() {
-    if (!chosen.length) return;
+    if (!chosen.length) {
+      $("heroTitle").textContent = HERO_DEFAULT.title;
+      $("heroLead").textContent = HERO_DEFAULT.lead;
+      return;
+    }
     const name = routeName();
     $("heroTitle").textContent = `Packing for ${name}`;
     $("heroLead").textContent = chosen.length > 1
@@ -1059,9 +1066,12 @@
   let renderedDivision = null;
 
   $("divisionSelect").addEventListener("change", (e) => {
-    // Changing division only swaps which places are shown; the chosen
-    // destination stands until a place in the new list is tapped.
+    // A new division starts a fresh selection: the places chosen in the
+    // old one are cleared rather than carried along out of sight.
     divisionName = e.target.value;
+    setChosen([]);
+    personalizeHero();
+    updateUrl();
     renderPlaces();
   });
 
