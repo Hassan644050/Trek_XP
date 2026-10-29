@@ -175,11 +175,11 @@ def record_page_view(request, status_code: int) -> None:
         logger.warning("Could not record a page view", exc_info=True)
 
 
-def record_list(destination: str, trip_type: str | None) -> None:
-    """Count one packing list generated."""
+def record_list(destination: str, trip_types: str | list[str] | None) -> None:
+    """Count one packing list generated, once for each of its trip types."""
     day = today()
     _count(day, LIST, destination or "unknown")
-    if trip_type:
+    for trip_type in [trip_types] if isinstance(trip_types, str) else (trip_types or []):
         _count(day, TRIP_TYPE, trip_type)
 
 

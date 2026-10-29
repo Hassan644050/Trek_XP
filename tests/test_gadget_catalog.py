@@ -14,10 +14,11 @@ from app.services.gadgets.llm_source import _novel
 from app.services.gadgets.prompt import build_gadget_prompt
 
 
-def trip(trip_type="beach", activities=()):
+def trip(trip_type="beach", activities=(), trip_types=()):
     return TripRequest(
         destination="Cox's Bazar", start_date=date(2026, 11, 10),
-        end_date=date(2026, 11, 14), trip_type=trip_type, activities=list(activities),
+        end_date=date(2026, 11, 14), trip_type=trip_type, trip_types=list(trip_types),
+        activities=list(activities),
         latitude=21.45, longitude=91.96,
     )
 
@@ -188,3 +189,20 @@ def test_image_url_is_the_card_sized_rendition_or_none():
 
     url = _image_url("gadgets/" + "a" * 32 + ".webp")
     assert url.endswith("_detail.webp")  # the card-sized variant, not the full one
+
+
+def test_relevant_matches_any_of_several_trip_types():
+    placements = [
+        placement("Snorkel", trip_types=["beach"]),
+        placement("Trekking Poles", trip_types=["hiking"]),
+        placement("Laptop Stand", trip_types=["business"]),
+    ]
+    recs = _relevant(placements, context(trip_type=None, trip_types=["beach", "hiking"]))
+
+    assert {r.gadget for r in recs} == {"Snorkel", "Trekking Poles"}
+
+
+def test_prompt_names_every_trip_type():
+    prompt = build_gadget_prompt(context(trip_type=None, trip_types=["beach", "hiking"]))
+
+    assert "Trip type: beach, hiking" in prompt

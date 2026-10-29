@@ -201,6 +201,7 @@ def _schedule_suggestions(background: BackgroundTasks, context: TripContext, nov
         place_names=[s.name for s in context.stops],
         country_code=(context.trip.country_code or context.country.country_code or "").upper(),
         trip_type=context.trip.trip_type,
+        trip_types=list(context.trip.trip_types),
         suggestions=list(novel),
     )
     background.add_task(record_and_enrich, sessionmaker, batch)
@@ -257,11 +258,12 @@ async def recommend(request: TripRequest, background: BackgroundTasks) -> Recomm
     notes = _context_notes(context)
     notes += _provenance_notes(context, catalog, novel, live_unavailable)
 
-    # A packing list counts once for its trip type and once per destination.
+    # A packing list counts once for each of its trip types and once per
+    # destination.
     for i, stop in enumerate(context.stops or []):
-        analytics.record_list(stop.name, context.trip.trip_type if i == 0 else None)
+        analytics.record_list(stop.name, context.trip.trip_types if i == 0 else None)
     if not context.stops:
-        analytics.record_list(context.resolved_place or context.trip.destination, context.trip.trip_type)
+        analytics.record_list(context.resolved_place or context.trip.destination, context.trip.trip_types)
     _schedule_suggestions(background, context, novel)
 
     return RecommendResponse(

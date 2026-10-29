@@ -168,15 +168,16 @@ def _overlap(placement, wanted_activities: set[str]) -> int:
 def _relevant(placements, context: TripContext) -> list[Recommendation]:
     """The catalog items worth showing for this specific trip.
 
-    Preferred: active gadgets whose placement names this trip type. If none
+    Preferred: active gadgets whose placement names one of this trip's
+    types. If none
     are tagged for it, every active gadget at the place is shown rather than
     hiding the catalog over a tagging mismatch.
     """
-    trip_type = context.trip.trip_type
+    trip_types = set(context.trip.trip_types)
     wanted = set(context.trip.activities)
 
     active = [p for p in placements if p.gadget.is_active]
-    for_trip = [p for p in active if trip_type in (p.trip_types or [])]
+    for_trip = [p for p in active if trip_types.intersection(p.trip_types or [])]
     candidates = for_trip or active
 
     # One recommendation per gadget: if a gadget has several placements here,

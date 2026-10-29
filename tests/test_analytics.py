@@ -103,6 +103,12 @@ def test_record_list_counts_destination_and_trip_type():
     assert counts() == {(LIST, "Cox's Bazar"): 2, (TRIP_TYPE, "beach"): 2}
 
 
+def test_record_list_counts_each_of_several_trip_types():
+    record_list("Jaflong", ["hiking", "photography_trip"])
+
+    assert counts() == {(LIST, "Jaflong"): 1, (TRIP_TYPE, "hiking"): 1, (TRIP_TYPE, "photography_trip"): 1}
+
+
 def test_labels_are_clipped_and_new_keys_are_capped(monkeypatch):
     monkeypatch.setattr(analytics, "MAX_BUFFERED_KEYS", 3)
     record_list("x" * 500, None)

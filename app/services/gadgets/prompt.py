@@ -161,7 +161,7 @@ def build_gadget_prompt(context: TripContext) -> str:
 TRIP
 {destination_lines}
 Dates: {trip.start_date} to {trip.end_date} ({trip.duration_days} days)
-Trip type: {trip.trip_type}
+Trip type: {", ".join(trip.trip_types)}
 Activities: {activities}
 {baggage_line}{_travellers_line(context)}
 

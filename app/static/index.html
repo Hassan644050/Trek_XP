@@ -227,7 +227,6 @@
   .route li { border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; }
   .route .rn { font-weight: 900; }
   .route .rt { color: var(--ink-soft); font-size: 14px; }
-  .optional { color: var(--ink-faint); font-weight: 700; letter-spacing: 0; text-transform: none; }
   .for-stops { color: var(--ink-soft); font-size: 13px; font-weight: 800; }
   #places.scroll { align-content: flex-start; background: var(--paper); border: 1.5px solid var(--line);
     max-height: 228px; overflow-y: auto; padding: 10px; }
@@ -570,7 +569,7 @@
           <div class="step-head"><span class="step-num">2</span><h2>Trip details</h2></div>
 
           <div class="field">
-            <span class="label">Trip type</span>
+            <span class="label">Trip type <span class="opt">pick one or more</span></span>
             <div class="chips" id="tripType"></div>
           </div>
 
@@ -585,7 +584,7 @@
           </div>
 
           <div class="field">
-            <span class="label">Who's travelling <span class="optional">optional</span></span>
+            <span class="label">Who's travelling <span class="opt">optional</span></span>
             <div class="chips" id="gender"></div>
           </div>
         </section>
@@ -709,7 +708,8 @@
     { value: null, label: "Not specified" }, { value: "female", label: "Women" },
     { value: "male", label: "Men" }, { value: "mixed", label: "Mixed group" },
   ];
-  let tripType = DEFAULT_TRIP_TYPE;
+  let tripTypeSet = new Set([DEFAULT_TRIP_TYPE]);  // a trip can be several kinds at once
+  const MAX_TRIP_TYPES = 4;
   let activities = new Set();
   let travellers = 2;
   let data = null;           // last /recommend response
@@ -736,6 +736,17 @@
     return b;
   }
 
+  function toggleTripType(v) {
+    if (tripTypeSet.has(v)) {
+      if (tripTypeSet.size === 1) return toast("Pick at least one trip type.");
+      tripTypeSet.delete(v);
+    } else if (tripTypeSet.size >= MAX_TRIP_TYPES) {
+      toast(`Up to ${MAX_TRIP_TYPES} trip types. Remove one to add another.`);
+    } else {
+      tripTypeSet.add(v);
+    }
+  }
+
   function fillChips(host, items, isOn, onPick) {
     host.replaceChildren(...items.map((it) => {
       const value = (it && typeof it === "object") ? it.value : it;
@@ -754,9 +765,10 @@
       }
     } catch { /* keep empty; render handles it */ }
 
-    // Keep the chosen trip type valid against what the admin now offers.
-    if (!tripTypes.some((o) => o.value === tripType)) {
-      tripType = tripTypes[0]?.value || tripType;
+    // Keep the chosen trip types valid against what the admin now offers.
+    if (tripTypes.length) {
+      tripTypeSet = new Set([...tripTypeSet].filter((v) => tripTypes.some((o) => o.value === v)));
+      if (!tripTypeSet.size) tripTypeSet.add(tripTypes[0].value);
     }
     render();
   }
@@ -773,7 +785,7 @@
   $("end").value = isoDate(37);
 
   function render() {
-    fillChips($("tripType"), tripTypes, (v) => v === tripType, (v) => (tripType = v));
+    fillChips($("tripType"), tripTypes, (v) => tripTypeSet.has(v), toggleTripType);
     fillChips($("activities"), activityOpts,
       (v) => activities.has(v),
       (v) => activities.has(v) ? activities.delete(v) : activities.add(v));
@@ -1091,7 +1103,7 @@
         body: JSON.stringify({
           start_date: $("start").value,
           end_date: $("end").value,
-          trip_type: tripType,
+          trip_types: [...tripTypeSet],
           activities: [...activities],
           travelers: travellers,
           gender,

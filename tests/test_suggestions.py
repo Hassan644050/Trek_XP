@@ -68,7 +68,7 @@ def test_recommend_schedules_suggestions_with_a_copy_of_the_trip(monkeypatch):
     monkeypatch.setattr(recommend, "get_sessionmaker", lambda: "SESSIONMAKER")
     context = SimpleNamespace(
         resolved_place="Cox's Bazar",
-        trip=SimpleNamespace(destination="Cox's Bazar", country_code="bd", trip_type="beach"),
+        trip=SimpleNamespace(destination="Cox's Bazar", country_code="bd", trip_type="beach", trip_types=["beach"]),
         country=SimpleNamespace(country_code="BD"),
         stops=[SimpleNamespace(name="Cox's Bazar")],
     )

@@ -27,6 +27,7 @@ class Baggage(str, Enum):
 
 
 MAX_STOPS = 5
+MAX_TRIP_TYPES = 4
 
 
 class StopIn(BaseModel):
@@ -61,15 +62,27 @@ class TripRequest(BaseModel):
     gender: Gender | None = None
     start_date: date
     end_date: date
-    trip_type: str = Field(min_length=2, max_length=30)
+    # One or more kinds of trip (a beach-and-hiking trip is both). Send
+    # `trip_types`, or the older single `trip_type`; after validation both
+    # are set and trip_type is the first of trip_types.
+    trip_types: list[str] = Field(default_factory=list, max_length=MAX_TRIP_TYPES)
+    trip_type: str | None = Field(default=None, min_length=2, max_length=30)
     activities: list[str] = Field(default_factory=list, max_length=12)
     baggage: Baggage | None = None
     travelers: int = Field(default=1, ge=1, le=50)
 
     @field_validator("trip_type")
     @classmethod
-    def _slug_trip_type(cls, value: str) -> str:
-        return _slug(value)
+    def _slug_trip_type(cls, value: str | None) -> str | None:
+        return _slug(value) if value is not None else None
+
+    @field_validator("trip_types")
+    @classmethod
+    def _slug_trip_types(cls, value: list[str]) -> list[str]:
+        slugs = [_slug(v) for v in value]
+        if any(len(s) < 2 for s in slugs):
+            raise ValueError("each trip type needs at least 2 letters")
+        return list(dict.fromkeys(slugs))
 
     @field_validator("activities")
     @classmethod
@@ -89,6 +102,15 @@ class TripRequest(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("end_date must not be before start_date")
 
+        return self
+
+    @model_validator(mode="after")
+    def settle_trip_types(self) -> "TripRequest":
+        if not self.trip_types and self.trip_type:
+            self.trip_types = [self.trip_type]
+        if not self.trip_types:
+            raise ValueError("pick at least one trip type")
+        self.trip_type = self.trip_types[0]
         return self
 
     @model_validator(mode="after")

@@ -58,6 +58,8 @@ class SuggestionBatch:
     country_code: str
     trip_type: str
     suggestions: list[Recommendation] = field(default_factory=list)
+    # Every trip type of the list; empty means just trip_type.
+    trip_types: list[str] = field(default_factory=list)
     # Every stop of a multi-stop trip; empty means just place_name. An
     # item with `stops` is saved for those stops only, else for all.
     place_names: list[str] = field(default_factory=list)
@@ -145,7 +147,9 @@ async def save_suggestions(sessionmaker, batch: SuggestionBatch) -> list[int]:
 
     try:
         async with sessionmaker() as db:
-            if batch.trip_type not in await active_values(db, TripTypeOption):
+            known = await active_values(db, TripTypeOption)
+            trip_types = [t for t in (batch.trip_types or [batch.trip_type]) if t in known]
+            if not trip_types:
                 return []
 
             places = []
@@ -195,7 +199,7 @@ async def save_suggestions(sessionmaker, batch: SuggestionBatch) -> list[int]:
                         continue
                     gadget.placements.append(Placement(
                         place_id=place.id,
-                        trip_types=[batch.trip_type],
+                        trip_types=list(trip_types),
                         activities=[],
                         priority=rec.priority if isinstance(rec.priority, Priority) else Priority.RECOMMENDED,
                         why=_tidy(rec.why, 300),

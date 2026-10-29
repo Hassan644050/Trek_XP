@@ -48,3 +48,23 @@ def test_trip_type_and_activities_are_slugified():
 def test_trip_type_must_not_be_blank():
     with pytest.raises(ValidationError):
         make_trip(trip_type="!")
+
+
+# ---------- several trip types ----------
+
+
+def test_several_trip_types_are_kept_in_order_and_the_first_is_primary():
+    t = make_trip(trip_type=None, trip_types=["Beach", "Hiking", "beach"])
+    assert t.trip_types == ["beach", "hiking"]
+    assert t.trip_type == "beach"
+
+
+def test_a_single_trip_type_still_works():
+    assert make_trip(trip_type="city").trip_types == ["city"]
+
+
+def test_a_trip_needs_at_least_one_type_and_at_most_four():
+    with pytest.raises(ValidationError, match="at least one trip type"):
+        make_trip(trip_type=None)
+    with pytest.raises(ValidationError):
+        make_trip(trip_type=None, trip_types=["a1", "b2", "c3", "d4", "e5"])
