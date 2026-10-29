@@ -3,7 +3,7 @@
   "code": "BD",
   "name": "Bangladesh"
  },
- "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored. Dhaka division spots added 2026-10-30 from OpenStreetMap, each checked to fall in Dhaka division and its district (Hajiganj and Sonakanda forts sit on the Narayanganj border; OSM's own address confirms Narayanganj).",
+ "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored. Dhaka division spots added 2026-10-30 from OpenStreetMap, each checked to fall in Dhaka division and its district (Hajiganj and Sonakanda forts sit on the Narayanganj border; OSM's own address confirms Narayanganj). Chattogram division spots added 2026-10-30 the same way: OpenStreetMap, each checked against OSM's own district and division (Muhuri Project's sluice gate sits on the Feni-Chattogram border; Nijhum Dwip is Hatiya, Noakhali, though its nearest district centre is in Barishal division).",
  "_default": "The place the home page starts on. Exactly one, enforced by tests.",
  "_anchored": {
   "Nilgiri": "geocoders returned the Nilgiri Hills in India, 1588km away; anchored to Chimbuk peak on the range it sits on",
@@ -12,7 +12,14 @@
   "Mithamain Haor": "the haor spans the upazila; anchored to Mithamain upazila's centre",
   "Tungipara": "anchored to Tungipara upazila's centre",
   "Atia Mosque": "not mapped by name; anchored to Atia village, Delduar, which it stands in",
-  "Dhanbari Nawab Palace": "not mapped by name; anchored to Dhanbari town, Tangail, which it stands in"
+  "Dhanbari Nawab Palace": "not mapped by name; anchored to Dhanbari town, Tangail, which it stands in",
+  "Guliakhali Beach": "the beach is not mapped by name; anchored to Guliakhali village beside it",
+  "Khoiyachora Waterfall": "not mapped; anchored to Khaiyachhara village, Mirsharai, the trailhead",
+  "Shah Porir Dwip": "not mapped by name; anchored to Sabrang, Teknaf, on the same southern tip",
+  "Maheshkhali Island": "anchored to Adinath Temple, the island's main sight",
+  "Inani Beach": "anchored to the mapped beach at Inani (Sea Pearl), Ukhia",
+  "Shuvolong Waterfall": "anchored to Shuvolong hill, Barkal, beside the falls",
+  "Chandpur Boro Station": "anchored to Chandpur launch terminal at Boro Station, by the river confluence"
  },
  "divisions": [
   {
@@ -103,6 +110,191 @@
      "name": "Khagrachhari",
      "lat": 23.1079,
      "lon": 91.9701
+    },
+    {
+     "name": "Inani Beach",
+     "lat": 21.2158,
+     "lon": 92.0475
+    },
+    {
+     "name": "Himchari National Park",
+     "lat": 21.3535,
+     "lon": 92.0475
+    },
+    {
+     "name": "Teknaf",
+     "lat": 20.8685,
+     "lon": 92.2987
+    },
+    {
+     "name": "Shah Porir Dwip",
+     "lat": 20.7932,
+     "lon": 92.3053
+    },
+    {
+     "name": "Maheshkhali Island",
+     "lat": 21.5284,
+     "lon": 91.975
+    },
+    {
+     "name": "Sonadia Island",
+     "lat": 21.4975,
+     "lon": 91.8721
+    },
+    {
+     "name": "Kutubdia Island",
+     "lat": 21.8351,
+     "lon": 91.866
+    },
+    {
+     "name": "Ramu",
+     "lat": 21.4224,
+     "lon": 92.0953
+    },
+    {
+     "name": "Dulahazara Safari Park",
+     "lat": 21.6734,
+     "lon": 92.0967
+    },
+    {
+     "name": "Boga Lake",
+     "lat": 21.9803,
+     "lon": 92.4701
+    },
+    {
+     "name": "Keokradong",
+     "lat": 21.9499,
+     "lon": 92.5145
+    },
+    {
+     "name": "Golden Temple Bandarban",
+     "lat": 22.2231,
+     "lon": 92.1977
+    },
+    {
+     "name": "Thanchi",
+     "lat": 21.8226,
+     "lon": 92.431
+    },
+    {
+     "name": "Remakri",
+     "lat": 21.7115,
+     "lon": 92.5243
+    },
+    {
+     "name": "Amiakhum Waterfall",
+     "lat": 21.7767,
+     "lon": 92.5487
+    },
+    {
+     "name": "Rangamati Hanging Bridge",
+     "lat": 22.632,
+     "lon": 92.1875
+    },
+    {
+     "name": "Shuvolong Waterfall",
+     "lat": 22.7116,
+     "lon": 92.2597
+    },
+    {
+     "name": "Kaptai National Park",
+     "lat": 22.4999,
+     "lon": 92.1774
+    },
+    {
+     "name": "Alutila Cave",
+     "lat": 23.0875,
+     "lon": 91.9564
+    },
+    {
+     "name": "Richhang Waterfall",
+     "lat": 23.0664,
+     "lon": 91.9438
+    },
+    {
+     "name": "Patenga Beach",
+     "lat": 22.2344,
+     "lon": 91.7923
+    },
+    {
+     "name": "Foy's Lake",
+     "lat": 22.3734,
+     "lon": 91.7926
+    },
+    {
+     "name": "Chittagong War Cemetery",
+     "lat": 22.3572,
+     "lon": 91.8287
+    },
+    {
+     "name": "Bayazid Bostami Shrine",
+     "lat": 22.389,
+     "lon": 91.8092
+    },
+    {
+     "name": "Chandranath Hill",
+     "lat": 22.6335,
+     "lon": 91.6847
+    },
+    {
+     "name": "Sitakunda Eco Park",
+     "lat": 22.6028,
+     "lon": 91.6729
+    },
+    {
+     "name": "Guliakhali Beach",
+     "lat": 22.6009,
+     "lon": 91.6388
+    },
+    {
+     "name": "Bashbaria Beach",
+     "lat": 22.5445,
+     "lon": 91.6683
+    },
+    {
+     "name": "Khoiyachora Waterfall",
+     "lat": 22.7597,
+     "lon": 91.5824
+    },
+    {
+     "name": "Parki Beach",
+     "lat": 22.1933,
+     "lon": 91.8143
+    },
+    {
+     "name": "Sandwip",
+     "lat": 22.5022,
+     "lon": 91.4862
+    },
+    {
+     "name": "Muhuri Project",
+     "lat": 22.8364,
+     "lon": 91.4537
+    },
+    {
+     "name": "Nijhum Dwip",
+     "lat": 22.0412,
+     "lon": 90.9807
+    },
+    {
+     "name": "Chandpur Boro Station",
+     "lat": 23.2332,
+     "lon": 90.6486
+    },
+    {
+     "name": "Mainamati Shalban Vihara",
+     "lat": 23.4252,
+     "lon": 91.1375
+    },
+    {
+     "name": "Mainamati War Cemetery",
+     "lat": 23.487,
+     "lon": 91.112
+    },
+    {
+     "name": "Kalbhairab Temple",
+     "lat": 23.9859,
+     "lon": 91.1129
     }
    ]
   },
