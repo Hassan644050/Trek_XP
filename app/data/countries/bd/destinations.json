@@ -3,12 +3,16 @@
   "code": "BD",
   "name": "Bangladesh"
  },
- "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored.",
+ "_source": "Spot coordinates from Open-Meteo/OpenStreetMap, each checked against its district. Three were wrong and use verified anchors instead — see _anchored. Dhaka division spots added 2026-10-30 from OpenStreetMap, each checked to fall in Dhaka division and its district (Hajiganj and Sonakanda forts sit on the Narayanganj border; OSM's own address confirms Narayanganj).",
  "_default": "The place the home page starts on. Exactly one, enforced by tests.",
  "_anchored": {
   "Nilgiri": "geocoders returned the Nilgiri Hills in India, 1588km away; anchored to Chimbuk peak on the range it sits on",
   "Bholaganj Sada Pathor": "unmapped, and 'Bholaganj' matches a different place 30km south; anchored to Companiganj upazila",
-  "Bichanakandi": "unmapped; anchored to Companiganj upazila, which contains it"
+  "Bichanakandi": "unmapped; anchored to Companiganj upazila, which contains it",
+  "Mithamain Haor": "the haor spans the upazila; anchored to Mithamain upazila's centre",
+  "Tungipara": "anchored to Tungipara upazila's centre",
+  "Atia Mosque": "not mapped by name; anchored to Atia village, Delduar, which it stands in",
+  "Dhanbari Nawab Palace": "not mapped by name; anchored to Dhanbari town, Tangail, which it stands in"
  },
  "divisions": [
   {
@@ -134,6 +138,171 @@
      "name": "Sonargaon",
      "lat": 23.65,
      "lon": 90.6167
+    },
+    {
+     "name": "Lalbagh Fort",
+     "lat": 23.7188,
+     "lon": 90.3882
+    },
+    {
+     "name": "Ahsan Manzil",
+     "lat": 23.7085,
+     "lon": 90.4056
+    },
+    {
+     "name": "National Parliament House",
+     "lat": 23.7623,
+     "lon": 90.3785
+    },
+    {
+     "name": "Dhakeshwari Temple",
+     "lat": 23.723,
+     "lon": 90.3902
+    },
+    {
+     "name": "Star Mosque",
+     "lat": 23.861,
+     "lon": 90.4136
+    },
+    {
+     "name": "Armenian Church",
+     "lat": 23.7125,
+     "lon": 90.4021
+    },
+    {
+     "name": "Bangladesh National Museum",
+     "lat": 23.7375,
+     "lon": 90.3945
+    },
+    {
+     "name": "Liberation War Museum",
+     "lat": 23.7756,
+     "lon": 90.3694
+    },
+    {
+     "name": "Hatirjheel",
+     "lat": 23.7636,
+     "lon": 90.4108
+    },
+    {
+     "name": "National Botanical Garden",
+     "lat": 23.8253,
+     "lon": 90.3486
+    },
+    {
+     "name": "Bangladesh National Zoo",
+     "lat": 23.8122,
+     "lon": 90.3469
+    },
+    {
+     "name": "Sadarghat",
+     "lat": 23.7059,
+     "lon": 90.4093
+    },
+    {
+     "name": "Baitul Mukarram",
+     "lat": 23.7295,
+     "lon": 90.4126
+    },
+    {
+     "name": "Central Shaheed Minar",
+     "lat": 23.7272,
+     "lon": 90.3966
+    },
+    {
+     "name": "Rose Garden Palace",
+     "lat": 23.7184,
+     "lon": 90.4264
+    },
+    {
+     "name": "Bhawal National Park",
+     "lat": 24.0921,
+     "lon": 90.4195
+    },
+    {
+     "name": "Gazipur Safari Park",
+     "lat": 24.1712,
+     "lon": 90.3818
+    },
+    {
+     "name": "Nuhash Polli",
+     "lat": 24.1613,
+     "lon": 90.3637
+    },
+    {
+     "name": "Hajiganj Fort",
+     "lat": 23.6334,
+     "lon": 90.5128
+    },
+    {
+     "name": "Sonakanda Fort",
+     "lat": 23.607,
+     "lon": 90.512
+    },
+    {
+     "name": "Baliati Zamindar Palace",
+     "lat": 23.9947,
+     "lon": 90.0424
+    },
+    {
+     "name": "Teota Zamindar Bari",
+     "lat": 23.8585,
+     "lon": 89.7786
+    },
+    {
+     "name": "Idrakpur Fort",
+     "lat": 23.5473,
+     "lon": 90.534
+    },
+    {
+     "name": "Mawa Ghat",
+     "lat": 23.4754,
+     "lon": 90.2537
+    },
+    {
+     "name": "Wari-Bateshwar",
+     "lat": 24.0929,
+     "lon": 90.8254
+    },
+    {
+     "name": "Mohera Zamindar Bari",
+     "lat": 24.1626,
+     "lon": 90.0419
+    },
+    {
+     "name": "Atia Mosque",
+     "lat": 24.1698,
+     "lon": 89.9235
+    },
+    {
+     "name": "Dhanbari Nawab Palace",
+     "lat": 24.6982,
+     "lon": 89.9907
+    },
+    {
+     "name": "Madhupur National Park",
+     "lat": 24.6899,
+     "lon": 90.0945
+    },
+    {
+     "name": "Mithamain Haor",
+     "lat": 24.42,
+     "lon": 91.0996
+    },
+    {
+     "name": "Jangalbari Fort",
+     "lat": 24.4505,
+     "lon": 90.8422
+    },
+    {
+     "name": "Pagla Mosque",
+     "lat": 24.444,
+     "lon": 90.7715
+    },
+    {
+     "name": "Tungipara",
+     "lat": 22.9211,
+     "lon": 89.8856
     }
    ]
   },
