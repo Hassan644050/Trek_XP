@@ -100,6 +100,8 @@ def _rendition_urls(image_key: str | None) -> dict[str, str | None]:
 
 
 def _gadget_out(gadget: Gadget) -> GadgetOut:
+    # Callers load variants (list and detail queries both selectinload them).
+    prices = [v.price for v in gadget.variants]
     return GadgetOut(
         id=gadget.id,
         name=gadget.name,
@@ -115,6 +117,11 @@ def _gadget_out(gadget: Gadget) -> GadgetOut:
         origin=gadget.origin,
         review_status=gadget.review_status,
         suggestion_count=gadget.suggestion_count,
+        variant_count=len(gadget.variants),
+        in_stock_count=sum(1 for v in gadget.variants if (v.stock_quantity or 0) > 0),
+        price_min=min(prices) if prices else None,
+        price_max=max(prices) if prices else None,
+        created_at=gadget.created_at,
     )
 
 
@@ -331,7 +338,11 @@ async def list_gadgets(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_coordinator),
 ) -> list[GadgetOut]:
-    query = select(Gadget).options(selectinload(Gadget.placements)).order_by(Gadget.name)
+    query = (
+        select(Gadget)
+        .options(selectinload(Gadget.placements), selectinload(Gadget.variants))
+        .order_by(Gadget.name)
+    )
 
     if status:
         query = query.where(Gadget.review_status == status).order_by(None).order_by(

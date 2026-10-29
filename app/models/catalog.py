@@ -275,6 +275,12 @@ class GadgetOut(BaseModel):
     origin: str = "coordinator"
     review_status: str | None = None
     suggestion_count: int = 0
+    # Buying options at a glance, for the coordinator's gadget table.
+    variant_count: int = 0
+    in_stock_count: int = 0
+    price_min: int | None = None
+    price_max: int | None = None
+    created_at: datetime | None = None
 
 
 class ReviewIn(BaseModel):

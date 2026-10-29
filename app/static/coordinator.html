@@ -204,6 +204,40 @@
   .stock-pill.low { background: var(--signal-wash); color: var(--signal-ink); }
   .stock-pill.out { background: var(--danger-wash); color: var(--danger); }
   .sr-only { clip: rect(0 0 0 0); height: 1px; overflow: hidden; position: absolute; width: 1px; }
+  .stat-cards { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer;
+    display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; text-align: left;
+  }
+  .stat-card:hover { border-color: var(--ink-faint); }
+  .stat-card[aria-pressed="true"] { border-color: var(--signal); box-shadow: inset 0 0 0 1px var(--signal); }
+  .stat-card .k { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+  .stat-card .v { font-size: 30px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.1; }
+  .stat-card .s { color: var(--ink-faint); font-size: 12px; }
+  .table-card { padding: 0; }
+  .table-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 16px; }
+  .table-toolbar input[type="search"] { width: 220px; }
+  .spacer { flex: 1; }
+  .table-wrap { overflow-x: auto; }
+  .gadget-table th, .gadget-table td { white-space: nowrap; }
+  .gadget-table td.name-cell { white-space: normal; min-width: 220px; }
+  .gadget-table tbody tr { cursor: pointer; }
+  .gadget-table tbody tr:hover { background: var(--surface-sunk); }
+  .gadget-table tbody tr[aria-current="true"] { box-shadow: inset 3px 0 0 var(--signal); }
+  .gadget-table .gcell { align-items: center; display: flex; gap: 10px; }
+  .gadget-table .gname { font-weight: 600; }
+  .status-pill { border-radius: 999px; display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 9px; }
+  .status-pill.active { background: #e3f1e4; color: #24602a; }
+  .status-pill.inactive { background: var(--surface-sunk); color: var(--ink-soft); }
+  .status-pill.suggested { background: var(--signal-wash); color: var(--signal-ink); }
+  .status-pill.rejected { background: var(--danger-wash); color: var(--danger); }
+  .table-foot { align-items: center; border-top: 1px solid var(--line-soft); display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; }
+  .pager { display: flex; gap: 4px; }
+  .pager button { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; font-size: 13px; min-width: 32px; padding: 5px 8px; }
+  .pager button[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+  .pager button:disabled { cursor: default; opacity: 0.45; }
+  #gadgetList { padding: 0 16px 16px; }
+  @media (max-width: 760px) { .stat-cards { grid-template-columns: 1fr 1fr; } .table-toolbar input[type="search"] { width: 100%; } }
   .pill-sugg { background: var(--signal-wash); border-radius: 999px; color: var(--signal-ink);
     font-size: 10px; font-weight: 700; letter-spacing: 0.04em; margin-left: 6px; padding: 1px 7px; text-transform: uppercase; }
   .dup-pair { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
@@ -427,21 +461,54 @@
 <!-- ============ gadgets ============ -->
 
 <main id="gadgetsView" hidden>
-  <div class="workspace">
-    <div class="list">
-      <div class="row">
-        <input type="search" id="gadgetSearch" placeholder="Search gadgets…" aria-label="Search gadgets" style="flex:1" />
-        <button class="btn primary" id="newGadget">+ New</button>
-      </div>
-      <select id="gadgetFilter" aria-label="Which gadgets to list">
-        <option value="">All gadgets</option>
-        <option value="pending">Suggested by the model — to review</option>
-        <option value="rejected">Rejected suggestions</option>
-        <option value="duplicates">Possible duplicates</option>
-      </select>
-      <div class="list-items" id="gadgetList"></div>
+  <!-- The catalogue at a glance: summary cards that filter the table. -->
+  <section class="stack" id="gadgetIndex" style="gap:16px">
+    <div class="stat-cards" role="group" aria-label="Show gadgets">
+      <button type="button" class="stat-card" data-view="all" aria-pressed="true">
+        <span class="k">Total gadgets</span><span class="v" id="cAll">—</span><span class="s" id="cAllSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-view="active" aria-pressed="false">
+        <span class="k">Active</span><span class="v" id="cActive">—</span><span class="s" id="cActiveSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-view="suggested" aria-pressed="false">
+        <span class="k">Suggested by the model</span><span class="v" id="cSuggested">—</span><span class="s" id="cSuggestedSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-view="inactive" aria-pressed="false">
+        <span class="k">Inactive</span><span class="v" id="cInactive">—</span><span class="s" id="cInactiveSub"></span>
+      </button>
     </div>
 
+    <div class="card table-card">
+      <div class="table-toolbar">
+        <h2 id="listTitle">All gadgets</h2>
+        <span class="spacer"></span>
+        <input type="search" id="gadgetSearch" placeholder="Search gadgets…" aria-label="Search gadgets" />
+        <button type="button" class="btn" id="showDuplicates" aria-pressed="false">Possible duplicates</button>
+        <button type="button" class="btn primary" id="newGadget">+ Add gadget</button>
+      </div>
+      <div class="table-wrap" id="gadgetTableWrap">
+        <table class="gadget-table">
+          <thead><tr>
+            <th>Gadget</th><th>Category</th><th>Destinations</th><th>Buying options</th>
+            <th>Stock</th><th>Status</th><th>Updated</th><th><span class="sr-only">Action</span></th>
+          </tr></thead>
+          <tbody id="gadgetRows"></tbody>
+        </table>
+      </div>
+      <div class="list-items" id="gadgetList" hidden></div>
+      <div class="table-foot" id="gadgetFoot">
+        <label class="row" style="flex-direction:row;gap:8px;align-items:center">Show
+          <select id="pageSize" style="width:auto"><option>10</option><option>20</option><option>50</option></select>
+          per page</label>
+        <span class="muted" id="pageInfo"></span>
+        <span class="spacer"></span>
+        <nav class="pager" id="pager" aria-label="Pages"></nav>
+      </div>
+    </div>
+  </section>
+
+  <section id="gadgetEditorView" class="stack" style="gap:12px" hidden>
+    <div><button type="button" class="btn small" id="backToList">← Back to gadgets</button></div>
     <div class="card editor" id="editor">
       <div class="empty" id="editorEmpty">Select a gadget, or create a new one.</div>
 
@@ -529,7 +596,7 @@
         <div class="stack" id="variantList"></div>
       </div>
     </div>
-  </div>
+  </section>
 </main>
 
 <!-- ============ accounts (admin) ============ -->
@@ -820,6 +887,7 @@
 
   document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
     showView(`${tab.dataset.tab}View`);
+    if (tab.dataset.tab === "gadgets") showIndex();
     if (tab.dataset.tab === "accounts") run(null, loadUsers);
     if (tab.dataset.tab === "catalog") run(null, loadCatalog);
     if (tab.dataset.tab === "visitors") run(null, loadVisitors);
@@ -853,21 +921,39 @@
 
   // ---------- gadget list ----------
 
-  let searchTimer;
-  $("gadgetSearch").addEventListener("input", () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(loadGadgets, 250);
-  });
+  // The table works on the whole catalogue in memory: counts, filtering,
+  // search and paging are instant, and the catalogue is small. (Move the
+  // filtering to the API if it grows to thousands.)
+  let view = "all";          // all | active | suggested | inactive
+  let mode = "list";         // list | duplicates
+  let page = 1;
 
-  $("gadgetFilter").addEventListener("change", () => run(null, loadGadgets));
+  const VIEWS = {
+    all: { title: "All gadgets", test: () => true },
+    active: { title: "Active gadgets", test: (g) => g.is_active },
+    suggested: { title: "Suggested by the model — to review", test: (g) => g.review_status === "pending" },
+    inactive: { title: "Inactive gadgets", test: (g) => !g.is_active && g.review_status !== "pending" },
+  };
+
+  $("gadgetSearch").addEventListener("input", () => { page = 1; renderList(); });
+  $("pageSize").addEventListener("change", () => { page = 1; renderList(); });
+
+  document.querySelectorAll(".stat-card").forEach((card) => card.addEventListener("click", () => {
+    view = card.dataset.view;
+    mode = "list";
+    page = 1;
+    renderList();
+  }));
+
+  $("showDuplicates").addEventListener("click", () => run(null, async () => {
+    mode = mode === "duplicates" ? "list" : "duplicates";
+    if (mode === "duplicates") await loadDuplicates();
+    renderList();
+  }));
 
   async function loadGadgets() {
-    if ($("gadgetFilter").value === "duplicates") return loadDuplicates();
-    const params = new URLSearchParams();
-    const q = $("gadgetSearch").value.trim();
-    if (q) params.set("q", q);
-    if ($("gadgetFilter").value) params.set("status", $("gadgetFilter").value);
-    gadgets = await api("GET", `/api/coordinator/gadgets${params.size ? `?${params}` : ""}`);
+    gadgets = await api("GET", "/api/coordinator/gadgets");
+    if (mode === "duplicates") await loadDuplicates();
     renderList();
     const categories = [...new Set(gadgets.map((g) => g.category).filter(Boolean))].sort();
     $("categoryList").innerHTML = categories.map((c) => `<option value="${esc(c)}">`).join("");
@@ -878,44 +964,120 @@
     return url ? `<img class="thumb" src="${esc(url)}" alt="" loading="lazy" />` : `<span class="thumb">no img</span>`;
   }
 
-  function renderList() {
-    // The editor redraws the list to mark the open gadget; in duplicates
-    // mode that list is the pairs.
-    if ($("gadgetFilter").value === "duplicates") return renderPairs();
-    const list = $("gadgetList");
-
-    if (!gadgets.length) {
-      list.innerHTML = `<div class="empty">No gadgets yet.</div>`;
-      return;
-    }
-
-    list.innerHTML = gadgets.map((g) => {
-      const make = [g.brand, g.model_name].filter(Boolean).join(" ");
-      const bits = [make, g.category || "Uncategorised",
-        `${g.placement_count} destination${g.placement_count === 1 ? "" : "s"}`].filter(Boolean);
-      // A suggestion's badge goes on the second line: long names are
-      // truncated, and the badge must stay readable.
-      const sugg = g.review_status === "pending"
-        ? `<span class="pill-sugg" style="margin:0 6px 0 0" title="Suggested by the model in ${g.suggestion_count} traveller list${g.suggestion_count === 1 ? "" : "s"}">Suggested ×${g.suggestion_count}</span>`
-        : "";
-      const off = g.review_status === "pending" ? ""
-        : g.review_status === "rejected" ? ` <span class="pill-off">Rejected</span>`
-        : g.is_active ? "" : ` <span class="pill-off">Inactive</span>`;
-      return `
-      <button class="gadget-row${g.is_active ? "" : " is-off"}" data-id="${g.id}" aria-current="${current?.id === g.id}">
-        ${thumb(g.thumb_url)}
-        <span class="meta">
-          <span class="name">${esc(g.name)}${off}</span>
-          <span class="muted">${sugg}${bits.map(esc).join(" · ")}</span>
-        </span>
-      </button>`;
-    }).join("");
+  function renderCounts() {
+    const n = (v) => gadgets.filter(VIEWS[v].test).length;
+    const total = gadgets.length;
+    const monthAgo = Date.now() - 30 * 864e5;
+    const added = gadgets.filter((g) => g.created_at && Date.parse(g.created_at) >= monthAgo).length;
+    const top = gadgets.filter(VIEWS.suggested.test).sort((a, b) => b.suggestion_count - a.suggestion_count)[0];
+    $("cAll").textContent = total;
+    $("cAllSub").textContent = `${added} added in the last 30 days`;
+    $("cActive").textContent = n("active");
+    $("cActiveSub").textContent = total ? `${Math.round((n("active") / total) * 100)}% of the catalogue · shown to travellers` : "Shown to travellers";
+    $("cSuggested").textContent = n("suggested");
+    $("cSuggestedSub").textContent = top ? `Awaiting review · most: ${top.name} ×${top.suggestion_count}` : "Nothing to review";
+    $("cInactive").textContent = n("inactive");
+    $("cInactiveSub").textContent = "Hidden from travellers, including rejected";
+    document.querySelectorAll(".stat-card").forEach((card) =>
+      card.setAttribute("aria-pressed", String(mode === "list" && card.dataset.view === view)));
+    $("showDuplicates").setAttribute("aria-pressed", String(mode === "duplicates"));
+    $("showDuplicates").textContent = mode === "duplicates" ? "← Back to the list" : "Possible duplicates";
   }
 
-  $("gadgetList").addEventListener("click", (e) => {
-    const row = e.target.closest(".gadget-row");
+  function statusCell(g) {
+    if (g.review_status === "pending") {
+      return `<span class="status-pill suggested" title="Suggested in ${g.suggestion_count} traveller list${g.suggestion_count === 1 ? "" : "s"}">Suggested ×${g.suggestion_count}</span>`;
+    }
+    if (g.review_status === "rejected") return `<span class="status-pill rejected">Rejected</span>`;
+    return g.is_active ? `<span class="status-pill active">Active</span>` : `<span class="status-pill inactive">Inactive</span>`;
+  }
+
+  function optionsCell(g) {
+    if (!g.variant_count) return `<span class="muted">—</span>`;
+    const span = g.price_min === g.price_max
+      ? `৳${g.price_min.toLocaleString()}`
+      : `৳${g.price_min.toLocaleString()}–${g.price_max.toLocaleString()}`;
+    return `${g.variant_count} · ${span}`;
+  }
+
+  function stockCell(g) {
+    if (!g.variant_count) return `<span class="muted">—</span>`;
+    const [cls, word] = g.in_stock_count === 0 ? ["out", "Out of stock"]
+      : g.in_stock_count < g.variant_count ? ["low", `${g.in_stock_count} of ${g.variant_count} in stock`]
+      : ["in", "All in stock"];
+    return `<span class="stock-pill ${cls}">${word}</span>`;
+  }
+
+  function visibleGadgets() {
+    const q = $("gadgetSearch").value.trim().toLowerCase();
+    let list = gadgets.filter(VIEWS[view].test);
+    if (q) list = list.filter((g) => [g.name, g.brand, g.model_name, g.category].some((v) => (v || "").toLowerCase().includes(q)));
+    // The review queue reads best most-suggested first.
+    if (view === "suggested") list = [...list].sort((a, b) => b.suggestion_count - a.suggestion_count);
+    return list;
+  }
+
+  function renderList() {
+    renderCounts();
+    const dup = mode === "duplicates";
+    $("gadgetTableWrap").hidden = dup;
+    $("gadgetFoot").hidden = dup;
+    $("gadgetList").hidden = !dup;
+    $("listTitle").textContent = dup ? "Possible duplicates" : VIEWS[view].title;
+    // The editor redraws the list to mark the open gadget; in duplicates
+    // mode that list is the pairs.
+    if (dup) return renderPairs();
+
+    const list = visibleGadgets();
+    const size = +$("pageSize").value;
+    const pages = Math.max(1, Math.ceil(list.length / size));
+    page = Math.min(page, pages);
+    const slice = list.slice((page - 1) * size, page * size);
+
+    $("gadgetRows").innerHTML = slice.length ? slice.map((g) => {
+      const make = [g.brand, g.model_name].filter(Boolean).join(" ");
+      return `
+      <tr data-id="${g.id}"${current?.id === g.id ? ' aria-current="true"' : ""}>
+        <td class="name-cell"><div class="gcell">${thumb(g.thumb_url)}<div>
+          <div class="gname">${esc(g.name)}</div>${make ? `<div class="muted">${esc(make)}</div>` : ""}</div></div></td>
+        <td>${esc(g.category || "—")}</td>
+        <td>${g.placement_count}</td>
+        <td>${optionsCell(g)}</td>
+        <td>${stockCell(g)}</td>
+        <td>${statusCell(g)}</td>
+        <td class="muted">${esc(new Date(g.updated_at).toLocaleDateString())}</td>
+        <td><button type="button" class="btn small" data-act="open" aria-label="Edit ${esc(g.name)}">Edit</button></td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="8" class="muted" style="padding:24px 16px">${
+      gadgets.length ? "No gadgets match." : "No gadgets yet. Add the first one."}</td></tr>`;
+
+    const from = list.length ? (page - 1) * size + 1 : 0;
+    $("pageInfo").textContent = `${from}–${Math.min(page * size, list.length)} of ${list.length}`;
+    const nums = [...Array(pages).keys()].map((i) => i + 1);
+    $("pager").innerHTML =
+      `<button type="button" data-page="${page - 1}" ${page === 1 ? "disabled" : ""} aria-label="Previous page">‹</button>` +
+      nums.map((n) => `<button type="button" data-page="${n}"${n === page ? ' aria-current="page"' : ""}>${n}</button>`).join("") +
+      `<button type="button" data-page="${page + 1}" ${page === pages ? "disabled" : ""} aria-label="Next page">›</button>`;
+  }
+
+  $("pager").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+    page = +btn.dataset.page;
+    renderList();
+  });
+
+  $("gadgetRows").addEventListener("click", (e) => {
+    const row = e.target.closest("tr[data-id]");
     if (row) run(null, () => openGadget(+row.dataset.id));
   });
+
+  function showIndex() {
+    $("gadgetEditorView").hidden = true;
+    $("gadgetIndex").hidden = false;
+    renderList();
+  }
+  $("backToList").addEventListener("click", showIndex);
 
   $("newGadget").addEventListener("click", () => openEditor(null));
 
@@ -928,6 +1090,9 @@
   function openEditor(gadget) {
     current = gadget;
     editingPlacement = null;
+    $("gadgetIndex").hidden = true;
+    $("gadgetEditorView").hidden = false;
+    window.scrollTo(0, 0);
 
     $("editorEmpty").hidden = true;
     $("gadgetForm").hidden = false;
@@ -1012,6 +1177,7 @@
       $("variantSection").hidden = true;
       $("editorEmpty").hidden = false;
       await loadGadgets();
+      showIndex();
       toast("Gadget deleted.");
     });
   });

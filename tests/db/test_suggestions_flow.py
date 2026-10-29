@@ -159,3 +159,17 @@ def test_stock_is_required_and_never_negative(coordinator):
     missing = coordinator.post(f"/api/coordinator/gadgets/{g['id']}/variants",
                                json={"brand": "Xiaomi", "price": 2400}, headers=CSRF)
     assert missing.status_code == 422
+
+
+# ---------- gadget table ----------
+
+
+def test_the_gadget_list_summarises_buying_options_and_stock(coordinator):
+    g = coordinator.post("/api/coordinator/gadgets", json={"name": "Power Bank"}, headers=CSRF).json()
+    for brand, price, stock in (("Generic", 1200, 0), ("Anker", 2900, 4), ("Anker Prime", 6500, 2)):
+        coordinator.post(f"/api/coordinator/gadgets/{g['id']}/variants",
+                         json={"brand": brand, "price": price, "stock_quantity": stock}, headers=CSRF)
+
+    (row,) = [r for r in coordinator.get("/api/coordinator/gadgets").json() if r["id"] == g["id"]]
+    assert (row["variant_count"], row["in_stock_count"], row["price_min"], row["price_max"]) == (3, 2, 1200, 6500)
+    assert row["created_at"]
