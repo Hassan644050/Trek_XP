@@ -57,6 +57,7 @@ TRIP_TYPE = "trip_type"
 REFERRER = "referrer"
 DEVICE = "device"
 
+_REF = re.compile(r"[a-z0-9][a-z0-9-]{0,29}")
 _BOT = re.compile(
     r"bot|crawl|spider|slurp|curl|wget|python|httpx|aiohttp|java/|go-http|okhttp|"
     r"headless|lighthouse|pagespeed|preview|monitor|uptime|pingdom|facebookexternalhit|"
@@ -167,6 +168,12 @@ def record_page_view(request, status_code: int) -> None:
         referrer = external_referrer(headers.get("referer"), headers.get("host"))
         if referrer:
             _count(day, REFERRER, referrer)
+        # Our own channel tags (?ref=share-wa from the share buttons, or a
+        # marketing link). Apps often send no Referer at all, so this is the
+        # only way to see which of them brought the visit.
+        ref = request.query_params.get("ref", "")
+        if _REF.fullmatch(ref):
+            _count(day, REFERRER, f"ref:{ref}")
 
         ip = request.client.host if request.client else ""
         if len(_buffer.visitors) < MAX_BUFFERED_VISITORS:

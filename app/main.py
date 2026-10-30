@@ -15,6 +15,7 @@ from app.routes.destinations import router as destinations_router
 from app.routes.destinations import warm_public_caches
 from app.routes.gadget_pages import router as gadget_pages_router
 from app.routes.health import router as health_router
+from app.routes.home import router as home_router
 from app.routes.recommend import router as recommend_router
 from app.services.media.storage import LocalImageStorage, get_image_storage
 from app.db.engine import get_sessionmaker
@@ -110,6 +111,7 @@ async def count_page_views(request: Request, call_next):
     return response
 
 app.include_router(recommend_router)
+app.include_router(home_router)
 app.include_router(destinations_router)
 app.include_router(gadget_pages_router)
 app.include_router(health_router)

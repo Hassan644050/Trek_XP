@@ -4,6 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Trek_XP — What should you actually pack?</title>
+<!-- share-preview -->
+<meta name="description" content="Pick a place in Bangladesh, set your dates, and get a packing list checked against the weather, plug type and voltage there." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Trek_XP" />
+<meta property="og:title" content="Trek_XP — What should you actually pack?" />
+<meta property="og:description" content="Pick a place in Bangladesh, set your dates, and get a packing list checked against the weather, plug type and voltage there." />
+<meta name="twitter:card" content="summary" />
+<!-- /share-preview -->
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -427,6 +435,21 @@
 
   .bag-btn.primary { background: var(--amber); border-color: var(--amber); color: var(--green-deep); font-weight: 900; }
 
+  /* ---------- share ---------- */
+
+  .share { align-items: center; border: 2px solid var(--line-firm); display: flex; flex-wrap: wrap;
+    gap: 12px 18px; justify-content: space-between; padding: 14px 16px; }
+  .share-k { font-size: 16px; font-weight: 900; }
+  .share-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .share-btn { align-items: center; background: var(--paper); border: 1.5px solid var(--line-firm);
+    color: var(--ink); cursor: pointer; display: inline-flex; font: 800 14px var(--sans); gap: 8px;
+    min-height: 40px; padding: 0 14px; }
+  .share-btn:hover { border-color: var(--green); }
+  .share-btn .mark { display: inline-block; height: 10px; width: 10px; }
+  .share-btn[data-share="wa"] .mark { background: #25d366; }
+  .share-btn[data-share="fb"] .mark { background: #1877f2; }
+  .share-btn[data-share="ms"] .mark { background: #a334fa; }
+
   /* ---------- reviews band ---------- */
 
   .reviews {
@@ -653,6 +676,18 @@
           <span class="dot" aria-hidden="true"></span><span id="moreText"></span>
         </div>
 
+        <!-- The link carries the whole trip, so friends open the same list. -->
+        <div class="share" id="shareBar">
+          <span class="share-k">Share this list</span>
+          <div class="share-btns">
+            <button type="button" class="share-btn" data-share="native" hidden>Share…</button>
+            <button type="button" class="share-btn" data-share="wa"><span class="mark" aria-hidden="true"></span>WhatsApp</button>
+            <button type="button" class="share-btn" data-share="fb"><span class="mark" aria-hidden="true"></span>Facebook</button>
+            <button type="button" class="share-btn" data-share="ms" hidden><span class="mark" aria-hidden="true"></span>Messenger</button>
+            <button type="button" class="share-btn" data-share="copy">Copy link</button>
+          </div>
+        </div>
+
         <div class="bag">
           <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:14px">
             <span class="bag-count" id="bagCount">Nothing packed yet</span>
@@ -720,7 +755,8 @@
     { value: null, label: "Not specified" }, { value: "female", label: "Women" },
     { value: "male", label: "Men" }, { value: "mixed", label: "Mixed group" },
   ];
-  let searchRun = 0;  // counts searches, so a slow answer to an old one is ignored
+  let searchRun = 0;
+  let sharedTrip = null;  // the trip the list on screen was made for  // counts searches, so a slow answer to an old one is ignored
   let tripTypeSet = new Set([DEFAULT_TRIP_TYPE]);  // a trip can be several kinds at once
   const MAX_TRIP_TYPES = 4;
   let activities = new Set();
@@ -779,12 +815,20 @@
       }
     } catch { /* keep empty; render handles it */ }
 
-    // Keep the chosen trip types valid against what the admin now offers.
+    keepValidChoices();
+    render();
+  }
+
+  // Keep the chosen trip types and activities to what the admin offers --
+  // they can also arrive in a shared link.
+  function keepValidChoices() {
     if (tripTypes.length) {
       tripTypeSet = new Set([...tripTypeSet].filter((v) => tripTypes.some((o) => o.value === v)));
       if (!tripTypeSet.size) tripTypeSet.add(tripTypes[0].value);
     }
-    render();
+    if (activityOpts.length) {
+      activities = new Set([...activities].filter((v) => activityOpts.some((o) => o.value === v)));
+    }
   }
 
   // ---------- step 1 ----------
@@ -832,8 +876,12 @@
     const country = featured[0]?.places?.[0]?.country_name;
     if (country) $("exploreBadge").textContent = `Explore ${country}`;
 
-    // Open on a finished list rather than an empty panel. Costs one model
-    // call per visit -- see the caching note in docs/ARCHITECTURE.md.
+    // Open on a finished list rather than an empty panel; usually a cached
+    // one. Waits for the options, so a shared link's choices are checked
+    // against them before they are sent.
+    await optionsReady;
+    keepValidChoices();
+    render();
     if (chosen.length) runSearch({ auto: true });
   }
 
@@ -883,9 +931,33 @@
 
     divisionName = hits[0].division;
     setChosen(hits.map((h) => toPlace(h.place)));
+    applySharedTrip();
     personalizeHero();
-    updateUrl();  // canonicalise ?destination=/?d= to ?to=<slugs>
+    updateUrl();  // canonicalise ?destination=/?d= to ?to=<slugs>, drop the rest
     return true;
+  }
+
+  // A shared list's link carries the whole trip (shareUrl builds it):
+  // ?to=…&from=2026-11-28&until=2026-12-05&types=beach&acts=surfing&pax=2&who=female
+  // Anything malformed is ignored and the form keeps its default.
+  const TRIP_PARAMS = ["from", "until", "types", "acts", "pax", "who", "ref"];
+
+  function applySharedTrip() {
+    const q = new URLSearchParams(location.search);
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    const from = q.get("from"), until = q.get("until");
+    if (day.test(from || "") && day.test(until || "") && from <= until) {
+      $("start").value = from;
+      $("end").value = until;
+    }
+    const list = (k) => (q.get(k) || "").split(",").filter((v) => /^[a-z0-9_]{2,30}$/.test(v));
+    const types = list("types").slice(0, MAX_TRIP_TYPES);
+    if (types.length) tripTypeSet = new Set(types);
+    activities = new Set(list("acts").slice(0, 12));
+    const pax = Number(q.get("pax"));
+    if (Number.isInteger(pax) && pax >= 1 && pax <= 5) travellers = pax;
+    const who = q.get("who");
+    if (GENDERS.some((g) => g.value === who)) gender = who;
   }
 
   function routeName(list = chosen) {
@@ -919,6 +991,9 @@
     else url.searchParams.delete("to");
     url.searchParams.delete("destination");
     url.searchParams.delete("d");
+    // A shared trip's details are applied once; the address bar goes back
+    // to just the places, as for any visit.
+    for (const k of TRIP_PARAMS) url.searchParams.delete(k);
     // Slugs never contain commas, so the route separator can stay readable.
     history.replaceState(null, "", url.toString().replace(/%2C/gi, ","));
   }
@@ -1123,6 +1198,12 @@
     const abort = new AbortController();
     const giveUp = setTimeout(() => abort.abort(), 110000);
     const run = ++searchRun;  // a newer search makes this one's answers stale
+    // What this list is for, so sharing it later shares this trip even if
+    // the form has been changed since.
+    const trip = {
+      slugs: chosen.map((p) => slugify(p.name)), from: $("start").value, until: $("end").value,
+      types: [...tripTypeSet], acts: [...activities], pax: travellers, who: gender,
+    };
 
     const payload = JSON.stringify({
       start_date: $("start").value,
@@ -1163,6 +1244,7 @@
     let fullDone = false;
     const show = (body, { more }) => {
       data = body;
+      sharedTrip = trip;
       if (!shown) tab = "all";  // keep a tab the traveller has since picked
       shown = true;
       showResults();
@@ -1222,6 +1304,82 @@
   function noteFor(prefix) {
     return (data.notes || []).find((n) => n.startsWith(prefix));
   }
+
+  // ---------- sharing ----------
+
+  // The full trip as a link (applySharedTrip reads it back), tagged with
+  // the channel so the visitor analytics shows which app brought people.
+  function shareUrl(ref) {
+    const t = sharedTrip;
+    const u = new URL("/", location.origin);
+    u.searchParams.set("to", t.slugs.join(","));
+    u.searchParams.set("from", t.from);
+    u.searchParams.set("until", t.until);
+    u.searchParams.set("types", t.types.join(","));
+    if (t.acts.length) u.searchParams.set("acts", t.acts.join(","));
+    u.searchParams.set("pax", t.pax);
+    if (t.who) u.searchParams.set("who", t.who);
+    u.searchParams.set("ref", ref);
+    return u.toString().replace(/%2C/gi, ",");
+  }
+
+  function shareText() {
+    const day = (iso) => new Date(`${iso}T00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    const types = sharedTrip.types.map((v) => tripTypes.find((o) => o.value === v)?.label || label(v)).join(", ");
+    const recs = data.recommendations || [];
+    const essentials = recs.filter((r) => r.priority === "essential");
+    const top = (essentials.length ? essentials : recs).slice(0, 4).map((r) => r.gadget);
+    return `Packing list for ${data.destination} (${day(sharedTrip.from)} – ${day(sharedTrip.until)}, ${types})\n`
+      + (top.length ? `${essentials.length ? "Essentials" : "Top picks"}: ${top.join(", ")}\n` : "")
+      + `Full list (${recs.length} items):`;
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Older browsers, or no clipboard permission: the select-and-copy way.
+      const box = Object.assign(document.createElement("textarea"), { value: text });
+      document.body.append(box);
+      box.select();
+      document.execCommand("copy");
+      box.remove();
+    }
+  }
+
+  const isPhone = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+  document.querySelector('[data-share="native"]').hidden = !navigator.share;
+  // Messenger's own share link works only where the app is installed; on a
+  // desktop it would need a Facebook app ID (its "Send" dialog).
+  document.querySelector('[data-share="ms"]').hidden = !isPhone;
+
+  $("shareBar").addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-share]");
+    if (!btn || !sharedTrip) return;
+    const open = (url) => window.open(url, "_blank", "noopener");
+
+    switch (btn.dataset.share) {
+      case "native":
+        navigator.share({ title: `Packing list for ${data.destination}`, text: shareText(), url: shareUrl("share-native") })
+          .catch(() => { /* closed without sharing */ });
+        break;
+      case "wa":
+        open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl("share-wa")}`)}`);
+        break;
+      case "fb":
+        // Facebook takes only the link; the card comes from the page's
+        // preview tags (app/routes/home.py).
+        open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl("share-fb"))}`);
+        break;
+      case "ms":
+        location.href = `fb-messenger://share/?link=${encodeURIComponent(shareUrl("share-ms"))}`;
+        break;
+      case "copy":
+        await copyText(shareUrl("share-link"));
+        toast("Link copied — paste it anywhere.");
+        break;
+    }
+  });
 
   function moreComing(text, { done = false } = {}) {
     $("moreComing").hidden = !text;
@@ -1425,7 +1583,7 @@
   // ---------- start ----------
 
   render();
-  loadOptions();
+  const optionsReady = loadOptions();
   loadFeatured();
   loadHeroes();
 })();

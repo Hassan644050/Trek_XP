@@ -21,7 +21,7 @@ def request(path="/", ua=DESKTOP, method="GET", referer=None, cookies=None, ip="
         hdrs["referer"] = referer
     return SimpleNamespace(
         method=method, url=SimpleNamespace(path=path), headers=hdrs,
-        cookies=cookies or {}, client=SimpleNamespace(host=ip),
+        cookies=cookies or {}, client=SimpleNamespace(host=ip), query_params={},
     )
 
 

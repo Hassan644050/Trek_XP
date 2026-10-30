@@ -80,6 +80,14 @@ never return a status code or leak provider/SQL detail from a service.
   (verified + cached items, `pending: true` if more will come); the home
   page sends quick and full together and shows whichever it has. One model
   call per list: each item's catalog `description` comes in the same reply.
+- **Sharing a list.** The share bar (WhatsApp, Facebook, Messenger on
+  phones, the phone's share menu, Copy link) builds a link carrying the whole
+  trip: `?to=&from=&until=&types=&acts=&pax=&who=&ref=share-…`. The page
+  applies it once (`applySharedTrip`) and trims the address bar back to
+  `?to=`. `/` is served by `routes/home.py`, which fills the
+  `<!-- share-preview -->` block of index.html with per-trip Open Graph tags
+  (only known places and trip types; crawlers don't run JS). `?ref=` is
+  counted as a referrer `ref:<tag>` in visitor analytics.
 - **Degrade and say so.** Only location and model are hard dependencies.
   Climate, plugs, catalog fail soft and add a note. Model down + catalog items
   → catalog-only answer, not a 503. `sources` credits only what contributed.
