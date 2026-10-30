@@ -55,6 +55,11 @@
 
   function changed() {
     save();
+    if (lastSaved) {
+      lastSaved = null;  // the saved link was for the bag as it was
+      const box = dialog?.querySelector(".bag-share");
+      if (box) box.hidden = true;
+    }
     for (const fn of listeners) fn(items);
   }
 
@@ -176,9 +181,11 @@
       <div class="bag-body"></div>
       <footer>
         <p class="bag-total" hidden></p>
+        <div class="bag-share" hidden aria-live="polite"></div>
         <div class="bag-actions">
           <button type="button" class="bag-secondary bag-clear">Empty bag</button>
           <span class="bag-spacer"></span>
+          <button type="button" class="bag-secondary bag-save">Save &amp; share</button>
           <button type="button" class="bag-secondary bag-copy">Copy list</button>
           <button type="button" class="bag-secondary bag-done">Done</button>
           <a class="bag-primary bag-checkout" href="/checkout" hidden>Checkout</a>
@@ -196,6 +203,12 @@
       if (confirm("Take everything out of your bag?")) TrekBag.clear();
     });
     dialog.querySelector(".bag-copy").addEventListener("click", copyList);
+    dialog.querySelector(".bag-save").addEventListener("click", saveBag);
+    dialog.querySelector(".bag-share").addEventListener("click", shareClick);
+    dialog.querySelector(".bag-body").addEventListener("click", (e) => {
+      const forget = e.target.closest("[data-forget]");
+      if (forget) { forgetSaved(forget.dataset.forget); renderPanel(); }
+    });
   }
 
   function variantLine(v) {
@@ -287,11 +300,137 @@
     dialog.querySelector(".bag-summary").textContent = summaryText(n);
     dialog.querySelector(".bag-copy").disabled = !n;
     dialog.querySelector(".bag-clear").disabled = !n;
+    dialog.querySelector(".bag-save").disabled = !n;
     renderCheckout(dialog.querySelector(".bag-checkout"));
     const total = dialog.querySelector(".bag-total");
     total.innerHTML = totalHtml();
     total.hidden = !total.innerHTML;
     renderList(dialog.querySelector(".bag-body"));
+    renderSaved(dialog.querySelector(".bag-body"));
+  }
+
+  // ---------- save & share ----------
+  //
+  // "Save & share" keeps the bag as a short link (/bag/<code>, see
+  // routes/bags.py): open it on any phone or computer, or send it on.
+  // Links saved here are listed under "Saved bags", in this browser only.
+
+  const SAVED_KEY = "trekxp.savedBags.v1";
+  const MAX_SAVED = 10;
+  let lastSaved = null;  // { code, url } for the bag as it is now
+
+  function savedBags() {
+    try {
+      const list = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+      return Array.isArray(list) ? list.filter((b) => /^[a-z2-9]{6}$/.test(b?.code)) : [];
+    } catch { return []; }
+  }
+
+  function keepSaved(list) {
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, MAX_SAVED))); } catch { /* this page only */ }
+  }
+
+  function forgetSaved(code) {
+    keepSaved(savedBags().filter((b) => b.code !== code));
+  }
+
+  const slugOf = (pageUrl) => (pageUrl || "").match(/^\/gadget\/([a-z0-9-]+)$/)?.[1] || null;
+
+  async function saveBag() {
+    const button = dialog.querySelector(".bag-save");
+    button.disabled = true;
+    button.textContent = "Saving…";
+    try {
+      const res = await fetch("/api/bags", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "trekxp" },
+        body: JSON.stringify({ items: items.slice(0, 30).map((i) => ({
+          name: i.name, slug: slugOf(i.page_url), variant_id: i.variant?.id || null, priority: i.priority,
+        })) }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Could not save your bag.");
+
+      lastSaved = { code: body.code, url: `${location.origin}${body.url}` };
+      const names = items.slice(0, 3).map((i) => i.name);
+      keepSaved([{ code: body.code, count: body.count, names, saved_at: new Date().toISOString() },
+        ...savedBags().filter((b) => b.code !== body.code)]);
+      renderShare();
+      renderPanel();
+    } catch (err) {
+      renderShare(err.message);
+    } finally {
+      button.textContent = "Save & share";
+      button.disabled = !items.length;
+    }
+  }
+
+  function renderShare(error) {
+    const box = dialog.querySelector(".bag-share");
+    if (error) {
+      box.hidden = false;
+      box.innerHTML = `<p class="bag-share-error">${esc(error)}</p>`;
+      return;
+    }
+    box.hidden = !lastSaved;
+    if (!lastSaved) return;
+    const phone = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    box.innerHTML = `
+      <p class="bag-share-k">Saved ✓ — this link opens your bag anywhere:</p>
+      <div class="bag-share-link">
+        <input type="text" readonly value="${esc(lastSaved.url)}" aria-label="Link to your saved bag" />
+        <button type="button" data-share="copy">Copy</button>
+      </div>
+      <div class="bag-share-to">
+        ${navigator.share ? '<button type="button" data-share="native">Share…</button>' : ""}
+        <button type="button" data-share="wa">WhatsApp</button>
+        <button type="button" data-share="fb">Facebook</button>
+        ${phone ? '<button type="button" data-share="ms">Messenger</button>' : ""}
+        <a href="${esc(lastSaved.url)}">Open</a>
+      </div>`;
+  }
+
+  async function shareClick(e) {
+    const btn = e.target.closest("[data-share]");
+    if (!btn || !lastSaved) return;
+    const link = (ref) => `${lastSaved.url}?ref=${ref}`;
+    const names = items.map((i) => i.name);
+    const text = `My travel bag (${names.length}): ${names.slice(0, 5).join(", ")}${names.length > 5 ? ` and ${names.length - 5} more` : ""}`;
+    const open = (url) => window.open(url, "_blank", "noopener");
+    switch (btn.dataset.share) {
+      case "native":
+        navigator.share({ title: "My travel bag", text, url: link("bag-native") }).catch(() => {});
+        break;
+      case "wa": open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${link("bag-wa")}`)}`); break;
+      case "fb": open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link("bag-fb"))}`); break;
+      case "ms": location.href = `fb-messenger://share/?link=${encodeURIComponent(link("bag-ms"))}`; break;
+      case "copy":
+        try { await navigator.clipboard.writeText(link("bag-link")); } catch {
+          dialog.querySelector(".bag-share-link input")?.select();
+        }
+        btn.textContent = "Copied ✓";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+        break;
+    }
+  }
+
+  function renderSaved(body) {
+    const list = savedBags();
+    if (!list.length) return;
+    const when = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    const section = document.createElement("section");
+    section.className = "bag-saved";
+    section.innerHTML = `<h3>Saved bags <span class="bag-n">${list.length}</span></h3>
+      <ul>${list.map((b) => `
+        <li>
+          <a href="/bag/${esc(b.code)}">
+            <b>${b.count} gadget${b.count === 1 ? "" : "s"}</b>
+            <span>${esc((b.names || []).join(", "))}${b.count > (b.names || []).length ? "…" : ""} · ${esc(when(b.saved_at))}</span>
+          </a>
+          <button type="button" data-forget="${esc(b.code)}" aria-label="Forget this saved bag">✕</button>
+        </li>`).join("")}</ul>`;
+    body.append(section);
   }
 
   // ---------- docked bag (pages with <aside data-bag-dock>) ----------

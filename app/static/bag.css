@@ -165,3 +165,29 @@
   .bag-mini { display: flex; }
   body:has(.bag-mini) { padding-bottom: 64px; }
 }
+
+/* ---- save & share (bag panel footer) ---- */
+.bag-dialog .bag-share { background: oklch(0.96 0.03 150); border: 1px solid var(--bag-line); display: flex;
+  flex-direction: column; gap: 10px; margin-bottom: 12px; padding: 12px; }
+.bag-dialog .bag-share[hidden] { display: none; }
+.bag-dialog .bag-share-k { font-size: 14px; font-weight: 800; margin: 0; }
+.bag-dialog .bag-share-error { color: oklch(0.5 0.17 25); font-size: 14px; font-weight: 800; margin: 0; }
+.bag-dialog .bag-share-link { display: flex; gap: 6px; }
+.bag-dialog .bag-share-link input { border: 1.5px solid var(--bag-line); color: var(--bag-ink); flex: 1;
+  font: 700 13px 'JetBrains Mono', ui-monospace, monospace; min-width: 0; padding: 8px 10px; }
+.bag-dialog .bag-share-to { align-items: center; display: flex; flex-wrap: wrap; gap: 6px; }
+.bag-dialog .bag-share button, .bag-dialog .bag-share-to a {
+  background: #fff; border: 1.5px solid var(--bag-line); color: var(--bag-ink); cursor: pointer;
+  font: 800 13px 'Nunito', system-ui, sans-serif; padding: 7px 12px; text-decoration: none; }
+.bag-dialog .bag-share button:hover, .bag-dialog .bag-share-to a:hover { border-color: var(--bag-green); }
+
+/* ---- saved bags (bag panel body) ---- */
+.bag-saved { border-top: 1px dashed var(--bag-line); display: flex; flex-direction: column; gap: 8px; padding-top: 14px; }
+.bag-saved h3 { font-size: 14px; margin: 0; }
+.bag-saved ul { display: flex; flex-direction: column; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.bag-saved li { align-items: center; border: 1px solid var(--bag-line); display: flex; gap: 8px; padding: 8px 10px; }
+.bag-saved a { color: var(--bag-ink); display: flex; flex: 1; flex-direction: column; min-width: 0; text-decoration: none; }
+.bag-saved a b { font-size: 14px; }
+.bag-saved a span { color: var(--bag-soft); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bag-saved a:hover b { text-decoration: underline; }
+.bag-saved button { background: none; border: 0; color: var(--bag-soft); cursor: pointer; font-size: 14px; padding: 4px; }

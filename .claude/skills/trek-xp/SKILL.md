@@ -105,6 +105,13 @@ never return a status code or leak provider/SQL detail from a service.
   methods and the phone rule live in `countries/<code>/delivery.json`.
   Coordinators work the **Orders** tab: pending -> confirmed -> shipped ->
   delivered.
+- **Saved bags** (`services/bags.py`, `routes/bags.py`): "Save & share" in
+  the bag panel posts the bag to `POST /api/bags` (CSRF header, 20/IP/hour)
+  and gets `/bag/<6-char code>`. Stored as references (gadget slug, option
+  id, name, priority) so the page shows today's prices and stock; gadgets
+  without a catalog page keep only their name -- shown as plain text,
+  never in the preview text or card. `/share/bag/<code>.png` is its card.
+  Links saved in a browser are listed under "Saved bags" (localStorage).
 - **Degrade and say so.** Only location and model are hard dependencies.
   Climate, plugs, catalog fail soft and add a note. Model down + catalog items
   → catalog-only answer, not a 503. `sources` credits only what contributed.

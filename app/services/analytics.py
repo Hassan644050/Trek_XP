@@ -89,6 +89,8 @@ def page_label(path: str) -> str | None:
         return "gadgets"
     if path == "/checkout":
         return "checkout"
+    if path.startswith("/bag/") and path.count("/") == 2:
+        return "saved bag"  # one label: each bag's code is not a page of its own
     for prefix in ("/gadget/", "/compare/"):
         if path.startswith(prefix) and path.count("/") == 2 and len(path) > len(prefix):
             return path.removeprefix("/")

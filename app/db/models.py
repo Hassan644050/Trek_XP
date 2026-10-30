@@ -468,3 +468,24 @@ class OrderItem(Base):
     line_total: Mapped[int] = mapped_column(Integer)
 
     order: Mapped[Order] = relationship(back_populates="items")
+
+
+class SavedBag(Base):
+    """A traveller's bag saved as a short link (/bag/<code>), to keep for
+    later or share. No account: whoever has the link can open it.
+
+    Items are references, not copies: a gadget's slug and the chosen buying
+    option's id, so the saved bag always shows today's names, prices and
+    stock. Gadgets without a catalog page (model suggestions) keep just
+    their name."""
+
+    __tablename__ = "saved_bags"
+
+    code: Mapped[str] = mapped_column(String(10), primary_key=True)
+    # [{"name": ..., "slug": ... | null, "variant_id": ... | null, "priority": ... | null}]
+    items: Mapped[list] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    open_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

@@ -69,6 +69,7 @@ class Card:
     conditions: list[str] = field(default_factory=list)   # ["18–30°C", "Plug A/C/D/G/K · 220V"]
     items: list[CardItem] = field(default_factory=list)
     total: int = 0
+    kicker: str = "PACKING LIST FOR"             # the small line above the title
 
 
 @lru_cache(maxsize=32)
@@ -179,7 +180,7 @@ def render(card: Card) -> bytes:
     y = PAD
     draw.text((PAD, y), "TREK_XP", font=mono(22, 800), fill=AMBER)
     y += 64
-    draw.text((PAD, y), "PACKING LIST FOR", font=mono(17, 600), fill=GREEN_SOFT)
+    draw.text((PAD, y), card.kicker, font=mono(17, 600), fill=GREEN_SOFT)
     y += 34
     lines, font = _title(draw, card.places, inner)
     for line in lines:
