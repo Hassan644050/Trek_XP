@@ -67,6 +67,8 @@ class QuoteOut(BaseModel):
     zones: list[DeliveryZone]
     payment_methods: list[PaymentMethod]
     max_quantity: int
+    # The number to call about an order, when the business has set one.
+    support_phone: str | None = None
 
 
 class CustomerIn(BaseModel):

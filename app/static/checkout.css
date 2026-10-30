@@ -88,3 +88,57 @@
   .co-place { color: oklch(0.2 0.03 155); }
   .co-error { background: oklch(0.3 0.06 25); color: oklch(0.9 0.04 25); }
 }
+
+/* ---- confirmation ---- */
+.co-done { gap: 20px; }
+.co-done .co-progress { align-self: stretch; }
+.co-hero { align-items: center; display: flex; gap: 18px; }
+.co-hero h1 { font-size: clamp(26px, 3.4vw, 38px); }
+.co-tick { background: var(--green); flex: none; height: 56px; position: relative; width: 56px; }
+@media (max-width: 640px) { .co-hero { align-items: flex-start; flex-direction: column; gap: 12px; } }
+.co-tick::after { border-bottom: 5px solid #fff; border-right: 5px solid #fff; content: ""; height: 26px; left: 19px;
+  position: absolute; top: 9px; transform: rotate(45deg); width: 13px; }
+.co-codebox { align-items: center; background: var(--paper); border: 1.5px dashed var(--line); display: flex;
+  flex-wrap: wrap; gap: 10px 14px; padding: 14px 16px; }
+.co-codek { color: var(--ink-faint); font: 700 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.co-codebox .co-hint { flex-basis: 100%; }
+.co-btn { background: none; cursor: pointer; font: 900 15px var(--sans); }
+.co-btn.small { font-size: 13px; padding: 6px 12px; }
+
+.co-progress { counter-reset: none; display: grid; gap: 0; grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none; margin: 0; padding: 0; }
+.co-progress li { border-top: 4px solid var(--line); display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 12px 0 0; position: relative; }
+.co-progress li.done { border-top-color: var(--green); }
+.co-progress .dot { align-items: center; background: var(--paper); border: 2px solid var(--line); color: var(--ink-faint);
+  display: inline-flex; font: 800 12px var(--mono); height: 24px; justify-content: center; margin-bottom: 6px; width: 24px; }
+.co-progress li.done .dot { background: var(--green); border-color: var(--green); }
+.co-progress li.done .dot::after { border-bottom: 2px solid #fff; border-right: 2px solid #fff; content: ""; height: 10px;
+  margin-top: -3px; transform: rotate(45deg); width: 5px; }
+.co-progress b { font-size: 15px; }
+.co-progress small { color: var(--ink-soft); font-size: 13px; }
+@media (max-width: 640px) {
+  .co-progress { grid-template-columns: 1fr; }
+  .co-progress li { border-left: 4px solid var(--line); border-top: 0; padding: 4px 0 12px 14px; }
+  .co-progress li.done { border-left-color: var(--green); }
+}
+
+.co-next { display: flex; flex-direction: column; gap: 14px; list-style: none; margin: 0; padding: 0; }
+.co-next li { align-items: flex-start; display: flex; gap: 14px; }
+.co-next li > div { display: flex; flex-direction: column; gap: 2px; }
+.co-next span:not(.co-icon) { color: var(--ink-soft); }
+.co-icon { align-items: center; background: var(--tint); color: var(--green); display: inline-flex; flex: none;
+  font-size: 18px; font-weight: 900; height: 38px; justify-content: center; width: 38px; }
+.co-help { border-top: 1px solid var(--line-soft); color: var(--ink-soft); margin: 0; padding-top: 14px; }
+.co-address { background: var(--paper); border: 1px solid var(--line-soft); display: flex; flex-direction: column;
+  gap: 2px; padding: 12px 14px; }
+.co-address span { color: var(--ink-soft); }
+.co-final { justify-content: flex-start; }
+
+/* A receipt on paper: just the order, no site chrome or buttons. */
+@media print {
+  .site-header, .crumb, .page > footer, .co-actions, #coCopy, .bag-mini, .bag-dock { display: none !important; }
+  body, .co-card, .co-codebox, .co-address { background: #fff !important; color: #000 !important; }
+  .co-grid { grid-template-columns: 1fr 1fr; }
+  .co-card { border-color: #999; break-inside: avoid; }
+}

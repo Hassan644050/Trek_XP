@@ -105,6 +105,7 @@ async def checkout_quote(payload: QuoteIn, db: AsyncSession = Depends(get_db)) -
         zones=[DeliveryZone(**z) for z in delivery.zones],
         payment_methods=[PaymentMethod(**m) for m in delivery.payment_methods],
         max_quantity=delivery.max_quantity,
+        support_phone=delivery.support_phone,
     )
 
 

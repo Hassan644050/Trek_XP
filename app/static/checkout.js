@@ -15,6 +15,7 @@
   const root = document.getElementById("checkout");
   const QTY_KEY = "trekxp.checkout.qty";
   const FORM_KEY = "trekxp.checkout.form";
+  const DONE_KEY = "trekxp.checkout.placed";  // the confirmation, so a reload keeps it
   const SYMBOLS = { BDT: "৳", USD: "$", EUR: "€", GBP: "£", INR: "₹" };
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
@@ -44,6 +45,12 @@
   }
 
   async function load() {
+    // Just ordered (?order=CODE): show that confirmation again, not an
+    // empty checkout.
+    const placed = store.get(DONE_KEY);
+    const code = new URLSearchParams(location.search).get("order");
+    if (code && placed.order?.code === code) return renderDone(placed);
+
     const { buyable, unchosen } = bagLines();
     if (!buyable.length) return renderEmpty(unchosen);
 
@@ -344,32 +351,132 @@
     store.drop(QTY_KEY);
     store.drop(FORM_KEY);
 
+    const zone = quote.zones.find((z) => z.key === order.delivery_zone);
+    const placed = {
+      order,
+      // Pictures and options as they were in the cart, for the summary.
+      pictures: Object.fromEntries(lines.map((l) => [l.gadget, l.image_url])),
+      days: zone?.days || null,
+      support: quote.support_phone || null,
+      currency: quote.currency,
+    };
+    store.set(DONE_KEY, placed);
+    history.replaceState(null, "", `/checkout?order=${encodeURIComponent(order.code)}`);
+    renderDone(placed);
+  }
+
+  const STEPS = [
+    ["Order placed", "We have your order."],
+    ["Confirmed by phone", "We call you to check the details."],
+    ["On the way", "The courier brings it to you."],
+    ["Delivered", "You pay in cash on arrival."],
+  ];
+
+  function renderDone({ order, pictures = {}, days, support, currency }) {
+    quote = quote || { currency };  // money() needs the currency on a reload
     const first = order.customer_name.split(" ")[0];
+    const leftInBag = window.TrekBag ? TrekBag.count() : 0;
+    const count = order.lines.reduce((n, l) => n + l.quantity, 0);
+
     root.innerHTML = `
-      <section class="co-card co-done">
-        <h1>Thank you, ${esc(first)}!</h1>
-        <p class="co-note">Your order is placed. Keep this code — quote it if you call us:</p>
-        <span class="co-code">${esc(order.code)}</span>
-        <ol class="co-steps">
-          <li>We call <b>${esc(order.phone)}</b> to confirm your order.</li>
-          <li>It goes out by courier: ${esc(order.delivery_label)}.</li>
-          <li>You pay <b>${money(order.total)}</b> in cash when it arrives.</li>
+      <section class="co-card co-done" aria-labelledby="coDoneTitle">
+        <div class="co-hero">
+          <span class="co-tick" aria-hidden="true"></span>
+          <div>
+            <h1 id="coDoneTitle" tabindex="-1">Thank you, ${esc(first)}! Your order is placed.</h1>
+            <p class="co-note">We'll call you shortly to confirm it. Nothing to pay now — you pay in cash when it arrives.</p>
+          </div>
+        </div>
+
+        <div class="co-codebox">
+          <span class="co-codek">Order code</span>
+          <span class="co-code" id="coCode">${esc(order.code)}</span>
+          <button type="button" class="co-btn small" id="coCopy">Copy code</button>
+          <span class="co-hint">Quote this if you need to ask about your order.</span>
+        </div>
+
+        <ol class="co-progress" aria-label="Order progress">
+          ${STEPS.map(([title, text], i) => `
+            <li class="${i === 0 ? "done" : ""}" ${i === 0 ? 'aria-current="step"' : ""}>
+              <span class="dot" aria-hidden="true">${i === 0 ? "" : i + 1}</span>
+              <b>${esc(title)}</b><small>${esc(text)}</small>
+            </li>`).join("")}
         </ol>
-        <ul class="co-lines">${order.lines.map((l) => `
-          <li class="co-line" style="grid-template-columns:minmax(0,1fr) auto">
-            <div class="co-what"><span class="co-name">${esc(l.gadget_name)} × ${l.quantity}</span>
-              <span class="co-opt">${esc(l.option)}</span></div>
-            <div class="co-side"><span class="co-price">${money(l.line_total)}</span></div>
-          </li>`).join("")}
-        </ul>
-        <dl class="co-sum" style="width:100%">
-          <div><dt>Items</dt><dd>${money(order.subtotal)}</dd></div>
-          <div><dt>Delivery</dt><dd>${money(order.delivery_fee)}</dd></div>
-          <div class="total"><dt>Total, cash on delivery</dt><dd>${money(order.total)}</dd></div>
-        </dl>
-        <div class="co-actions"><a class="co-btn primary" href="/">Back to my packing list</a></div>
-      </section>`;
+      </section>
+
+      <div class="co-grid">
+        <section class="co-card" aria-labelledby="coNext">
+          <h2 id="coNext">What happens next</h2>
+          <ul class="co-next">
+            <li><span class="co-icon" aria-hidden="true">☎</span><div>
+              <b>We call you to confirm</b>
+              <span>On <b>${esc(order.phone)}</b> — keep your phone nearby. Nothing is sent before you confirm.</span></div></li>
+            <li><span class="co-icon" aria-hidden="true">⇢</span><div>
+              <b>Delivery: ${esc(order.delivery_label)}</b>
+              <span>${days ? `Usually ${esc(days)} after we confirm.` : "We tell you the delivery time when we call."}</span></div></li>
+            <li><span class="co-icon" aria-hidden="true">৳</span><div>
+              <b>Pay ${money(order.total)} in cash</b>
+              <span>To the courier when it arrives. Exact change helps.</span></div></li>
+          </ul>
+          <p class="co-help">${support
+            ? `Need to change something? Call <a href="tel:${esc(support)}">${esc(support)}</a> and quote <b>${esc(order.code)}</b>.`
+            : "Need to change something? Tell us when we call to confirm."}</p>
+        </section>
+
+        <aside class="co-card" aria-labelledby="coReceipt">
+          <h2 id="coReceipt">Your order · ${count} item${count === 1 ? "" : "s"}</h2>
+          <ul class="co-lines">${order.lines.map((l) => {
+            const pic = pictures[l.gadget_name];
+            return `
+            <li class="co-line">
+              <div class="co-pic">${pic ? `<img src="${esc(pic)}" alt="" />`
+                : `<span>${esc(l.gadget_name.trim().charAt(0).toUpperCase())}</span>`}</div>
+              <div class="co-what"><span class="co-name">${esc(l.gadget_name)}</span>
+                <span class="co-opt">${esc(l.option)}</span>
+                <span class="co-opt">${l.quantity} × ${money(l.unit_price)}</span></div>
+              <div class="co-side"><span class="co-price">${money(l.line_total)}</span></div>
+            </li>`; }).join("")}
+          </ul>
+          <dl class="co-sum">
+            <div><dt>Items</dt><dd>${money(order.subtotal)}</dd></div>
+            <div><dt>Delivery</dt><dd>${money(order.delivery_fee)}</dd></div>
+            <div class="total"><dt>To pay on delivery</dt><dd>${money(order.total)}</dd></div>
+          </dl>
+          <div class="co-address">
+            <span class="co-codek">Delivering to</span>
+            <b>${esc(order.customer_name)}</b>
+            <span>${esc(order.address)}</span>
+            <span>${esc(order.area)} · ${esc(order.delivery_label)}</span>
+            <span>${esc(order.phone)}${order.email ? ` · ${esc(order.email)}` : ""}</span>
+            ${order.note ? `<span class="co-opt">Note: ${esc(order.note)}</span>` : ""}
+          </div>
+        </aside>
+      </div>
+
+      <div class="co-actions co-final">
+        <a class="co-btn primary" href="/">Back to my packing list</a>
+        <button type="button" class="co-btn" id="coPrint">Print or save receipt</button>
+        ${leftInBag ? `<button type="button" class="co-btn" id="coBag">${leftInBag} more in your bag</button>` : ""}
+      </div>`;
+
+    const copy = root.querySelector("#coCopy");
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(order.code); } catch { /* shown on screen anyway */ }
+      copy.textContent = "Copied ✓";
+      setTimeout(() => { copy.textContent = "Copy code"; }, 2000);
+    });
+    root.querySelector("#coPrint").addEventListener("click", () => window.print());
+    // A photo that fails to load shows the gadget's initial instead.
+    for (const img of root.querySelectorAll(".co-pic img")) {
+      img.addEventListener("error", () => {
+        const name = img.closest(".co-line")?.querySelector(".co-name")?.textContent || "?";
+        img.replaceWith(Object.assign(document.createElement("span"), { textContent: name.trim().charAt(0).toUpperCase() }));
+      }, { once: true });
+    }
+    root.querySelector("#coBag")?.addEventListener("click", () => TrekBag.open());
+
     window.scrollTo({ top: 0, behavior: "smooth" });
+    root.querySelector("#coDoneTitle").focus({ preventScroll: true });
   }
 
   // bag.js loads first (both are deferred, in order). A change to the bag --
@@ -380,6 +487,8 @@
       return;
     }
     TrekBag.onChange(() => { if (!placing && !root.querySelector(".co-done")) load(); });
+    // Leaving the confirmation for a new checkout starts clean.
+    if (!new URLSearchParams(location.search).get("order")) store.drop(DONE_KEY);
     load();
   }
   start();

@@ -55,6 +55,7 @@ class Delivery:
     max_quantity: int
     phone_pattern: str
     phone_prefix: str
+    support_phone: str | None = None  # whom customers call about an order
 
     def zone(self, key: str) -> dict | None:
         return next((z for z in self.zones if z["key"] == key), None)
@@ -71,6 +72,7 @@ def delivery_for(country_code: str | None = None) -> Delivery:
         max_quantity=int(data.get("max_quantity_per_item", 5)),
         phone_pattern=data["phone"]["pattern"],
         phone_prefix=data["phone"].get("country_prefix", ""),
+        support_phone=(data.get("support") or {}).get("phone"),
     )
 
 

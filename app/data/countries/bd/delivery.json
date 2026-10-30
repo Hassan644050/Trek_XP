@@ -27,5 +27,9 @@
     "pattern": "^01[3-9]\\d{8}$",
     "country_prefix": "880",
     "example": "01712345678"
+  },
+  "support": {
+    "phone": null,
+    "_note": "Shown on the order confirmation as the number to call about an order. Set it before launch; while null, the page says to raise changes on the confirmation call."
   }
 }
