@@ -20,8 +20,11 @@ def placement(place_name, division, trip_types):
     )
 
 
+_ids = iter(range(1, 10_000))
+
+
 def variant(brand, quality, price, **over):
-    base = dict(brand=brand, model_name=None, color=None, quality=quality,
+    base = dict(id=next(_ids), brand=brand, model_name=None, color=None, quality=quality,
                 price=price, currency="BDT", vendor=None, url=None,
                 stock_quantity=5, stock_updated_at=None)
     base.update(over)
@@ -164,7 +167,7 @@ def test_detail_has_an_add_to_bag_button_with_the_gadget_details():
 
 
 def test_each_buying_option_can_be_chosen_for_the_bag():
-    v = variant("Anker PowerCore", "standard", 2900, color="Black", vendor="Daraz", url="https://daraz.com.bd/x")
+    v = variant("Anker PowerCore", "standard", 2900, color="Black", vendor="Daraz", url="https://daraz.com.bd/x", id=42)
     html_out = _render_detail(REQUEST, gadget(variants=[v]))
 
     assert 'id="buying-options"' in html_out
@@ -172,7 +175,8 @@ def test_each_buying_option_can_be_chosen_for_the_bag():
     assert match
     chosen = json.loads(html.unescape(match.group(1)))
     assert chosen["gadget"]["name"] == "Waterproof Dry Bag"
-    assert chosen["variant"] == {"brand": "Anker PowerCore", "model_name": None, "color": "Black",
+    # The id is what checkout orders.
+    assert chosen["variant"] == {"id": 42, "brand": "Anker PowerCore", "model_name": None, "color": "Black",
                                  "quality": "standard", "price": 2900, "currency": "BDT", "vendor": "Daraz"}
     # The seller link is separate from the choose button, never wrapped around it.
     assert '<a class="var-link" href="https://daraz.com.bd/x" target="_blank" rel="noopener nofollow">View at Daraz ↗</a>' in html_out
@@ -262,3 +266,4 @@ def test_product_data_has_price_range_and_availability():
         "@type": "AggregateOffer", "priceCurrency": "BDT", "lowPrice": 1200, "highPrice": 6500,
         "offerCount": 2, "availability": "https://schema.org/InStock",
     }
+

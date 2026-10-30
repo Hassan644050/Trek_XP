@@ -94,6 +94,17 @@ never return a status code or leak provider/SQL detail from a service.
   the initial), cached in memory 1 h; the share buttons warm it. **Bump
   `CARD_VERSION` when the card looks different** -- chat apps remember a
   preview by URL, and the version is in the shared links and `og:image`.
+- **Checkout and orders** (`services/orders.py`, `routes/orders.py`,
+  `/checkout` + `checkout.js`): guest checkout, cash on delivery. The bag's
+  chosen option carries its variant `id`; the page prices the cart with
+  `POST /api/checkout/quote` (database prices and stock only, never the
+  browser's) and orders with `POST /api/checkout` (CSRF header, honeypot,
+  5 orders/IP/hour). Placing locks the options' rows (FOR UPDATE, id order)
+  and takes the stock; cancelling (only pending/confirmed) gives it back.
+  Lines copy gadget/option/price as bought. Delivery zones, fees, payment
+  methods and the phone rule live in `countries/<code>/delivery.json`.
+  Coordinators work the **Orders** tab: pending -> confirmed -> shipped ->
+  delivered.
 - **Degrade and say so.** Only location and model are hard dependencies.
   Climate, plugs, catalog fail soft and add a note. Model down + catalog items
   → catalog-only answer, not a 503. `sources` credits only what contributed.

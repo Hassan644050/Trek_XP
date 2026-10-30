@@ -233,6 +233,22 @@
   .status-pill.inactive { background: var(--surface-sunk); color: var(--ink-soft); }
   .status-pill.suggested { background: var(--signal-wash); color: var(--signal-ink); }
   .status-pill.rejected { background: var(--danger-wash); color: var(--danger); }
+  /* order statuses */
+  .status-pill.pending { background: var(--signal-wash); color: var(--signal-ink); }
+  .status-pill.confirmed { background: #e3ecf7; color: #234f86; }
+  .status-pill.shipped { background: #ece6f6; color: #553a87; }
+  .status-pill.delivered { background: #e3f1e4; color: #24602a; }
+  .status-pill.cancelled { background: var(--danger-wash); color: var(--danger); }
+  .order-head { align-items: baseline; display: flex; flex-wrap: wrap; gap: 10px 14px; }
+  .order-head h2 { font-family: var(--mono); letter-spacing: 0.02em; }
+  .order-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  @media (max-width: 760px) { .order-grid { grid-template-columns: 1fr; } }
+  .order-facts { display: grid; gap: 6px 14px; grid-template-columns: max-content minmax(0, 1fr); margin: 0; }
+  .order-facts dt { color: var(--ink-soft); font-size: 13px; }
+  .order-facts dd { margin: 0; overflow-wrap: anywhere; }
+  .order-lines td.num, .order-lines th.num { text-align: right; }
+  .order-total td { border-top: 2px solid var(--line); font-weight: 700; }
+  .order-actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .table-foot { align-items: center; border-top: 1px solid var(--line-soft); display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; }
   .pager { display: flex; gap: 4px; }
   .pager button { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; font-size: 13px; min-width: 32px; padding: 5px 8px; }
@@ -435,6 +451,7 @@
   <div class="brand">Trek_XP<span>Coordinator</span></div>
   <nav class="tabs" id="tabs" hidden>
     <button class="tab" data-tab="gadgets" aria-selected="true">Gadgets</button>
+    <button class="tab" data-tab="orders" id="ordersTab">Orders</button>
     <button class="tab" data-tab="catalog" id="catalogTab" hidden>Catalog settings</button>
     <button class="tab" data-tab="accounts" id="accountsTab" hidden>Accounts</button>
     <button class="tab" data-tab="visitors" id="visitorsTab" hidden>Visitors</button>
@@ -598,6 +615,59 @@
         <div class="stack" id="variantList"></div>
       </div>
     </div>
+  </section>
+</main>
+
+<!-- ============ orders ============ -->
+
+<main id="ordersView" hidden>
+  <!-- Orders from the checkout page, by what needs doing next. -->
+  <section class="stack" id="orderIndex" style="gap:16px">
+    <div class="stat-cards five" role="group" aria-label="Show orders">
+      <button type="button" class="stat-card" data-ostatus="pending" aria-pressed="true">
+        <span class="k">New — call to confirm</span><span class="v" id="oPending">—</span><span class="s" id="oPendingSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-ostatus="confirmed" aria-pressed="false">
+        <span class="k">Confirmed — to ship</span><span class="v" id="oConfirmed">—</span><span class="s" id="oConfirmedSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-ostatus="shipped" aria-pressed="false">
+        <span class="k">Shipped</span><span class="v" id="oShipped">—</span><span class="s" id="oShippedSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-ostatus="delivered" aria-pressed="false">
+        <span class="k">Delivered</span><span class="v" id="oDelivered">—</span><span class="s" id="oDeliveredSub"></span>
+      </button>
+      <button type="button" class="stat-card" data-ostatus="all" aria-pressed="false">
+        <span class="k">All orders</span><span class="v" id="oAll">—</span><span class="s" id="oAllSub"></span>
+      </button>
+    </div>
+
+    <div class="card table-card">
+      <div class="table-toolbar">
+        <h2 id="orderListTitle">New orders</h2>
+        <span class="spacer"></span>
+        <input type="search" id="orderSearch" placeholder="Code, name or phone…" aria-label="Search orders" />
+        <button type="button" class="btn" id="orderRefresh">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table class="gadget-table">
+          <thead><tr>
+            <th>Order</th><th>Placed</th><th>Customer</th><th>Phone</th><th>Delivery</th>
+            <th>Items</th><th>Total</th><th>Status</th>
+          </tr></thead>
+          <tbody id="orderRows"></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <span class="muted" id="orderPageInfo"></span>
+        <span class="spacer"></span>
+        <nav class="pager" id="orderPager" aria-label="Pages"></nav>
+      </div>
+    </div>
+  </section>
+
+  <section id="orderDetailView" class="stack" style="gap:12px" hidden>
+    <div><button type="button" class="btn small" id="backToOrders">← Back to orders</button></div>
+    <div class="card stack" id="orderDetail"></div>
   </section>
 </main>
 
@@ -892,7 +962,7 @@
   // ---------- views ----------
 
   function showView(name) {
-    for (const v of ["signinView", "gadgetsView", "catalogView", "accountsView", "visitorsView"]) $(v).hidden = v !== name;
+    for (const v of ["signinView", "gadgetsView", "ordersView", "catalogView", "accountsView", "visitorsView"]) $(v).hidden = v !== name;
     for (const t of document.querySelectorAll(".tab")) {
       t.setAttribute("aria-selected", String(`${t.dataset.tab}View` === name));
     }
@@ -920,11 +990,14 @@
     options = await api("GET", "/api/coordinator/options");
     showView("gadgetsView");
     await loadGadgets();
+    // So new orders are noticed from any tab.
+    run(null, async () => { orders = await api("GET", "/api/coordinator/orders"); renderOrderCounts(); });
   }
 
   document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
     showView(`${tab.dataset.tab}View`);
     if (tab.dataset.tab === "gadgets") showIndex();
+    if (tab.dataset.tab === "orders") run(null, loadOrders);
     if (tab.dataset.tab === "accounts") run(null, loadUsers);
     if (tab.dataset.tab === "catalog") run(null, loadCatalog);
     if (tab.dataset.tab === "visitors") run(null, loadVisitors);
@@ -1668,6 +1741,176 @@
 
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".combo")) document.querySelectorAll(".suggestions").forEach((s) => (s.hidden = true));
+  });
+
+  // ---------- orders ----------
+  //
+  // From the checkout page: guest orders, cash on delivery. A coordinator
+  // calls the customer to confirm, ships, and marks delivery; cancelling a
+  // new or confirmed order puts its stock back (services/orders.py).
+
+  let orders = [];
+  let orderStatus = "pending";
+  let orderPage = 1;
+  const ORDER_PAGE_SIZE = 20;
+  const ORDER_STATUS = {
+    pending: "New", confirmed: "Confirmed", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled",
+  };
+  const ORDER_TITLES = {
+    pending: "New orders", confirmed: "Confirmed — ready to ship", shipped: "Shipped",
+    delivered: "Delivered", all: "All orders",
+  };
+  const ORDER_ACTIONS = {
+    confirmed: ["Confirm order", "primary"], shipped: ["Mark as shipped", "primary"],
+    delivered: ["Mark as delivered", "primary"], cancelled: ["Cancel order", "danger"],
+  };
+  const taka = (n, currency = "BDT") =>
+    `${currency === "BDT" ? "৳" : `${currency} `}${Number(n || 0).toLocaleString("en-IN")}`;
+  const orderPill = (status) => `<span class="status-pill ${status}">${esc(ORDER_STATUS[status] || status)}</span>`;
+
+  async function loadOrders() {
+    orders = await api("GET", "/api/coordinator/orders");
+    renderOrderCounts();
+    renderOrders();
+    $("orderIndex").hidden = false;
+    $("orderDetailView").hidden = true;
+  }
+
+  function renderOrderCounts() {
+    const of = (s) => orders.filter((o) => o.status === s);
+    const sum = (list) => taka(list.reduce((n, o) => n + o.total, 0));
+    for (const [status, id] of [["pending", "oPending"], ["confirmed", "oConfirmed"],
+      ["shipped", "oShipped"], ["delivered", "oDelivered"]]) {
+      const list = of(status);
+      $(id).textContent = list.length;
+      $(`${id}Sub`).textContent = list.length ? sum(list) : "";
+    }
+    $("oAll").textContent = orders.length;
+    const cancelled = of("cancelled").length;
+    $("oAllSub").textContent = cancelled ? `${cancelled} cancelled` : "";
+    const waiting = of("pending").length;
+    $("ordersTab").textContent = waiting ? `Orders (${waiting})` : "Orders";
+  }
+
+  function renderOrders() {
+    const q = $("orderSearch").value.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
+    const list = orders.filter((o) => (orderStatus === "all" || o.status === orderStatus) && (!q
+      || o.code.toLowerCase().includes(q) || o.customer_name.toLowerCase().includes(q)
+      || (digits.length >= 3 && o.phone.includes(digits))));
+    const pages = Math.max(1, Math.ceil(list.length / ORDER_PAGE_SIZE));
+    orderPage = Math.min(orderPage, pages);
+    const shown = list.slice((orderPage - 1) * ORDER_PAGE_SIZE, orderPage * ORDER_PAGE_SIZE);
+
+    $("orderListTitle").textContent = ORDER_TITLES[orderStatus];
+    $("orderRows").innerHTML = shown.length ? shown.map((o) => `
+      <tr data-order="${o.id}">
+        <td><b style="font-family:var(--mono)">${esc(o.code)}</b></td>
+        <td>${esc(when(o.created_at))}</td>
+        <td>${esc(o.customer_name)}<div class="muted">${esc(o.area)}</div></td>
+        <td>${esc(o.phone)}</td>
+        <td>${esc(o.delivery_label)}</td>
+        <td>${o.item_count}</td>
+        <td><b>${taka(o.total, o.currency)}</b></td>
+        <td>${orderPill(o.status)}</td>
+      </tr>`).join("")
+      : `<tr><td colspan="8" class="muted" style="padding:24px 16px">${q ? "No orders match." : "No orders here yet."}</td></tr>`;
+    $("orderPageInfo").textContent = list.length
+      ? `${(orderPage - 1) * ORDER_PAGE_SIZE + 1}–${(orderPage - 1) * ORDER_PAGE_SIZE + shown.length} of ${list.length}` : "";
+    $("orderPager").innerHTML = pages > 1 ? pagerHtml(orderPage, pages) : "";
+  }
+
+  async function openOrder(id) {
+    const o = await api("GET", `/api/coordinator/orders/${id}`);
+    $("orderIndex").hidden = true;
+    $("orderDetailView").hidden = false;
+    renderOrder(o);
+    window.scrollTo({ top: 0 });
+  }
+
+  function renderOrder(o) {
+    const fact = (k, v) => (v ? `<dt>${esc(k)}</dt><dd>${v}</dd>` : "");
+    $("orderDetail").innerHTML = `
+      <div class="order-head">
+        <h2>${esc(o.code)}</h2>${orderPill(o.status)}
+        <span class="muted">Placed ${esc(when(o.created_at))}${o.updated_at ? ` · updated ${esc(when(o.updated_at))}` : ""}</span>
+      </div>
+      <div class="order-grid">
+        <div class="stack" style="gap:8px">
+          <h3>Customer</h3>
+          <dl class="order-facts">
+            ${fact("Name", esc(o.customer_name))}
+            ${fact("Phone", `<a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>`)}
+            ${fact("Email", o.email ? `<a href="mailto:${esc(o.email)}">${esc(o.email)}</a>` : "")}
+            ${fact("Address", esc(o.address))}
+            ${fact("City / district", esc(o.area))}
+            ${fact("Delivery", esc(o.delivery_label))}
+            ${fact("Payment", o.payment_method === "cod" ? "Cash on delivery" : esc(o.payment_method))}
+            ${fact("Note", o.note ? esc(o.note) : "")}
+          </dl>
+        </div>
+        <div class="stack" style="gap:8px">
+          <h3>Items</h3>
+          <table class="order-lines">
+            <thead><tr><th>Gadget</th><th class="num">Qty</th><th class="num">Price</th></tr></thead>
+            <tbody>${o.lines.map((l) => `
+              <tr><td><b>${esc(l.gadget_name)}</b><div class="muted">${esc(l.option)}${l.vendor ? ` · ${esc(l.vendor)}` : ""}</div></td>
+                <td class="num">${l.quantity}</td><td class="num">${taka(l.line_total, o.currency)}</td></tr>`).join("")}
+              <tr><td>Delivery</td><td></td><td class="num">${taka(o.delivery_fee, o.currency)}</td></tr>
+              <tr class="order-total"><td>Total to collect</td><td></td><td class="num">${taka(o.total, o.currency)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      ${o.next_statuses.length ? `
+        <div class="section">
+          <div class="order-actions">${o.next_statuses.map((s) => {
+            const [text, kind] = ORDER_ACTIONS[s] || [s, ""];
+            return `<button type="button" class="btn ${kind}" data-next="${s}">${esc(text)}</button>`;
+          }).join("")}</div>
+          ${o.status === "pending" ? '<p class="muted" style="margin:0">Call the customer before confirming.</p>' : ""}
+          ${o.next_statuses.includes("cancelled") ? '<p class="muted" style="margin:0">Cancelling puts the items back in stock.</p>' : ""}
+        </div>` : ""}`;
+    $("orderDetail").dataset.id = o.id;
+  }
+
+  $("orderDetail").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-next]");
+    if (!btn) return;
+    const next = btn.dataset.next;
+    if (next === "cancelled" && !confirm("Cancel this order? Its items go back into stock.")) return;
+    run(btn, async () => {
+      const o = await api("PATCH", `/api/coordinator/orders/${$("orderDetail").dataset.id}`, { status: next });
+      renderOrder(o);
+      toast(`Order ${o.code}: ${ORDER_STATUS[o.status].toLowerCase()}.`);
+      orders = await api("GET", "/api/coordinator/orders");
+      renderOrderCounts();
+      renderOrders();
+    });
+  });
+
+  document.querySelectorAll("#orderIndex .stat-card").forEach((card) => card.addEventListener("click", () => {
+    orderStatus = card.dataset.ostatus;
+    orderPage = 1;
+    document.querySelectorAll("#orderIndex .stat-card").forEach((c) =>
+      c.setAttribute("aria-pressed", String(c === card)));
+    renderOrders();
+  }));
+  $("orderSearch").addEventListener("input", () => { orderPage = 1; renderOrders(); });
+  $("orderRefresh").addEventListener("click", (e) => run(e.currentTarget, loadOrders));
+  $("orderPager").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+    orderPage = +btn.dataset.page;
+    renderOrders();
+  });
+  $("orderRows").addEventListener("click", (e) => {
+    const row = e.target.closest("tr[data-order]");
+    if (row) run(null, () => openOrder(+row.dataset.order));
+  });
+  $("backToOrders").addEventListener("click", () => {
+    $("orderDetailView").hidden = true;
+    $("orderIndex").hidden = false;
   });
 
   // ---------- accounts (admin) ----------

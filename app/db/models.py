@@ -398,3 +398,73 @@ class ModelListCache(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     last_hit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Order(Base):
+    """A traveller's order, placed from the checkout page.
+
+    Guest checkout: the customer's details live on the order, no account.
+    Cash on delivery for now. Stock is taken from the buying options when
+    the order is placed and given back if it is cancelled, so what the
+    public pages show as available stays true.
+
+    status: pending (new; a coordinator calls to confirm) -> confirmed ->
+    shipped -> delivered; pending or confirmed can be cancelled."""
+
+    __tablename__ = "orders"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')",
+            name="ck_orders_status",
+        ),
+        CheckConstraint("payment_method IN ('cod')", name="ck_orders_payment_method"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # What the customer and coordinator quote on the phone: "TXP-7K3Q9M".
+    code: Mapped[str] = mapped_column(String(12), unique=True)
+    status: Mapped[str] = mapped_column(String(12), default="pending", server_default="pending", index=True)
+    customer_name: Mapped[str] = mapped_column(String(80))
+    phone: Mapped[str] = mapped_column(String(20))
+    email: Mapped[str | None] = mapped_column(String(120))
+    address: Mapped[str] = mapped_column(String(300))
+    area: Mapped[str] = mapped_column(String(80))
+    # A key from the country's delivery.json ("inside_dhaka" / "outside_dhaka").
+    delivery_zone: Mapped[str] = mapped_column(String(30))
+    note: Mapped[str | None] = mapped_column(String(300))
+    payment_method: Mapped[str] = mapped_column(String(10), default="cod", server_default="cod")
+    # Whole currency units, worked out on the server -- never the browser's.
+    subtotal: Mapped[int] = mapped_column(Integer)
+    delivery_fee: Mapped[int] = mapped_column(Integer)
+    total: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="BDT", server_default="BDT")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+    items: Mapped[list["OrderItem"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan", order_by="OrderItem.id"
+    )
+
+
+class OrderItem(Base):
+    """One line of an order. The gadget and option are copied as they were
+    when bought, so the order still reads correctly after a rename, a price
+    change or the option being deleted (variant_id then becomes NULL)."""
+
+    __tablename__ = "order_items"
+    __table_args__ = (CheckConstraint("quantity > 0", name="ck_order_items_quantity"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    variant_id: Mapped[int | None] = mapped_column(ForeignKey("gadget_variants.id", ondelete="SET NULL"))
+    gadget_name: Mapped[str] = mapped_column(String(120))
+    option: Mapped[str] = mapped_column(String(200))  # "Petzl Tikkina · Black · standard"
+    vendor: Mapped[str | None] = mapped_column(String(80))
+    unit_price: Mapped[int] = mapped_column(Integer)
+    quantity: Mapped[int] = mapped_column(Integer)
+    line_total: Mapped[int] = mapped_column(Integer)
+
+    order: Mapped[Order] = relationship(back_populates="items")

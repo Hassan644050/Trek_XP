@@ -104,6 +104,13 @@
 .bag-dialog footer button:disabled { cursor: default; opacity: 0.45; }
 .bag-dialog footer .bag-secondary { background: transparent; border: 2px solid oklch(0.84 0.03 150); color: var(--bag-ink); }
 .bag-dialog footer .bag-primary { background: var(--bag-green); border: 2px solid var(--bag-green); color: #fff; }
+/* Checkout is the step the bag leads to: amber, like the site's main actions. */
+.bag-dialog footer .bag-checkout, .bag-dock-checkout {
+  background: oklch(0.8 0.13 85); border: 2px solid oklch(0.8 0.13 85); color: oklch(0.22 0.04 155);
+  font: 900 15px 'Nunito', system-ui, sans-serif; padding: 12px 18px; text-decoration: none;
+}
+.bag-dialog footer .bag-checkout[hidden], .bag-dock-checkout[hidden] { display: none; }
+.bag-dock-checkout { display: block; margin: 12px 18px 0; text-align: center; }
 @media (max-width: 520px) {
   .bag-dialog { width: 100vw; }
   .bag-dialog footer button { padding: 11px 13px; }

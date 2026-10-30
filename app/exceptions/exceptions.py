@@ -62,6 +62,14 @@ class InvalidInputException(AppException):
     """Raised when input passes schema validation but breaks a business rule."""
 
 
+class OutOfStockException(AppException):
+    """Raised when an order asks for more units than are on hand."""
+
+
+class TooManyRequestsException(AppException):
+    """Raised when one visitor sends a public write too often."""
+
+
 class LLMTimeoutException(LLMException):
     """Raised when the model did not answer within the time allowed."""
 

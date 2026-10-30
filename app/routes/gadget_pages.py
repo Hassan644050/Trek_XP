@@ -353,6 +353,7 @@ def _variant_card(variant, bag_item: dict | None = None) -> str:
         chosen = {
             "gadget": bag_item,
             "variant": {
+                "id": variant.id,
                 "brand": variant.brand, "model_name": variant.model_name, "color": variant.color,
                 "quality": quality, "price": variant.price, "currency": variant.currency,
                 "vendor": variant.vendor,
@@ -738,6 +739,7 @@ def _compare_card(variant, owner: Gadget, bag_item: dict) -> str:
     chosen = {
         "gadget": bag_item,
         "variant": {
+            "id": variant.id,
             "brand": variant.brand, "model_name": variant.model_name, "color": variant.color,
             "quality": quality, "price": variant.price, "currency": variant.currency,
             "vendor": variant.vendor,
@@ -850,6 +852,30 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
                    '<script src="/compare.js" defer></script>',
         body=body,
     )
+
+
+@router.get("/checkout", response_class=HTMLResponse, include_in_schema=False)
+async def checkout_page(request: Request) -> HTMLResponse:
+    """The checkout. The page is a frame: checkout.js reads the bag (it lives
+    in the browser), prices it with /api/checkout/quote and places the order."""
+    body = """
+  <nav class="crumb" aria-label="Breadcrumb">
+    <a href="/">Packing list</a><span class="sep">/</span><span class="here">Checkout</span>
+  </nav>
+  <main id="checkout" class="co" aria-live="polite">
+    <p class="co-wait">Loading your bag…</p>
+  </main>
+  <noscript><p>Checkout needs JavaScript. Please turn it on, or call us to order.</p></noscript>
+  <script src="/checkout.js" defer></script>"""
+    page = _shell(
+        title="Checkout · Trek_XP",
+        description="Review your gadgets, add your delivery details and pay cash on delivery.",
+        canonical=f"{str(request.base_url).rstrip('/')}/checkout",
+        head_extra='<meta name="robots" content="noindex" />\n<link rel="stylesheet" href="/checkout.css" />',
+        body=body,
+    )
+    # Personal and changing (stock, prices): never kept by a browser or proxy.
+    return HTMLResponse(page, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/compare/{slug}", response_class=HTMLResponse, include_in_schema=False)

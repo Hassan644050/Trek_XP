@@ -1,0 +1,31 @@
+{
+  "_note": "Delivery options for checkout. Fees are whole taka. The amounts are placeholders until the business sets its courier rates.",
+  "currency": "BDT",
+  "zones": [
+    {
+      "key": "inside_dhaka",
+      "label": "Inside Dhaka city",
+      "fee": 70,
+      "days": "1-2 days"
+    },
+    {
+      "key": "outside_dhaka",
+      "label": "Outside Dhaka",
+      "fee": 130,
+      "days": "3-5 days"
+    }
+  ],
+  "payment_methods": [
+    {
+      "key": "cod",
+      "label": "Cash on delivery",
+      "detail": "Pay the courier when your order arrives."
+    }
+  ],
+  "max_quantity_per_item": 5,
+  "phone": {
+    "pattern": "^01[3-9]\\d{8}$",
+    "country_prefix": "880",
+    "example": "01712345678"
+  }
+}

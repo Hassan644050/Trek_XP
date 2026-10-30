@@ -20,6 +20,8 @@ from app.exceptions.exceptions import (
     PermissionDeniedException,
     ResourceConflictException,
     ResourceNotFoundException,
+    OutOfStockException,
+    TooManyRequestsException,
 )
 
 
@@ -144,6 +146,8 @@ def register_exception_handlers(app: FastAPI) -> None:
         (ResourceConflictException, status.HTTP_409_CONFLICT),
         (InvalidImageException, status.HTTP_422_UNPROCESSABLE_CONTENT),
         (InvalidInputException, status.HTTP_422_UNPROCESSABLE_CONTENT),
+        (OutOfStockException, status.HTTP_409_CONFLICT),
+        (TooManyRequestsException, status.HTTP_429_TOO_MANY_REQUESTS),
     ):
         app.add_exception_handler(exc_class, _passthrough(code))
 

@@ -87,6 +87,8 @@ def page_label(path: str) -> str | None:
         return "home"
     if path == "/gadgets":
         return "gadgets"
+    if path == "/checkout":
+        return "checkout"
     for prefix in ("/gadget/", "/compare/"):
         if path.startswith(prefix) and path.count("/") == 2 and len(path) > len(prefix):
             return path.removeprefix("/")

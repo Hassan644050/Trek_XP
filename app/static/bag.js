@@ -68,6 +68,9 @@
     const brand = text(v.brand, 80);
     if (!brand || !Number.isFinite(price) || price < 0) return null;
     return {
+      // The option's id: what checkout orders. Options chosen before ids
+      // were stored have none and are chosen again at checkout.
+      id: Number.isInteger(v.id) && v.id > 0 ? v.id : null,
       brand,
       model_name: text(v.model_name, 80),
       color: text(v.color, 40),
@@ -91,8 +94,8 @@
     };
   }
 
-  const sameVariant = (a, b) => !!a && !!b &&
-    ["brand", "model_name", "color", "vendor", "price"].every((k) => (a[k] ?? null) === (b[k] ?? null));
+  const sameVariant = (a, b) => !!a && !!b && (a.id && b.id ? a.id === b.id :
+    ["brand", "model_name", "color", "vendor", "price"].every((k) => (a[k] ?? null) === (b[k] ?? null)));
 
   const find = (name) => items.findIndex((i) => keyOf(i.name) === keyOf(name));
 
@@ -177,7 +180,8 @@
           <button type="button" class="bag-secondary bag-clear">Empty bag</button>
           <span class="bag-spacer"></span>
           <button type="button" class="bag-secondary bag-copy">Copy list</button>
-          <button type="button" class="bag-primary bag-done">Done</button>
+          <button type="button" class="bag-secondary bag-done">Done</button>
+          <a class="bag-primary bag-checkout" href="/checkout" hidden>Checkout</a>
         </div>
       </footer>`;
     document.body.append(dialog);
@@ -269,12 +273,21 @@
     }));
   }
 
+  // Checkout takes the gadgets that have a buying option chosen (by id).
+  function renderCheckout(link) {
+    if (!link) return;
+    const buyable = items.filter((i) => i.variant?.id).length;
+    link.hidden = !buyable;
+    link.textContent = `Checkout (${buyable})`;
+  }
+
   function renderPanel() {
     if (!dialog) return;
     const n = items.length;
     dialog.querySelector(".bag-summary").textContent = summaryText(n);
     dialog.querySelector(".bag-copy").disabled = !n;
     dialog.querySelector(".bag-clear").disabled = !n;
+    renderCheckout(dialog.querySelector(".bag-checkout"));
     const total = dialog.querySelector(".bag-total");
     total.innerHTML = totalHtml();
     total.hidden = !total.innerHTML;
@@ -297,6 +310,7 @@
         </div>
         <div class="bag-body"></div>
         <p class="bag-total" hidden></p>
+        <a class="bag-dock-checkout" href="/checkout" hidden>Checkout</a>
         <button type="button" class="bag-dock-open">Open full bag</button>`;
       dock.querySelector(".bag-dock-open").addEventListener("click", openPanel);
     }
@@ -318,6 +332,7 @@
       total.innerHTML = totalHtml();
       total.hidden = !total.innerHTML;
       renderList(dock.querySelector(".bag-body"));
+      renderCheckout(dock.querySelector(".bag-dock-checkout"));
     }
     const bar = document.querySelector(".bag-mini");
     if (bar) {

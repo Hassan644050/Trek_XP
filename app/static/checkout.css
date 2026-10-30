@@ -1,0 +1,90 @@
+/* The checkout page (/checkout). Uses the design tokens of the gadget and
+   compare pages (_STYLE in gadget_pages.py): square corners, forest green
+   and amber, Nunito with JetBrains Mono labels. */
+
+.co { display: flex; flex-direction: column; gap: 20px; }
+.co h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+.co-wait, .co-note { color: var(--ink-soft); font-size: 16px; }
+
+.co-grid { align-items: start; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) 360px; }
+@media (max-width: 900px) { .co-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.co-card { background: var(--panel); border: 1.5px solid var(--line); display: flex; flex-direction: column;
+  gap: 16px; padding: 22px; }
+.co-card h2 { align-items: center; display: flex; font-size: 20px; font-weight: 900; gap: 12px; margin: 0; }
+.co-step { background: var(--green); color: #fff; display: inline-grid; font: 800 14px var(--mono);
+  height: 28px; place-items: center; width: 28px; }
+
+/* ---- lines ---- */
+.co-lines { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.co-line { align-items: center; border-top: 1px solid var(--line-soft); display: grid; gap: 14px;
+  grid-template-columns: 64px minmax(0, 1fr) auto; padding: 14px 0; }
+.co-line:first-child { border-top: 0; padding-top: 0; }
+.co-pic { align-items: center; background: var(--paper); border: 1px solid var(--line); display: flex;
+  height: 64px; justify-content: center; overflow: hidden; width: 64px; }
+.co-pic img { height: 100%; object-fit: contain; width: 100%; }
+.co-pic span { color: var(--green); font-size: 26px; font-weight: 900; }
+.co-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.co-name { font-size: 17px; font-weight: 900; }
+.co-opt { color: var(--ink-soft); font-size: 14px; }
+.co-warn { color: oklch(0.5 0.17 25); font-size: 14px; font-weight: 800; }
+.co-side { align-items: flex-end; display: flex; flex-direction: column; gap: 8px; }
+.co-price { font-size: 17px; font-weight: 900; white-space: nowrap; }
+.co-each { color: var(--ink-faint); font-size: 13px; }
+.co-qty { align-items: center; border: 1.5px solid var(--line); display: inline-flex; }
+.co-qty button { background: var(--paper); border: 0; color: var(--ink); cursor: pointer; font: 900 18px var(--sans);
+  height: 34px; width: 34px; }
+.co-qty button:disabled { color: var(--ink-faint); cursor: default; }
+.co-qty output { font-weight: 900; min-width: 30px; text-align: center; }
+.co-remove { align-self: flex-start; background: none; border: 0; color: var(--ink-soft); cursor: pointer; font: 800 13px var(--sans);
+  padding: 0; text-decoration: underline; }
+.co-choose { background: var(--tint); display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+.co-choose ul { margin: 0; padding-left: 18px; }
+
+/* ---- form ---- */
+.co-form { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+.co-field { display: flex; flex-direction: column; gap: 6px; }
+.co-field.wide { grid-column: 1 / -1; }
+@media (max-width: 600px) { .co-form { grid-template-columns: 1fr; } }
+.co-field label, .co-legend { font: 700 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.co-field .opt { color: var(--ink-faint); text-transform: none; letter-spacing: 0; }
+.co-field input, .co-field textarea { background: var(--paper); border: 1.5px solid var(--line); color: var(--ink);
+  font: 700 16px var(--sans); padding: 11px 12px; }
+.co-field textarea { min-height: 76px; resize: vertical; }
+.co-field input:focus, .co-field textarea:focus { border-color: var(--green); outline: none; }
+.co-hint { color: var(--ink-faint); font-size: 13px; }
+.co-choices { border: 0; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; }
+.co-choice { align-items: center; background: var(--paper); border: 1.5px solid var(--line); cursor: pointer;
+  display: flex; gap: 12px; padding: 12px 14px; }
+.co-choice:has(input:checked) { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+.co-choice input { accent-color: var(--green); height: 18px; margin: 0; width: 18px; }
+.co-choice .grow { display: flex; flex: 1; flex-direction: column; }
+.co-choice small { color: var(--ink-soft); font-size: 13px; }
+.co-hp { height: 1px; left: -9999px; overflow: hidden; position: absolute; width: 1px; }
+
+/* ---- summary ---- */
+.co-summary { position: sticky; top: 16px; }
+.co-sum { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.co-sum div { display: flex; justify-content: space-between; gap: 12px; }
+.co-sum dt { color: var(--ink-soft); }
+.co-sum dd { font-weight: 900; margin: 0; }
+.co-sum .total { border-top: 2px solid var(--line); font-size: 20px; padding-top: 10px; }
+.co-place { background: var(--amber); border: 0; color: oklch(0.22 0.04 155); cursor: pointer;
+  font: 900 18px var(--sans); padding: 16px; width: 100%; }
+.co-place:disabled { cursor: not-allowed; opacity: 0.55; }
+.co-error { background: oklch(0.95 0.03 25); border-left: 4px solid oklch(0.5 0.17 25); color: oklch(0.4 0.14 25);
+  font-weight: 800; margin: 0; padding: 12px 14px; }
+
+/* ---- done ---- */
+.co-done { align-items: flex-start; }
+.co-code { background: var(--tint); font: 800 22px var(--mono); letter-spacing: 0.04em; padding: 8px 14px; }
+.co-steps { display: flex; flex-direction: column; gap: 8px; margin: 0; padding-left: 20px; }
+.co-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.co-btn { border: 1.5px solid var(--green); color: var(--green); font-weight: 900; padding: 10px 16px; }
+.co-btn.primary { background: var(--green); color: #fff; }
+.co-btn:hover { text-decoration: none; }
+
+@media (prefers-color-scheme: dark) {
+  .co-place { color: oklch(0.2 0.03 155); }
+  .co-error { background: oklch(0.3 0.06 25); color: oklch(0.9 0.04 25); }
+}
