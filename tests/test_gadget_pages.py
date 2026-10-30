@@ -201,7 +201,12 @@ def test_compare_lists_every_option_for_the_type_cheapest_first():
     grid = out[out.index('id="cmpGrid"'):]
     assert grid.index("Generic") < grid.index("Xiaomi") < grid.index("Anker Prime")   # by price
     assert "3 options from 3 brands · ৳1,200 – ৳6,500" in out
-    assert "including ones listed as Portable Charger" in out
+    # Every gadget compared has a way into its own detail page.
+    assert '<a href="/gadget/portable-charger">Portable Charger <small>1 option</small></a>' in out
+    assert '<a href="/gadget/power-bank">Power Bank <small>2 options</small></a>' in out
+    assert out.count('<a class="var-detail" href="/gadget/power-bank">View gadget details</a>') == 2
+    assert out.count('<a class="var-detail" href="/gadget/portable-charger">View gadget details</a>') == 1
+    assert '<dt>Listed as</dt><dd><a href="/gadget/portable-charger">Portable Charger</a></dd>' in out
     assert '<option value="Graphite">Graphite</option>' in out                     # colour filter
     assert out.count('class="var-choose"') == 3
 
@@ -267,3 +272,13 @@ def test_product_data_has_price_range_and_availability():
         "offerCount": 2, "availability": "https://schema.org/InStock",
     }
 
+
+
+def test_compare_links_gadgets_that_have_no_options_yet():
+    from app.routes.gadget_pages import _render_compare
+
+    main = gadget(name="Headlamp", slug="headlamp", variants=[variant("Petzl", "premium", 4200)])
+    bare = gadget(name="Compact LED Headlamp", slug="compact-led-headlamp", variants=[])
+    out = _render_compare(REQUEST, main, [main, bare])
+
+    assert '<a href="/gadget/compact-led-headlamp">Compact LED Headlamp <small>no options yet</small></a>' in out

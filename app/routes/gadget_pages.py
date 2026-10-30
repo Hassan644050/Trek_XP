@@ -185,6 +185,15 @@ _STYLE = """
   .cmp-facts div { display: contents; }
   .cmp-facts dt { color: var(--ink-faint); font-weight: 700; }
   .cmp-facts dd { margin: 0; color: var(--ink); font-weight: 700; }
+  .cmp-facts dd a { color: var(--green); }
+  .var-detail { font-size: 14px; font-weight: 800; }
+  /* Every gadget of this kind, each a way into its own detail page. */
+  .cmp-gadgets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .cmp-gadgets .k { font: 700 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-right: 4px; }
+  .cmp-gadgets a { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border: 1.5px solid var(--line);
+    background: var(--paper); font-size: 14px; font-weight: 800; color: var(--ink); }
+  .cmp-gadgets a:hover { border-color: var(--green); color: var(--green); text-decoration: none; }
+  .cmp-gadgets a small { color: var(--ink-faint); font-weight: 700; }
   .var-tier { font-size: 12px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 10px; }
   .var-tier.budget { background: var(--line-soft); color: var(--ink); }
   .var-tier.standard { background: var(--green); color: #fff; }
@@ -751,25 +760,44 @@ def _compare_card(variant, owner: Gadget, bag_item: dict) -> str:
         f'View at {_e(variant.vendor or "seller")} ↗</a>'
         if variant.url else ""
     )
+    details = f"/gadget/{owner.slug}"
     facts = "".join(
         f'<div><dt>{label}</dt><dd>{_e(value)}</dd></div>'
-        for label, value in (("Brand", variant.brand), ("Colour", variant.color),
-                             ("Seller", variant.vendor), ("Listed as", owner.name))
+        for label, value in (("Brand", variant.brand), ("Colour", variant.color), ("Seller", variant.vendor))
         if value
-    )
+    ) + f'<div><dt>Listed as</dt><dd><a href="{_e(details)}">{_e(owner.name)}</a></dd></div>'
     return (
         f'<article class="cmp-card var-card" data-variant-card data-price="{variant.price}" '
         f'data-quality="{_e(tier_class)}" data-brand="{_e(variant.brand)}" data-color="{_e(variant.color or "")}" '
         f'data-stock="{stock_status(variant.stock_quantity)[0]}">'
-        + (f'<div class="cmp-ph"><img src="{_e(image)}" alt="" loading="lazy" /></div>' if image else "")
+        # The photo opens the gadget's page too (a duplicate of the link
+        # below for mouse users, so it is skipped by keyboard and readers).
+        + (f'<a class="cmp-ph" href="{_e(details)}" tabindex="-1" aria-hidden="true">'
+           f'<img src="{_e(image)}" alt="" loading="lazy" /></a>' if image else "")
         + f'<div class="top"><span class="var-tier {tier_class}">{_e(quality.title())}</span>'
         f'<span class="price">{_e(_price(variant))}</span></div>'
         f'<h3 class="brand">{_e(variant.brand)}{_e(model)}</h3>'
         f'<dl class="cmp-facts">{facts}</dl>'
         f'<div class="stock-line">{_stock_badge(variant)}</div>'
-        f'<div class="var-actions">{_choose_button(variant, chosen)}{link}</div>'
+        f'<div class="var-actions">{_choose_button(variant, chosen)}{link}'
+        f'<a class="var-detail" href="{_e(details)}">View gadget details</a></div>'
         "</article>"
     )
+
+
+def _compare_gadgets(group: list[Gadget]) -> str:
+    """Links to the detail page of every gadget compared here -- including
+    ones with no buying options yet, which have no card to link from."""
+    def count(g: Gadget) -> str:
+        n = len(g.variants)
+        return f"{n} option{'s' if n != 1 else ''}" if n else "no options yet"
+
+    links = "".join(
+        f'<li><a href="/gadget/{_e(g.slug)}">{_e(g.name)} <small>{count(g)}</small></a></li>'
+        for g in group
+    )
+    return (f'<ul class="cmp-gadgets" aria-label="Gadgets in this comparison">'
+            f'<li class="k">{"Gadgets compared" if len(group) > 1 else "Gadget"}</li>{links}</ul>')
 
 
 def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> str:
@@ -835,8 +863,9 @@ def _render_compare(request: Request, gadget: Gadget, group: list[Gadget]) -> st
   <section class="panel">
     <span class="eye">Compare buying options</span>
     <h1 class="cmp-title">{_e(name)}</h1>
-    <p class="sub">Every option we list for this kind of gadget{" — including ones listed as " + ", ".join(_e(g.name) for g in group[1:]) if len(group) > 1 else ""}.
-       Choose one for your bag, or open the seller.</p>
+    <p class="sub">Every option we list for this kind of gadget. Choose one for your bag, open the seller,
+       or see a gadget's details.</p>
+    {_compare_gadgets(group)}
     {listing}
     <a class="var-link" href="/gadget/{_e(gadget.slug)}">About {_e(name)} — why you need it →</a>
   </section>
