@@ -16,18 +16,21 @@ import re
 import time
 from collections import OrderedDict, defaultdict, deque
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.auth.dependencies import check_csrf
-from app.db.engine import get_db
-from app.exceptions.exceptions import TooManyRequestsException
+from app.db.engine import get_db, get_sessionmaker
+from app.exceptions.exceptions import DatabaseNotConfiguredException, TooManyRequestsException
 from app.models.bags import BagView, SaveBagIn, SavedBagOut
 from app.routes.gadget_pages import _not_found, _shell
 from app.routes.home import _load_thumbnails
 from app.services import bags as bag_service
 from app.services.analytics import is_bot
+from app.services.read_cache import ReadCache
 from app.services.share_card import CARD_VERSION, HEIGHT, WIDTH, Card, CardItem, order_items, render
 
 
@@ -64,6 +67,38 @@ async def save_bag(payload: SaveBagIn, request: Request, db: AsyncSession = Depe
     _rate_limit(request)
     bag = await bag_service.save(db, payload)
     return SavedBagOut(code=bag.code, url=f"/bag/{bag.code}", count=len(bag.items))
+
+
+# ---------- availability, for the bag sidebar ----------
+
+# Stock for every active gadget, worked out together and kept briefly: the
+# sidebar asks on every page. Cleared with the other public reads whenever
+# a coordinator saves (main.py), so a stock update shows straight away.
+_availability_cache = ReadCache("gadget availability", refresh_after=60.0, max_keys=1)
+SLUG = re.compile(r"[a-z0-9][a-z0-9-]{0,139}")
+
+
+async def _load_availability() -> dict[str, dict]:
+    async with get_sessionmaker()() as db:
+        gadgets = await bag_service.active_gadgets(db)
+    # Comparing every gadget with every other is CPU work: off the event loop.
+    return await asyncio.to_thread(bag_service.availability, gadgets)
+
+
+@router.get("/api/bag/availability")
+async def bag_availability(slugs: str = Query(default="", max_length=4000)) -> Response:
+    """{slug: {options, in_stock, in_stock_ids, from_price, currency}} for
+    the gadgets asked about. Unknown or retired slugs are left out. Best
+    effort: without the database the answer is empty and the sidebar just
+    shows no stock labels."""
+    wanted = [s for s in dict.fromkeys(slugs.split(",")) if SLUG.fullmatch(s)][:30]
+    try:
+        everything = await _availability_cache.get("all", _load_availability) if wanted else {}
+    except (DatabaseNotConfiguredException, SQLAlchemyError):
+        everything = {}
+    body = {s: everything[s] for s in wanted if s in everything}
+    return Response(json.dumps(body), media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=30"})
 
 
 # ---------- the page ----------

@@ -238,7 +238,54 @@
 
   // The item list, grouped by priority. The item whose comparison page is
   // open is marked as current.
+  // ---------- availability ----------
+  //
+  // Whether a gadget can be bought right now: any of the buying options on
+  // its compare page in stock (/api/bag/availability). Asked for the bag's
+  // gadgets as the list is shown, and kept for a minute.
+
+  const AVAILABILITY_TTL = 60 * 1000;
+  const availability = new Map();  // slug -> { data, at }
+  let asking = false;
+
+  function slugFromPage(pageUrl) {
+    return (pageUrl || "").match(/^\/gadget\/([a-z0-9-]+)$/)?.[1] || null;
+  }
+
+  function stockHtml(item) {
+    const known = availability.get(slugFromPage(item.page_url));
+    const a = known?.data;
+    if (!a || !a.options) return "";  // not in the catalog, or no options listed
+    if (!a.in_stock) return `<span class="bag-stock out">Out of stock</span>`;
+    const from = a.from_price != null ? ` · from ${money(a.from_price, a.currency)}` : "";
+    // A chosen option that has sold out, while others are still there.
+    const chosenGone = item.variant?.id && !a.in_stock_ids.includes(item.variant.id);
+    return `<span class="bag-stock in">Available<span class="bag-stock-more">${esc(from)}</span></span>` +
+      (chosenGone ? `<span class="bag-stock gone">Your chosen option is sold out — choose another</span>` : "");
+  }
+
+  async function refreshAvailability() {
+    if (asking) return;
+    const now = Date.now();
+    const stale = [...new Set(items.map((i) => slugFromPage(i.page_url)).filter(Boolean))]
+      .filter((s) => !availability.has(s) || now - availability.get(s).at > AVAILABILITY_TTL);
+    if (!stale.length) return;
+    asking = true;
+    try {
+      const res = await fetch(`/api/bag/availability?slugs=${stale.slice(0, 30).join(",")}`);
+      const data = res.ok ? await res.json() : {};
+      for (const slug of stale) availability.set(slug, { data: data[slug] || null, at: Date.now() });
+    } catch {
+      return;  // no labels this time; the bag works the same
+    } finally {
+      asking = false;
+    }
+    renderDocks();
+    if (dialog?.open) renderPanel();
+  }
+
   function renderList(body) {
+    refreshAvailability();
     if (!items.length) {
       body.innerHTML = `<p class="bag-empty">Your bag is empty. Tap “Add to bag” on a packing list or on any gadget page.</p>`;
       return;
@@ -268,7 +315,7 @@
             <span class="bag-thumb">${item.image_url ? `<img src="${esc(item.image_url)}" alt="" loading="lazy" />` : "🎒"}</span>
             <span class="bag-text">
               <span class="bag-name">${esc(item.name)}</span>
-              ${detail}${hint}
+              ${stockHtml(item)}${detail}${hint}
             </span>`;
         // The whole item opens the comparison page for that kind of gadget.
         row.innerHTML = (href

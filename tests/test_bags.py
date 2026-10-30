@@ -98,3 +98,36 @@ def test_saving_needs_the_same_site_header_and_is_limited(client, saving):
 
 def test_a_malformed_code_is_a_not_found_page(client):
     assert client.get("/bag/NOT-A-CODE").status_code == 404
+
+
+# ---------- availability for the bag sidebar ----------
+
+
+def gadget(gid, name, slug, *stock, price=1000):
+    variants = [SimpleNamespace(id=gid * 10 + n, stock_quantity=q, price=price + n * 100, currency="BDT")
+                for n, q in enumerate(stock)]
+    return SimpleNamespace(id=gid, name=name, slug=slug, variants=variants)
+
+
+def test_available_means_any_option_on_the_compare_page_is_in_stock():
+    headlamp = gadget(1, "Headlamp", "headlamp", 0, 4, 0)
+    led = gadget(2, "LED Headlamp", "led-headlamp", 2)            # the same item, by name
+    towel = gadget(3, "Quick-Dry Towel", "quick-dry-towel", 0, 0)
+    bare = gadget(4, "Sun Hat", "sun-hat")
+
+    found = svc.availability([headlamp, led, towel, bare])
+
+    assert found["headlamp"] == {"options": 4, "in_stock": 2, "in_stock_ids": [11, 20],
+                                 "from_price": 1000, "currency": "BDT"}
+    assert found["quick-dry-towel"]["in_stock"] == 0 and found["quick-dry-towel"]["from_price"] is None
+    assert found["sun-hat"]["options"] == 0
+
+
+def test_the_endpoint_answers_only_for_known_slugs(client, monkeypatch):
+    async def everything():
+        return {"headlamp": {"options": 3, "in_stock": 1, "in_stock_ids": [8], "from_price": 1300, "currency": "BDT"}}
+
+    monkeypatch.setattr(bag_routes, "_load_availability", everything)
+    body = client.get("/api/bag/availability?slugs=headlamp,unknown,../etc,HEADLAMP").json()
+    assert body == {"headlamp": {"options": 3, "in_stock": 1, "in_stock_ids": [8], "from_price": 1300, "currency": "BDT"}}
+    assert client.get("/api/bag/availability").json() == {}

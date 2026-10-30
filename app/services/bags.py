@@ -18,7 +18,8 @@ from sqlalchemy.orm import selectinload
 
 from app.db.models import Gadget, SavedBag
 from app.models.bags import BagItemView, BagOption, BagView, SaveBagIn
-from app.services.gadgets.stock import stock_status
+from app.services.gadgets.similarity import is_same
+from app.services.gadgets.stock import can_buy, stock_status
 from app.services.media.storage import get_image_storage, variant_key
 from app.services.media.variants import THUMB
 
@@ -46,6 +47,37 @@ async def save(db, payload: SaveBagIn) -> SavedBag:
     db.add(bag)
     await db.commit()
     return bag
+
+
+async def active_gadgets(db) -> list[Gadget]:
+    return list((await db.scalars(
+        select(Gadget).where(Gadget.is_active.is_(True), Gadget.slug.is_not(None))
+        .options(selectinload(Gadget.variants))
+    )).all())
+
+
+def availability(gadgets: list[Gadget]) -> dict[str, dict]:
+    """For every active gadget: how many buying options its compare page
+    has, which are in stock, and the lowest price in stock.
+
+    Counted over the same group as the compare page (the gadget and every
+    active gadget that is the same item), since that is the page a bag item
+    opens. CPU only; the caller decides where it runs.
+    """
+    out: dict[str, dict] = {}
+    for gadget in gadgets:
+        group = [g for g in gadgets if g.id == gadget.id or is_same(g.name, gadget.name)]
+        options = [v for g in group for v in g.variants]
+        in_stock = [v for v in options if can_buy(v.stock_quantity)]
+        cheapest = min(in_stock, key=lambda v: v.price, default=None)
+        out[gadget.slug] = {
+            "options": len(options),
+            "in_stock": len(in_stock),
+            "in_stock_ids": sorted(v.id for v in in_stock),
+            "from_price": cheapest.price if cheapest else None,
+            "currency": cheapest.currency if cheapest else None,
+        }
+    return out
 
 
 async def load(db, code: str, *, count_open: bool = True) -> BagView | None:
