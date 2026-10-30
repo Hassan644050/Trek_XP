@@ -19,6 +19,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 WIDTH, HEIGHT = 1200, 630
+# Bump whenever the card's look changes. WhatsApp and Facebook remember a
+# link's preview by its exact URL, so the version goes into the shared links
+# and the image URL: new shares then get the new card, not a remembered one.
+CARD_VERSION = 3
 FONTS = Path(__file__).resolve().parents[1] / "static" / "fonts"
 
 # The design tokens of index.html, converted from oklch.

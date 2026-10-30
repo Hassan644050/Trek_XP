@@ -91,7 +91,9 @@ never return a status code or leak provider/SQL detail from a service.
   `/share/card.png?<canonical trip>`: a 1200x630 PNG drawn with Pillow in
   `services/share_card.py` (site fonts/colours) from the quick list -- never
   a model call -- six gadget tiles (catalog thumbnails via storage, else
-  the initial), cached in memory 1 h; the share buttons warm it.
+  the initial), cached in memory 1 h; the share buttons warm it. **Bump
+  `CARD_VERSION` when the card looks different** -- chat apps remember a
+  preview by URL, and the version is in the shared links and `og:image`.
 - **Degrade and say so.** Only location and model are hard dependencies.
   Climate, plugs, catalog fail soft and add a note. Model down + catalog items
   → catalog-only answer, not a 503. `sources` credits only what contributed.

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Trek_XP — What should you actually pack?</title>
 <!-- share-preview -->
+<meta name="trekxp:card-version" content="3" />
 <meta name="description" content="Pick a place in Bangladesh, set your dates, and get a packing list checked against the weather, plug type and voltage there." />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Trek_XP" />
@@ -941,7 +942,7 @@
   // A shared list's link carries the whole trip (shareUrl builds it):
   // ?to=…&from=2026-11-28&until=2026-12-05&types=beach&acts=surfing&pax=2&who=female
   // Anything malformed is ignored and the form keeps its default.
-  const TRIP_PARAMS = ["from", "until", "types", "acts", "pax", "who", "ref"];
+  const TRIP_PARAMS = ["from", "until", "types", "acts", "pax", "who", "ref", "v"];
 
   function applySharedTrip() {
     const q = new URLSearchParams(location.search);
@@ -1321,6 +1322,9 @@
     u.searchParams.set("pax", t.pax);
     if (t.who) u.searchParams.set("who", t.who);
     u.searchParams.set("ref", ref);
+    // The card's design version: a new design makes a new link, so chat apps
+    // fetch the new card instead of showing the preview they remember.
+    u.searchParams.set("v", document.querySelector('meta[name="trekxp:card-version"]')?.content || "1");
     return u.toString().replace(/%2C/gi, ",");
   }
 

@@ -38,7 +38,7 @@ from app.routes.destinations import featured, form_options
 from app.routes.recommend import recommend
 from app.services.media.storage import get_image_storage, variant_key
 from app.services.media.variants import THUMB
-from app.services.share_card import HEIGHT, WIDTH, Card, CardItem, order_items, render
+from app.services.share_card import CARD_VERSION, HEIGHT, WIDTH, Card, CardItem, order_items, render
 
 
 logger = logging.getLogger(__name__)
@@ -169,6 +169,8 @@ def _tags(request: Request, trip: SharedTrip | None) -> str:
     lines = [
         "<!-- share-preview -->",
         f'<meta name="description" content="{e(description)}" />',
+        # Read by the share buttons, which put it in the links (see CARD_VERSION).
+        f'<meta name="trekxp:card-version" content="{CARD_VERSION}" />',
         '<meta property="og:type" content="website" />',
         '<meta property="og:site_name" content="Trek_XP" />',
         f'<meta property="og:title" content="{e(title)}" />',
@@ -178,7 +180,7 @@ def _tags(request: Request, trip: SharedTrip | None) -> str:
         f'<meta property="og:url" content="{e(str(request.url))}" />',
     ]
     if trip:
-        card = _absolute(f"/share/card.png?{trip.query()}", request)
+        card = _absolute(f"/share/card.png?{trip.query()}&v={CARD_VERSION}", request)
         lines += [
             f'<meta property="og:image" content="{e(card)}" />',
             '<meta property="og:image:type" content="image/png" />',

@@ -54,8 +54,12 @@ def test_a_shared_trip_gets_its_own_preview(client):
     assert meta(page, "og:title") == "Packing list for Cox&#x27;s Bazar + Saint Martin&#x27;s Island"
     assert meta(page, "og:description").startswith("28 Nov – 5 Dec · Beach, Hiking · Checked against")
     # The card picture, for the trip as understood (no ref tag).
+    from app.services.share_card import CARD_VERSION
     assert meta(page, "og:image") == ("http://testserver/share/card.png?to=coxs-bazar,saint-martins-island"
-                                      "&amp;from=2026-11-28&amp;until=2026-12-05&amp;types=beach,hiking")
+                                      "&amp;from=2026-11-28&amp;until=2026-12-05&amp;types=beach,hiking"
+                                      f"&amp;v={CARD_VERSION}")
+    # The share buttons read the version from the page (see CARD_VERSION).
+    assert meta(page, "trekxp:card-version") == str(CARD_VERSION)
     assert "ref=share-wa" in meta(page, "og:url")
 
 
