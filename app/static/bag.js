@@ -186,15 +186,12 @@
           <button type="button" class="bag-secondary bag-clear">Empty bag</button>
           <span class="bag-spacer"></span>
           <button type="button" class="bag-secondary bag-save">Save &amp; share</button>
-          <button type="button" class="bag-secondary bag-copy">Copy list</button>
-          <button type="button" class="bag-secondary bag-done">Done</button>
           <a class="bag-primary bag-checkout" href="/checkout" hidden>Checkout</a>
         </div>
       </footer>`;
     document.body.append(dialog);
 
     dialog.querySelector(".bag-close").addEventListener("click", closePanel);
-    dialog.querySelector(".bag-done").addEventListener("click", closePanel);
     // Clicking the dimmed backdrop closes it too.
     dialog.addEventListener("click", (e) => { if (e.target === dialog) closePanel(); });
     // Esc: slide out rather than vanish.
@@ -202,7 +199,6 @@
     dialog.querySelector(".bag-clear").addEventListener("click", () => {
       if (confirm("Take everything out of your bag?")) TrekBag.clear();
     });
-    dialog.querySelector(".bag-copy").addEventListener("click", copyList);
     dialog.querySelector(".bag-save").addEventListener("click", saveBag);
     dialog.querySelector(".bag-share").addEventListener("click", shareClick);
     dialog.querySelector(".bag-body").addEventListener("click", (e) => {
@@ -298,7 +294,6 @@
     if (!dialog) return;
     const n = items.length;
     dialog.querySelector(".bag-summary").textContent = summaryText(n);
-    dialog.querySelector(".bag-copy").disabled = !n;
     dialog.querySelector(".bag-clear").disabled = !n;
     dialog.querySelector(".bag-save").disabled = !n;
     renderCheckout(dialog.querySelector(".bag-checkout"));
@@ -481,23 +476,6 @@
     }
   }
 
-  async function copyList() {
-    const lines = PRIORITIES.flatMap((p) => {
-      const group = items.filter((i) => (i.priority || null) === p.key);
-      return group.length
-        ? [`${p.name}:`, ...group.map((i) => `  - ${i.name}${i.variant ? ` (${variantLine(i.variant)})` : ""}`), ""]
-        : [];
-    });
-    const button = dialog.querySelector(".bag-copy");
-    try {
-      await navigator.clipboard.writeText(["My Trek XP bag", "", ...lines].join("\n").trim());
-      button.textContent = "Copied ✓";
-    } catch {
-      button.textContent = "Couldn't copy";
-    }
-    setTimeout(() => { button.textContent = "Copy list"; }, 2000);
-  }
-
   function openPanel() {
     if (!dialog) buildDialog();
     renderPanel();
@@ -509,10 +487,15 @@
     if (!dialog?.open) return;
     if (reduceMotion()) return dialog.close();
     dialog.classList.add("closing");
-    dialog.addEventListener("animationend", () => {
+    const finish = () => {
+      clearTimeout(fallback);
       dialog.classList.remove("closing");
-      dialog.close();
-    }, { once: true });
+      if (dialog.open) dialog.close();
+    };
+    dialog.addEventListener("animationend", finish, { once: true });
+    // If the slide-out never reports finishing (a throttled or background
+    // tab), close anyway: the ✕ must always work.
+    const fallback = setTimeout(finish, 600);
   }
 
   // ---------- the header button and page buttons ----------
