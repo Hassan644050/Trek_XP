@@ -1354,9 +1354,22 @@
   // desktop it would need a Facebook app ID (its "Send" dialog).
   document.querySelector('[data-share="ms"]').hidden = !isPhone;
 
+  // The chat app asks for the link's card image moments after the share;
+  // asking for it now means it is already drawn (and cached) by then.
+  let warmedCard = null;
+  function warmCard() {
+    const card = new URL(shareUrl("card"));
+    card.pathname = "/share/card.png";
+    card.searchParams.delete("ref");
+    if (warmedCard === card.href) return;
+    warmedCard = card.href;
+    fetch(card, { priority: "low" }).catch(() => { /* the crawler will draw it */ });
+  }
+
   $("shareBar").addEventListener("click", async (e) => {
     const btn = e.target.closest("[data-share]");
     if (!btn || !sharedTrip) return;
+    warmCard();
     const open = (url) => window.open(url, "_blank", "noopener");
 
     switch (btn.dataset.share) {
