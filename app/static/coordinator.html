@@ -275,6 +275,19 @@
 
   .editor { display: flex; flex-direction: column; gap: 18px; }
   .section { border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 12px; padding-top: 16px; }
+  /* Long editor sections fold away; the header keeps a one-line summary. */
+  .section-head { align-items: center; display: flex; gap: 10px; }
+  .section-toggle { align-items: center; background: none; border: 0; color: var(--ink); cursor: pointer; display: flex;
+    flex: 1; gap: 10px; min-width: 0; padding: 4px 0; text-align: left; }
+  .section-toggle h3 { margin: 0; }
+  .section-toggle .chev { border-bottom: 2px solid var(--ink-soft); border-right: 2px solid var(--ink-soft); flex: none;
+    height: 8px; transform: rotate(45deg) translate(-2px, -2px); transition: transform 0.15s; width: 8px; }
+  .section-toggle[aria-expanded="false"] .chev { transform: rotate(-45deg); }
+  .section-toggle:hover h3 { text-decoration: underline; text-decoration-color: var(--line); }
+  .section-toggle:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .section-count { color: var(--ink-faint); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .section-body[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .section-toggle .chev { transition: none; } }
 
   .image-box { align-items: flex-start; display: flex; gap: 16px; flex-wrap: wrap; }
 
@@ -580,20 +593,15 @@
         </div>
       </div>
 
-      <div class="section" id="placementSection" hidden>
-        <div class="row">
-          <h3>Where and when to recommend it</h3>
-          <button class="btn small" id="addPlacement" style="margin-left:auto">+ Add destination</button>
+      <div class="section collapsible" id="variantSection" data-collapse="variants" hidden>
+        <div class="section-head">
+          <button type="button" class="section-toggle" aria-expanded="true" aria-controls="variantBody">
+            <span class="chev" aria-hidden="true"></span><h3>Buying options</h3>
+            <span class="section-count" id="variantCount"></span>
+          </button>
+          <button class="btn small" id="addVariant">+ Add variant</button>
         </div>
-        <div class="stack" id="placementForm" hidden></div>
-        <div class="stack" id="placementList"></div>
-      </div>
-
-      <div class="section" id="variantSection" hidden>
-        <div class="row">
-          <h3>Buying options</h3>
-          <button class="btn small" id="addVariant" style="margin-left:auto">+ Add variant</button>
-        </div>
+        <div class="stack section-body" id="variantBody">
         <form class="stack" id="variantForm" hidden novalidate>
           <div class="grid2">
             <label>Brand <input type="text" id="vBrand" maxlength="80" required placeholder="e.g. Anker" /></label>
@@ -613,7 +621,23 @@
           </div>
         </form>
         <div class="stack" id="variantList"></div>
+        </div>
       </div>
+
+      <div class="section collapsible" id="placementSection" data-collapse="placements" hidden>
+        <div class="section-head">
+          <button type="button" class="section-toggle" aria-expanded="true" aria-controls="placementBody">
+            <span class="chev" aria-hidden="true"></span><h3>Where and when to recommend it</h3>
+            <span class="section-count" id="placementCount"></span>
+          </button>
+          <button class="btn small" id="addPlacement">+ Add destination</button>
+        </div>
+        <div class="stack section-body" id="placementBody">
+          <div class="stack" id="placementForm" hidden></div>
+          <div class="stack" id="placementList"></div>
+        </div>
+      </div>
+
     </div>
   </section>
 </main>
@@ -1465,6 +1489,8 @@
   function renderPlacements() {
     const list = $("placementList");
     const ps = current?.placements || [];
+    $("placementCount").textContent = ps.length
+      ? `${ps.length} destination${ps.length === 1 ? "" : "s"}` : "none yet";
 
     if (!ps.length) {
       list.innerHTML = `<p class="muted" style="margin:0">Not recommended anywhere yet. Add a destination to start.</p>`;
@@ -1505,7 +1531,35 @@
     });
   });
 
-  $("addPlacement").addEventListener("click", () => openPlacementForm(null));
+  $("addPlacement").addEventListener("click", () => {
+    setCollapsed($("placementSection"), false);
+    openPlacementForm(null);
+  });
+
+  // ---------- collapsible editor sections ----------
+  // Open or folded is remembered per section in this browser, so a
+  // coordinator who works mostly on stock can keep destinations folded.
+
+  const COLLAPSE_KEY = "trekxp.coordinator.collapsed";
+  function collapsedSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "[]")); } catch { return new Set(); }
+  }
+
+  function setCollapsed(section, collapsed, remember = true) {
+    const toggle = section.querySelector(".section-toggle");
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+    $(toggle.getAttribute("aria-controls")).hidden = collapsed;
+    if (!remember) return;
+    const set = collapsedSet();
+    collapsed ? set.add(section.dataset.collapse) : set.delete(section.dataset.collapse);
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])); } catch { /* this page only */ }
+  }
+
+  for (const section of document.querySelectorAll(".section.collapsible")) {
+    setCollapsed(section, collapsedSet().has(section.dataset.collapse), false);
+    section.querySelector(".section-toggle").addEventListener("click", (e) =>
+      setCollapsed(section, e.currentTarget.getAttribute("aria-expanded") === "true"));
+  }
 
   function checkboxes(name, opts, selected) {
     return `<div class="checks">${opts.map((o) => {
@@ -1999,6 +2053,9 @@
   function renderVariants() {
     const list = $("variantList");
     const vs = current?.variants || [];
+    const stocked = vs.filter((v) => v.stock_quantity > 0).length;
+    $("variantCount").textContent = vs.length
+      ? `${vs.length} option${vs.length === 1 ? "" : "s"} · ${stocked ? `${stocked} in stock` : "none in stock"}` : "none yet";
     if (!vs.length) {
       list.innerHTML = `<p class="muted" style="margin:0">No buying options yet. Add brands and prices travellers can compare.</p>`;
       return;
@@ -2047,7 +2104,11 @@
     });
   });
 
-  $("addVariant").addEventListener("click", () => { $("variantForm").hidden = false; $("vBrand").focus(); });
+  $("addVariant").addEventListener("click", () => {
+    setCollapsed($("variantSection"), false);
+    $("variantForm").hidden = false;
+    $("vBrand").focus();
+  });
   $("cancelVariant").addEventListener("click", () => { $("variantForm").reset(); $("variantForm").hidden = true; });
 
   $("variantForm").addEventListener("submit", (e) => {
