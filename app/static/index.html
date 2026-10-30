@@ -434,6 +434,7 @@
   }
 
   .bag-btn.primary { background: var(--amber); border-color: var(--amber); color: var(--green-deep); font-weight: 900; }
+  .bag-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 
   /* ---------- share ---------- */
 
@@ -1562,7 +1563,11 @@
       ? `${missing} essential${missing === 1 ? "" : "s"} still to pack`
       : packed ? "All essentials packed" : "";
     const total = TrekBag.count();
-    $("viewBag").textContent = total ? `View your bag (${total})` : "View your bag";
+    // Nothing to view in an empty bag: the button waits for the first item.
+    const view = $("viewBag");
+    view.textContent = total ? `View your bag (${total})` : "View your bag";
+    view.disabled = !total;
+    view.title = total ? "" : "Add a gadget to your bag first";
   }
 
   $("viewBag").addEventListener("click", () => TrekBag.open());
