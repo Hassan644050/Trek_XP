@@ -78,6 +78,7 @@ def parse_recommendations(raw: str) -> list[Recommendation]:
             continue
 
         category = item.get("category")
+        description = str(item.get("description") or "").strip()[:600] or None
         # Which stops of a multi-stop trip the item is for. Kept loose here;
         # the route checks the names against the trip's real stops.
         raw_for = item.get("for")
@@ -90,6 +91,7 @@ def parse_recommendations(raw: str) -> list[Recommendation]:
                 priority=_coerce_priority(item.get("priority")),
                 category=str(category).strip() if category else None,
                 stops=stops,
+                description=description,
                 # Set here, never taken from the model: nothing the LLM
                 # produces counts as community-verified.
                 origin=Origin.LLM,

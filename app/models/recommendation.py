@@ -42,6 +42,9 @@ class Recommendation(BaseModel):
     # On a multi-stop trip, the stops this item is for. Empty means the
     # whole trip (and always, for a single-destination trip).
     stops: list[str] = Field(default_factory=list)
+    # A model item's one-line catalog description, asked for in the same
+    # request as the list so a new suggestion needs no second model call.
+    description: str | None = None
 
 
 class StopSummary(BaseModel):
@@ -65,3 +68,6 @@ class RecommendResponse(BaseModel):
     notes: list[str] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list)
     stops: list[StopSummary] = Field(default_factory=list)
+    # True on a quick answer (?quick=1) that skipped the model: the verified
+    # items are here, and the model's fresh ones come from the full request.
+    pending: bool = False

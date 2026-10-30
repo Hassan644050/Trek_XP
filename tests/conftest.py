@@ -82,6 +82,17 @@ def no_catalog_db(monkeypatch):
     monkeypatch.setattr("app.routes.recommend.record_and_enrich", no_suggestion_saving)
     monkeypatch.setattr("app.routes.destinations._catalog_places", no_catalog_places)
 
+    # The model-list cache lives in the database too: every test is a miss,
+    # and nothing is stored.
+    async def cache_miss(key, **kwargs):
+        return None
+
+    async def no_cache_write(key, items):
+        return None
+
+    monkeypatch.setattr("app.routes.recommend._cached_items", cache_miss)
+    monkeypatch.setattr("app.routes.recommend._remember_items", no_cache_write)
+
 
 @pytest.fixture
 def client():

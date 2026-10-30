@@ -17,7 +17,9 @@ from app.models.trip import TripRequest
 from app.services import analytics
 from app.services.destination.aggregator import build_trip_context
 from app.services.gadgets.catalog import CatalogMatch, load_catalog_safely
+from app.services.gadgets import list_cache
 from app.services.gadgets.factory import get_gadget_source
+from app.services.gadgets.llm_source import _novel
 from app.services.gadgets.similarity import is_same
 from app.services.gadgets.suggestions import SuggestionBatch, record_and_enrich
 
@@ -28,6 +30,7 @@ router = APIRouter()
 
 LLM_SOURCE_NAME = "llm_gadget_knowledge"
 CATALOG_SOURCE_NAME = "community_catalog"
+CACHE_SOURCE_NAME = "cached_recommendations"
 
 # How many fresh items to ask the model for, on top of the catalog: five,
 # and two more for each extra stop of a multi-stop trip (at most nine).
@@ -185,6 +188,15 @@ def _merge_route_catalog(matches: list[tuple[str, CatalogMatch]]) -> CatalogMatc
     return merged
 
 
+async def _cached_items(key: str, *, count_hit: bool = True) -> list | None:
+    """The model's items from an earlier list for the same kind of trip."""
+    return await list_cache.get_items(key, count_hit=count_hit)
+
+
+async def _remember_items(key: str, items: list) -> None:
+    await list_cache.put_items(key, items)
+
+
 def _schedule_suggestions(background: BackgroundTasks, context: TripContext, novel: list) -> None:
     """Save the model's new items for coordinator review, after the response
     has gone out -- see services/gadgets/suggestions.py."""
@@ -208,23 +220,91 @@ def _schedule_suggestions(background: BackgroundTasks, context: TripContext, nov
 
 
 @router.post("/recommend", response_model=RecommendResponse)
-async def recommend(request: TripRequest, background: BackgroundTasks) -> RecommendResponse:
+async def recommend(
+    request: TripRequest,
+    background: BackgroundTasks,
+    quick: bool = False,
+) -> RecommendResponse:
     """Recommend travel gadgets for a trip.
 
     Coordinator-entered gadgets for the destination come first, marked
     verified. On top of those the model is asked for a few fresh items that
     avoid everything already on file, so its suggestions never repeat the
     catalog however large it has grown.
+
+    The model's items for a kind of trip are cached (list_cache.py), so a
+    repeat trip skips the model. With `?quick=1` the model is never called:
+    the answer has the verified items (and cached ones, if any) within a
+    couple of seconds and says `pending` when the full request will add more.
+    The home page sends both and shows whichever it has.
     """
     context = await build_trip_context(request)
 
-    catalog = await _load_catalog(context)
-    context.existing_gadgets = catalog.existing_names
     context.novel_item_count = _novel_count(context)
+    key = list_cache.cache_key(context)
+
+    # Independent lookups, so they wait on the database side by side.
+    catalog, cached = await asyncio.gather(_load_catalog(context), _cached_items(key, count_hit=not quick))
+    context.existing_gadgets = catalog.existing_names
 
     novel: list = []
     live_unavailable = False
+    pending = False
 
+    if cached is not None:
+        # Filtered against today's catalog: an item a coordinator has added
+        # since is not repeated.
+        novel = _novel(cached, context)
+    elif quick:
+        pending = True
+    else:
+        novel, live_unavailable = await _ask_model(context, catalog)
+        if novel:
+            background.add_task(_remember_items, key, novel)
+
+    novel = [_fit_stops(rec, context) for rec in novel]
+    recommendations = catalog.recommendations + novel
+
+    sources = list(context.sources)
+    if catalog.recommendations:
+        sources.append(CATALOG_SOURCE_NAME)
+    if novel:
+        sources.append(CACHE_SOURCE_NAME if cached is not None else LLM_SOURCE_NAME)
+
+    notes = _context_notes(context)
+    notes += _provenance_notes(context, catalog, novel, live_unavailable)
+
+    # The quick answer is a preview of the same list: counted, and its
+    # suggestions saved, by the full request only. Cached items were saved
+    # for review when they were first suggested.
+    if not quick:
+        _record_list(context)
+        if cached is None:
+            _schedule_suggestions(background, context, novel)
+
+    return RecommendResponse(
+        destination=context.trip.destination,
+        duration_days=context.trip.duration_days,
+        recommendations=recommendations,
+        notes=notes,
+        sources=sources,
+        stops=[_stop_summary(stop) for stop in context.stops],
+        pending=pending,
+    )
+
+
+def _record_list(context: TripContext) -> None:
+    # A packing list counts once for each of its trip types and once per
+    # destination.
+    for i, stop in enumerate(context.stops or []):
+        analytics.record_list(stop.name, context.trip.trip_types if i == 0 else None)
+    if not context.stops:
+        analytics.record_list(context.resolved_place or context.trip.destination, context.trip.trip_types)
+
+
+async def _ask_model(context: TripContext, catalog: CatalogMatch) -> tuple[list, bool]:
+    """The model's fresh items, and whether it was unavailable (only
+    tolerated when the catalog has something to show)."""
     # The provider SDKs block, so the call runs on a worker thread; the
     # backstop timeout covers a retry chain or an SDK that stalls before
     # its own timer starts.
@@ -243,37 +323,10 @@ async def recommend(request: TripRequest, background: BackgroundTasks) -> Recomm
                 ) from exc
             raise
 
-        live_unavailable = True
         logger.warning("Serving catalog only; live suggestions failed: %s", exc)
+        return [], True
 
-    novel = [_fit_stops(rec, context) for rec in novel]
-    recommendations = catalog.recommendations + novel
-
-    sources = list(context.sources)
-    if catalog.recommendations:
-        sources.append(CATALOG_SOURCE_NAME)
-    if novel:
-        sources.append(LLM_SOURCE_NAME)
-
-    notes = _context_notes(context)
-    notes += _provenance_notes(context, catalog, novel, live_unavailable)
-
-    # A packing list counts once for each of its trip types and once per
-    # destination.
-    for i, stop in enumerate(context.stops or []):
-        analytics.record_list(stop.name, context.trip.trip_types if i == 0 else None)
-    if not context.stops:
-        analytics.record_list(context.resolved_place or context.trip.destination, context.trip.trip_types)
-    _schedule_suggestions(background, context, novel)
-
-    return RecommendResponse(
-        destination=context.trip.destination,
-        duration_days=context.trip.duration_days,
-        recommendations=recommendations,
-        notes=notes,
-        sources=sources,
-        stops=[_stop_summary(stop) for stop in context.stops],
-    )
+    return novel, False
 
 
 def _fit_stops(rec, context: TripContext):

@@ -179,6 +179,9 @@ async def save_suggestions(sessionmaker, batch: SuggestionBatch) -> list[int]:
                         name=name,
                         slug=await unique_gadget_slug(db, name),
                         category=_tidy(rec.category, 60),
+                        # Usually written by the model in the list itself;
+                        # enrich() only asks separately when it is missing.
+                        description=_tidy(rec.description or "", 600),
                         is_active=False,
                         origin=MODEL,
                         review_status=PENDING,
@@ -299,6 +302,8 @@ async def enrich(sessionmaker, gadget_id: int) -> None:
             if gadget is None:
                 return
             name, category = gadget.name, gadget.category
+            if gadget.description and gadget.category:
+                return  # the list's own reply already filled both in
 
         description, model_category = await _describe(name, category)
         if not description and not model_category:

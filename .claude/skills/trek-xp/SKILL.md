@@ -72,6 +72,14 @@ never return a status code or leak provider/SQL detail from a service.
   **division**, country-scoped), then asks the model for exactly five items not
   already on file — enforced again in code (`_novel`), never trusted to the
   prompt. Verified items lead the list with `origin="community"`, `verified=True`.
+- **Lists are fast by design.** The model's items per kind of trip are
+  cached in `model_list_cache` (`services/gadgets/list_cache.py`; key =
+  places, month, trip types, activities, party, `PROMPT_VERSION` -- bump it
+  when the prompt or reply format changes), filtered against today's
+  catalog on the way out. `/recommend?quick=1` never calls the model
+  (verified + cached items, `pending: true` if more will come); the home
+  page sends quick and full together and shows whichever it has. One model
+  call per list: each item's catalog `description` comes in the same reply.
 - **Degrade and say so.** Only location and model are hard dependencies.
   Climate, plugs, catalog fail soft and add a note. Model down + catalog items
   → catalog-only answer, not a 503. `sources` credits only what contributed.
@@ -226,7 +234,7 @@ drift. Add tests next to the feature (`test_gadget_pages.py`, `test_slug.py`,
 
 ## Not built yet
 
-Deployment (Procfile, CORS lockdown, prod secrets), response caching,
+Deployment (Procfile, CORS lockdown, prod secrets),
 deterministic guardrails (drone / power-bank rules as data), reviews backend
 ("Share experience" is a stub), self-service sign-up (accounts are by
 invitation), consent-based Facebook contributor channel.

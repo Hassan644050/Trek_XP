@@ -17,6 +17,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.models.recommendation import Priority
@@ -377,3 +378,23 @@ class DistinctGadgetPair(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class ModelListCache(Base):
+    """The model's fresh suggestions for one kind of trip, kept so the next
+    traveller planning the same trip gets them without waiting on the model.
+
+    `key` is a hash of what shapes the answer (places, month, trip types,
+    activities, party, prompt version) -- see services/gadgets/list_cache.py.
+    `hit_count` doubles as a signal for which trips coordinators should
+    curate first."""
+
+    __tablename__ = "model_list_cache"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    items: Mapped[list] = mapped_column(JSONB)
+    hit_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_hit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

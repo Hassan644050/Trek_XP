@@ -7,6 +7,7 @@ MAX_ITEMS = 8
 # Cards are image-led, so the reason is read as a caption rather than a
 # paragraph. Shorter also means fewer output tokens, which dominate cost.
 MAX_WHY_WORDS = 18
+MAX_DESCRIPTION_WORDS = 25
 
 
 def _place_label(context: TripContext) -> str:
@@ -178,10 +179,12 @@ INSTRUCTIONS
 - If a plug type is given, include the correct travel adapter and name the type.
 - "why" must be at most {MAX_WHY_WORDS} words, specific to this trip rather
   than generic advice. No preamble, no restating the gadget name.
-- priority must be exactly one of: essential, recommended, optional.{_gender_instruction(context)}{_stops_instruction(context)}
+- priority must be exactly one of: essential, recommended, optional.
+- "description" is one plain sentence of at most {MAX_DESCRIPTION_WORDS} words: what the
+  item is and what to look for when buying one for travel. Not trip-specific.{_gender_instruction(context)}{_stops_instruction(context)}
 
 Respond with JSON only: a single array, no prose and no markdown fences.
 [
-  {{"gadget": "...", "why": "...", "priority": "essential", "category": "..."{', "for": []' if _multi(context) else ''}}}
+  {{"gadget": "...", "why": "...", "priority": "essential", "category": "...", "description": "..."{', "for": []' if _multi(context) else ''}}}
 ]
 """
