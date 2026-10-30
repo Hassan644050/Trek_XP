@@ -127,3 +127,55 @@ def test_the_renderer_copes_with_long_names_and_empty_lists():
     for card in (long, Card(places="Jaflong")):
         image = Image.open(io.BytesIO(render(card)))
         assert image.size == (WIDTH, HEIGHT)
+
+
+def test_photos_are_drawn_and_a_broken_one_costs_only_the_picture():
+    import io
+
+    from PIL import Image
+
+    from app.services.share_card import Card, CardItem, render
+
+    photo = io.BytesIO()
+    Image.new("RGB", (144, 144), "orange").save(photo, format="WEBP")
+    card = Card(places="Jaflong", items=[CardItem("Headlamp", "essential", image=photo.getvalue()),
+                                         CardItem("Dry Bag", "recommended", image=b"not an image")], total=2)
+    assert Image.open(io.BytesIO(render(card))).size == (1200, 630)
+
+
+def test_cards_show_photo_gadgets_first_within_a_priority():
+    from app.services.share_card import CardItem, order_items
+
+    items = [CardItem("No Photo", "essential"), CardItem("Optional", "optional", image_key="k1"),
+             CardItem("Photo", "essential", image_key="k2")]
+    assert [i.name for i in order_items(items)] == ["Photo", "No Photo", "Optional"]
+
+
+def test_the_photos_storage_key_never_reaches_clients():
+    from app.models.recommendation import Recommendation
+
+    rec = Recommendation(gadget="Headlamp", why="x", image_key="gadgets/abc.webp")
+    assert rec.image_key == "gadgets/abc.webp"
+    assert "image_key" not in rec.model_dump() and "image_key" not in rec.model_dump_json()
+
+
+def test_thumbnails_are_read_from_storage(monkeypatch):
+    import asyncio
+
+    from app.services.share_card import CardItem
+
+    reads = []
+
+    class Storage:
+        def read(self, key):
+            reads.append(key)
+            if "bad" in key:
+                raise OSError("gone")
+            return b"bytes"
+
+    monkeypatch.setattr(home, "get_image_storage", lambda: Storage())
+    items = [CardItem("A", image_key="gadgets/a.webp"), CardItem("B", image_key="gadgets/bad.webp"), CardItem("C")]
+    asyncio.run(home._load_thumbnails(items))
+
+    assert sorted(reads) == ["gadgets/a_thumb.webp", "gadgets/bad_thumb.webp"]
+    assert [i.image for i in items] == [b"bytes", None, None]

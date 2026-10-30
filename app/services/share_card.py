@@ -47,6 +47,14 @@ PAD = 48
 class CardItem:
     name: str
     priority: str = "recommended"
+    image: bytes | None = None   # the gadget's thumbnail, when it has a photo
+    image_key: str | None = None  # where to load it from (routes/home.py)
+
+
+def order_items(items: list[CardItem]) -> list[CardItem]:
+    """The rows the card shows: essentials first, and within a priority the
+    ones with a photo, which make the card worth a look."""
+    return sorted(items, key=lambda i: (_RANK.get(i.priority, 1), i.image_key is None and i.image is None))[:MAX_ROWS]
 
 
 @dataclass
@@ -117,6 +125,46 @@ def _title(draw, text: str, max_width: float) -> tuple[list[str], ImageFont.Free
     return [_ellipsize(draw, line, font, max_width) for line in lines], font
 
 
+COLUMNS, GAP = 3, 18
+TILE_H = 204       # a gadget's tile: picture, then its name
+PICTURE_H = 150
+
+
+def _tile(img: Image.Image, draw, item: CardItem, at: tuple[int, int], width: int) -> None:
+    """One gadget: its photo on white, fitted whole (object-fit: contain, as
+    on the site) -- or, without one, its initial on the priority's colour --
+    with a priority stripe on top and the name underneath."""
+    x, y = at
+    colour, wash = PRIORITY.get(item.priority, PRIORITY["recommended"])
+    photo = None
+    if item.image:
+        try:
+            photo = Image.open(io.BytesIO(item.image)).convert("RGBA")
+        except Exception:
+            photo = None  # an unreadable file costs the picture, not the card
+
+    box = [x, y, x + width - 1, y + PICTURE_H - 1]
+    if photo is not None:
+        draw.rectangle(box, fill="white", outline=LINE, width=2)
+        photo.thumbnail((width - 24, PICTURE_H - 24), Image.LANCZOS)
+        img.paste(photo, (x + (width - photo.width) // 2, y + (PICTURE_H - photo.height) // 2), photo)
+    else:
+        draw.rectangle(box, fill=wash)
+        initial = (item.name.strip()[:1] or "?").upper()
+        draw.text((x + width / 2, y + PICTURE_H / 2), initial, font=sans(72, 900), fill=colour, anchor="mm")
+    draw.rectangle([x, y, x + width - 1, y + 5], fill=colour)
+
+    name_font = sans(22, 800)
+    lines = _wrap(draw, item.name, name_font, width, 2)
+    if lines is None:
+        first = _wrap(draw, item.name, name_font, width, 99) or [item.name]
+        lines = [_ellipsize(draw, first[0], name_font, width)]
+        if len(first) > 1:
+            lines.append(_ellipsize(draw, " ".join(first[1:]), name_font, width))
+    for n, line in enumerate(lines[:2]):
+        draw.text((x, y + PICTURE_H + 10 + n * 26), line, font=name_font, fill=INK)
+
+
 def render(card: Card) -> bytes:
     img = Image.new("RGB", (WIDTH, HEIGHT), SURFACE)
     draw = ImageDraw.Draw(img)
@@ -157,30 +205,23 @@ def render(card: Card) -> bytes:
     if card.total:
         count = f"{card.total} ITEM{'S' if card.total != 1 else ''}"
         draw.text((x1, y), count, font=mono(18, 700), fill=INK_FAINT, anchor="ra")
-    y += 44
+    y += 40
 
-    items = sorted(card.items, key=lambda i: _RANK.get(i.priority, 1))[:MAX_ROWS]
+    items = order_items(card.items)
     if not items:
         message = "Gadgets for this trip, checked against the weather, plugs and voltage there."
         for line in _wrap(draw, message, sans(34, 800), x1 - x0, 4) or [message]:
             draw.text((x0, y + 20), line, font=sans(34, 800), fill=INK)
             y += 46
 
-    row_h = 66
-    for item in items:
-        colour, wash = PRIORITY.get(item.priority, PRIORITY["recommended"])
-        label = item.priority.upper()
-        label_font = mono(14, 700)
-        label_w = _width(draw, label, label_font) + 20
-        mid = y + row_h // 2
-        draw.rectangle([x0, mid - 8, x0 + 16, mid + 8], fill=colour)
-        name_font = sans(30, 800)
-        name = _ellipsize(draw, item.name, name_font, x1 - x0 - 34 - label_w - 16)
-        draw.text((x0 + 34, mid), name, font=name_font, fill=INK, anchor="lm")
-        draw.rectangle([x1 - label_w, mid - 14, x1, mid + 14], fill=wash)
-        draw.text((x1 - label_w / 2, mid), label, font=label_font, fill=colour, anchor="mm")
-        y += row_h
-        draw.line([x0, y, x1, y], fill=LINE, width=2)
+    # Three across, two down. Chat apps show this card at a quarter of its
+    # size on a phone, so big pictures carry it; the names are for the
+    # larger Facebook view.
+    tile_w = (x1 - x0 - (COLUMNS - 1) * GAP) // COLUMNS
+    for i, item in enumerate(items):
+        col, row = i % COLUMNS, i // COLUMNS
+        tx, ty = x0 + col * (tile_w + GAP), y + row * (TILE_H + GAP)
+        _tile(img, draw, item, (tx, ty), tile_w)
 
     # ---- footer: the invitation to tap ----
     fy = HEIGHT - PAD - 10

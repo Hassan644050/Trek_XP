@@ -218,6 +218,7 @@ def _to_recommendation(placement) -> Recommendation:
         priority=placement.priority,
         category=placement.gadget.category,
         image_url=_image_url(placement.gadget.image_key),
+        image_key=placement.gadget.image_key,
         page_url=f"/gadget/{placement.gadget.slug}" if placement.gadget.slug else None,
         # A coordinator entered and vouched for this; say so.
         origin=Origin.COMMUNITY,

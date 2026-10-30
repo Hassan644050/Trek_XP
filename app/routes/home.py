@@ -36,7 +36,9 @@ from fastapi.responses import HTMLResponse, Response
 from app.models.trip import MAX_TRIP_TYPES, TripRequest
 from app.routes.destinations import featured, form_options
 from app.routes.recommend import recommend
-from app.services.share_card import HEIGHT, WIDTH, Card, CardItem, render
+from app.services.media.storage import get_image_storage, variant_key
+from app.services.media.variants import THUMB
+from app.services.share_card import HEIGHT, WIDTH, Card, CardItem, order_items, render
 
 
 logger = logging.getLogger(__name__)
@@ -250,6 +252,20 @@ def _conditions(answer) -> list[str]:
     return lines
 
 
+async def _load_thumbnails(items: list[CardItem]) -> None:
+    """Read the shown gadgets' thumbnails, side by side. A photo that cannot
+    be read is just left out -- the row shows the gadget's initial."""
+    storage = get_image_storage()
+
+    async def load(item: CardItem) -> None:
+        try:
+            item.image = await asyncio.to_thread(storage.read, variant_key(item.image_key, THUMB.name))
+        except Exception:
+            logger.warning("Share card: no thumbnail for %r", item.name, exc_info=True)
+
+    await asyncio.gather(*(load(i) for i in items if i.image_key))
+
+
 async def _card_for(trip: SharedTrip | None) -> tuple[Card, bool]:
     """The card, and whether it is complete (its gadget list loaded)."""
     if trip is None:
@@ -266,8 +282,10 @@ async def _card_for(trip: SharedTrip | None) -> tuple[Card, bool]:
     # trip, and a crawler never gets an error.
     try:
         answer = await recommend(_trip_request(trip), BackgroundTasks(), quick=True)
-        card.items = [CardItem(r.gadget, r.priority.value) for r in answer.recommendations]
-        card.total = len(answer.recommendations)
+        items = [CardItem(r.gadget, r.priority.value, image_key=r.image_key) for r in answer.recommendations]
+        card.items = order_items(items)
+        card.total = len(items)
+        await _load_thumbnails(card.items)
         card.conditions = _conditions(answer)
     except Exception:
         logger.warning("Share card: could not load the list", exc_info=True)

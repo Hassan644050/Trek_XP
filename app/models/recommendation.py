@@ -38,6 +38,9 @@ class Recommendation(BaseModel):
     image_url: str | None = None
     # Link to the gadget's public detail page, for catalog items only.
     page_url: str | None = None
+    # The photo's storage key, for the server's own use (the share card
+    # draws the thumbnail). Never sent to clients.
+    image_key: str | None = Field(default=None, exclude=True)
     warnings: list[str] = Field(default_factory=list)
     # On a multi-stop trip, the stops this item is for. Empty means the
     # whole trip (and always, for a single-destination trip).

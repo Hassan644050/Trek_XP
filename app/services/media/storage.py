@@ -65,8 +65,9 @@ class ImageStorage(ABC):
     def read(self, key: str) -> bytes | None:
         """The stored bytes, or None if the key holds nothing.
 
-        Only the full rendition is ever read back, and only to derive the
-        smaller ones from it -- which is what keeping a full copy is for.
+        The full rendition is read back to derive the smaller ones from it
+        (which is what keeping a full copy is for), and thumbnails to draw
+        the share card (routes/home.py).
         """
 
     @abstractmethod
